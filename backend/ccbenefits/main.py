@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .database import Base, SessionLocal, engine
-from .routers import auth, card_templates, usage, user_cards
+from .routers import auth, card_templates, usage, user_cards, users
 from .seed import seed_data
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
@@ -39,6 +39,7 @@ app.include_router(auth.router)
 app.include_router(card_templates.router)
 app.include_router(user_cards.router)
 app.include_router(usage.router)
+app.include_router(users.router)
 
 
 @app.get("/api/health")
