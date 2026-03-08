@@ -6,6 +6,9 @@ on:
   push:
     branches: [master]
 
+permissions:
+  contents: write
+
 jobs:
   backend-tests:
     name: Backend Tests
@@ -29,6 +32,36 @@ jobs:
 
       - name: Run tests with coverage
         run: poetry run pytest -v
+
+      - name: Extract coverage percentage
+        if: success()
+        id: coverage
+        run: |
+          COV=$(poetry run coverage report --format=total)
+          echo "total=$COV" >> $GITHUB_OUTPUT
+
+      - name: Generate coverage badge
+        if: github.ref == 'refs/heads/master' && success()
+        run: |
+          COV=${{ steps.coverage.outputs.total }}
+          if [ "$COV" -ge 90 ]; then COLOR="brightgreen";
+          elif [ "$COV" -ge 80 ]; then COLOR="green";
+          elif [ "$COV" -ge 70 ]; then COLOR="yellowgreen";
+          elif [ "$COV" -ge 60 ]; then COLOR="yellow";
+          else COLOR="red"; fi
+          mkdir -p ../badges
+          curl -s "https://img.shields.io/badge/coverage-${COV}%25-${COLOR}" > ../badges/coverage.svg
+
+      - name: Commit coverage badge
+        if: github.ref == 'refs/heads/master' && success()
+        working-directory: .
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add badges/coverage.svg
+          git diff --cached --quiet && exit 0
+          git commit -m "Update coverage badge [skip ci]"
+          git push
 
       - name: Upload coverage report
         if: always()
