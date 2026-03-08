@@ -40,35 +40,15 @@ jobs:
           COV=$(poetry run coverage report --format=total)
           echo "total=$COV" >> $GITHUB_OUTPUT
 
-      - name: Generate coverage badge
-        if: github.ref == 'refs/heads/master' && success()
-        run: |
-          COV=${{ steps.coverage.outputs.total }}
-          if [ "$COV" -ge 90 ]; then COLOR="brightgreen";
-          elif [ "$COV" -ge 80 ]; then COLOR="green";
-          elif [ "$COV" -ge 70 ]; then COLOR="yellowgreen";
-          elif [ "$COV" -ge 60 ]; then COLOR="yellow";
-          else COLOR="red"; fi
-          mkdir -p ../badges
-          curl -s "https://img.shields.io/badge/coverage-${COV}%25-${COLOR}" > ../badges/coverage.svg
-
-      - name: Commit coverage badge
-        if: github.ref == 'refs/heads/master' && success()
-        working-directory: .
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add badges/coverage.svg
-          git diff --cached --quiet && exit 0
-          git commit -m "Update coverage badge [skip ci]"
-          git push
-
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: backend/htmlcov/
+
+    outputs:
+      backend-coverage: ${{ steps.coverage.outputs.total }}
 
   frontend-build:
     name: Frontend Build
@@ -91,7 +71,11 @@ jobs:
         run: npm run build
 
       - name: Run tests with coverage
-        run: npm test
+        id: coverage
+        run: |
+          npm test 2>&1 | tee test-output.txt
+          COV=$(grep 'Statements' test-output.txt | grep -oE '[0-9]+\.[0-9]+' | head -1)
+          echo "total=${COV%.*}" >> $GITHUB_OUTPUT
 
       - name: Upload frontend coverage report
         if: always()
@@ -103,3 +87,44 @@ jobs:
       - name: Lint
         run: npm run lint
         continue-on-error: true
+
+    outputs:
+      frontend-coverage: ${{ steps.coverage.outputs.total }}
+
+  update-badges:
+    name: Update Coverage Badges
+    needs: [backend-tests, frontend-build]
+    if: github.ref == 'refs/heads/master' && success()
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate badges
+        run: |
+          mkdir -p badges
+
+          BE=${{ needs.backend-tests.outputs.backend-coverage }}
+          if [ "$BE" -ge 90 ]; then BE_COLOR="brightgreen";
+          elif [ "$BE" -ge 80 ]; then BE_COLOR="green";
+          elif [ "$BE" -ge 70 ]; then BE_COLOR="yellowgreen";
+          elif [ "$BE" -ge 60 ]; then BE_COLOR="yellow";
+          else BE_COLOR="red"; fi
+          curl -s "https://img.shields.io/badge/backend-${BE}%25-${BE_COLOR}" > badges/backend-coverage.svg
+
+          FE=${{ needs.frontend-build.outputs.frontend-coverage }}
+          if [ "$FE" -ge 90 ]; then FE_COLOR="brightgreen";
+          elif [ "$FE" -ge 80 ]; then FE_COLOR="green";
+          elif [ "$FE" -ge 70 ]; then FE_COLOR="yellowgreen";
+          elif [ "$FE" -ge 60 ]; then FE_COLOR="yellow";
+          else FE_COLOR="red"; fi
+          curl -s "https://img.shields.io/badge/frontend-${FE}%25-${FE_COLOR}" > badges/frontend-coverage.svg
+
+      - name: Commit badges
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add badges/
+          git diff --cached --quiet && exit 0
+          git commit -m "Update coverage badges [skip ci]"
+          git push

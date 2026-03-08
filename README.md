@@ -1,7 +1,8 @@
 # CCBenefits
 
 [![CI](https://github.com/anik-apps/CCBenefits/actions/workflows/ci.yml/badge.svg)](https://github.com/anik-apps/CCBenefits/actions/workflows/ci.yml)
-![Coverage](https://raw.githubusercontent.com/anik-apps/CCBenefits/master/badges/coverage.svg)
+![Backend Coverage](https://raw.githubusercontent.com/anik-apps/CCBenefits/master/badges/backend-coverage.svg)
+![Frontend Coverage](https://raw.githubusercontent.com/anik-apps/CCBenefits/master/badges/frontend-coverage.svg)
 [![Docs](https://github.com/anik-apps/CCBenefits/actions/workflows/docs.yml/badge.svg)](https://anik-apps.github.io/CCBenefits/)
 
 Track utilization of credit card benefits (monthly, quarterly, semiannual, annual) across multiple cards. See how much value you're actually getting vs. the annual fee.
