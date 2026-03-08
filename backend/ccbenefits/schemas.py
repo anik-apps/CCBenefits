@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 # --- Card Template schemas ---
@@ -165,3 +165,65 @@ class UserCardSummaryOut(BaseModel):
     utilization_pct: float
     benefit_count: int
     benefits_used_count: int
+
+
+# --- Auth schemas ---
+
+
+class UserRegister(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=72)  # bcrypt truncates at 72 bytes
+    display_name: str = Field(min_length=1)
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class PasswordResetRequest(BaseModel):
+    email: str  # Intentionally not EmailStr — endpoint always returns 200 to prevent email enumeration
+
+
+class PasswordReset(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8, max_length=72)
+
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8, max_length=72)
+
+
+class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: str
+    display_name: str
+    preferred_currency: str
+    timezone: str
+    notification_preferences: dict | None
+    is_active: bool
+    created_at: datetime
+
+
+class UserUpdate(BaseModel):
+    display_name: str | None = None
+    preferred_currency: str | None = None
+    timezone: str | None = None
+    notification_preferences: dict | None = None
+
+
+class AuthResponse(TokenResponse):
+    user: UserOut

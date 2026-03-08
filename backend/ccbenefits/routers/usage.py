@@ -2,17 +2,31 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import BenefitTemplate, BenefitUsage, RedemptionType
+from ..dependencies import get_current_user
+from ..models import BenefitTemplate, BenefitUsage, RedemptionType, User
 from ..schemas import BenefitUsageOut, BenefitUsageUpdate
 
 router = APIRouter(prefix="/api/usage", tags=["usage"])
 
 
+def _verify_usage_ownership(usage: BenefitUsage, current_user: User) -> None:
+    """Verify the usage record belongs to the current user via UserCard relationship."""
+    if not usage.user_card or usage.user_card.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Usage record not found")
+
+
 @router.put("/{usage_id}", response_model=BenefitUsageOut)
-def update_usage(usage_id: int, data: BenefitUsageUpdate, db: Session = Depends(get_db)):
+def update_usage(
+    usage_id: int,
+    data: BenefitUsageUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     usage = db.query(BenefitUsage).filter(BenefitUsage.id == usage_id).first()
     if not usage:
         raise HTTPException(status_code=404, detail="Usage record not found")
+
+    _verify_usage_ownership(usage, current_user)
 
     benefit = db.query(BenefitTemplate).filter(BenefitTemplate.id == usage.benefit_template_id).first()
 
@@ -46,9 +60,14 @@ def update_usage(usage_id: int, data: BenefitUsageUpdate, db: Session = Depends(
 
 
 @router.delete("/{usage_id}", status_code=204)
-def delete_usage(usage_id: int, db: Session = Depends(get_db)):
+def delete_usage(
+    usage_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     usage = db.query(BenefitUsage).filter(BenefitUsage.id == usage_id).first()
     if not usage:
         raise HTTPException(status_code=404, detail="Usage record not found")
+    _verify_usage_ownership(usage, current_user)
     db.delete(usage)
     db.commit()

@@ -9,6 +9,7 @@ __pycache__/
 # Node
 node_modules/
 frontend/dist/
+frontend/.vite/
 
 # IDE
 .vscode/
@@ -28,6 +29,7 @@ package-lock.json
 
 # Docs build
 docs/_build/
+docs/plans/
 
 # Coverage
 htmlcov/

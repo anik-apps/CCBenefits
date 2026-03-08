@@ -4,8 +4,10 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from ccbenefits.auth import create_access_token, hash_password
 from ccbenefits.database import Base, get_db
 from ccbenefits.main import app
+from ccbenefits.models import User
 from ccbenefits.seed import seed_data
 
 
@@ -40,3 +42,22 @@ def client(db_session):
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
+
+
+@pytest.fixture()
+def test_user(db_session):
+    user = User(
+        email="testuser@example.com",
+        display_name="Test User",
+        hashed_password=hash_password("testpass123"),
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture()
+def auth_header(test_user):
+    token = create_access_token(subject=str(test_user.id))
+    return {"Authorization": f"Bearer {token}"}

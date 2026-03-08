@@ -20,6 +20,14 @@ Backend Setup
 The backend runs on ``http://localhost:8000``. On first startup, it creates the
 SQLite database and seeds card templates.
 
+For production, set environment variables:
+
+.. code-block:: bash
+
+   export CCB_SECRET_KEY="your-secret-key-here"
+   export CCB_ENV="production"
+   export CCB_ALLOWED_ORIGINS="https://yourdomain.com"
+
 Frontend Setup
 --------------
 
@@ -45,7 +53,12 @@ Running Tests
 
 .. code-block:: bash
 
+   # Backend (79 tests, 95% coverage)
    cd backend
    poetry run pytest -v
 
-Tests include coverage reporting with an 80% minimum threshold.
+   # Frontend (52 tests)
+   cd frontend
+   npm test -- --run
+
+Backend tests include coverage reporting with an 80% minimum threshold.

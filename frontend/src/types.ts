@@ -98,3 +98,27 @@ export interface UserCardSummary {
   benefit_count: number;
   benefits_used_count: number;
 }
+
+export interface User {
+  id: number;
+  email: string;
+  display_name: string;
+  preferred_currency: string;
+  timezone: string;
+  notification_preferences: Record<string, unknown> | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+}

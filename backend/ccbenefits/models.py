@@ -1,7 +1,9 @@
 import enum
-from datetime import date, datetime, timezone
+from datetime import date, datetime
+from datetime import timezone as dt_timezone
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     Date,
     DateTime,
@@ -26,6 +28,32 @@ class PeriodType(str, enum.Enum):
 class RedemptionType(str, enum.Enum):
     binary = "binary"
     continuous = "continuous"
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    display_name: Mapped[str] = mapped_column(String, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String, nullable=False)
+    preferred_currency: Mapped[str] = mapped_column(String, default="USD", nullable=False)
+    timezone: Mapped[str] = mapped_column(String, default="UTC", nullable=False)
+    notification_preferences: Mapped[dict | None] = mapped_column(JSON, default=dict)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    password_reset_token: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    password_reset_expires: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(dt_timezone.utc), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(dt_timezone.utc),
+        onupdate=lambda: datetime.now(dt_timezone.utc),
+        nullable=False,
+    )
+
+    cards: Mapped[list["UserCard"]] = relationship(back_populates="user")
 
 
 class CardTemplate(Base):
@@ -66,6 +94,9 @@ class UserCard(Base):
     __tablename__ = "user_cards"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     card_template_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("card_templates.id"), nullable=False
     )
@@ -73,9 +104,10 @@ class UserCard(Base):
     member_since_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+        DateTime, default=lambda: datetime.now(dt_timezone.utc), nullable=False
     )
 
+    user: Mapped["User"] = relationship(back_populates="cards")
     card_template: Mapped["CardTemplate"] = relationship(back_populates="user_cards")
     usages: Mapped[list["BenefitUsage"]] = relationship(
         back_populates="user_card", cascade="all, delete-orphan"
@@ -120,7 +152,7 @@ class BenefitUsage(Base):
     amount_used: Mapped[float] = mapped_column(Float, nullable=False)
     notes: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+        DateTime, default=lambda: datetime.now(dt_timezone.utc), nullable=False
     )
 
     user_card: Mapped["UserCard"] = relationship(back_populates="usages")
