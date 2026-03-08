@@ -35,6 +35,7 @@ frontend/coverage/
 # Env
 .env
 .env.*
+!.env.example
 
 # Claude
 .claude/
