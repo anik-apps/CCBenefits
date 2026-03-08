@@ -1,12 +1,12 @@
-import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from .config import ALLOWED_ORIGINS
 from .database import Base, SessionLocal, engine
 from .routers import auth, card_templates, usage, user_cards, users
 from .seed import seed_data
@@ -29,7 +29,7 @@ app = FastAPI(title="CCBenefits", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,10 +51,9 @@ def health_check():
 if FRONTEND_DIR.exists():
     app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
 
-    # Serve index.html for SPA routes (exclude /api paths)
-    @app.get("/")
-    @app.get("/credits")
-    @app.get("/add-card")
-    @app.get("/card/{card_id:path}")
-    async def serve_frontend(card_id: str = ""):
+    # Catch-all: serve index.html for all non-API routes (SPA routing)
+    @app.api_route("/{path:path}", methods=["GET"], include_in_schema=False)
+    async def serve_frontend(path: str = ""):
+        if path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not found")
         return FileResponse(FRONTEND_DIR / "index.html")
