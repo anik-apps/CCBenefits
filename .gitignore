@@ -29,6 +29,7 @@ package-lock.json
 
 # Docs build
 docs/_build/
+docs/plans/
 
 # Coverage
 htmlcov/
