@@ -12,7 +12,7 @@ class ConsoleEmailSender:
     """Logs reset emails to console. Replace with real sender in production."""
 
     def send_reset_email(self, to: str, token: str) -> None:
-        logger.info(f"Password reset requested for {to}. Token: {token}")
+        logger.info(f"Password reset requested for {to}. Token: {token[:8]}...")
 
 
 _sender: EmailSender = ConsoleEmailSender()

@@ -19,9 +19,13 @@ if not SECRET_KEY:
     SECRET_KEY = "dev-secret-key-do-not-use-in-production"
     warnings.warn(
         "CCB_SECRET_KEY not set — using insecure default. Set it for production!",
-        stacklevel=1,
+        stacklevel=2,
     )
 
-ALLOWED_ORIGINS = os.environ.get(
-    "CCB_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8000"
-).split(",")
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        "CCB_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8000"
+    ).split(",")
+    if origin.strip()
+]
