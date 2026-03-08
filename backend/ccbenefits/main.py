@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -7,21 +8,16 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import ALLOWED_ORIGINS
-from .database import Base, SessionLocal, engine
 from .routers import auth, card_templates, usage, user_cards, users
-from .seed import seed_data
 
-FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+FRONTEND_DIR = Path(os.environ.get(
+    "FRONTEND_DIST_DIR",
+    str(Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"),
+))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
-    try:
-        seed_data(db)
-    finally:
-        db.close()
     yield
 
 
