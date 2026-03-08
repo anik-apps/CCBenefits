@@ -14,4 +14,4 @@ try:
 finally:
     db.close()
 print('DB initialized and seeded.')
-"
+" || { echo "ERROR: prestart.sh failed — check DATABASE_URL and Postgres credentials"; exit 1; }

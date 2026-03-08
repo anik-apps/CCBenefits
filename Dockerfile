@@ -32,8 +32,8 @@ RUN chmod +x prestart.sh
 # Copy built frontend from stage 1
 COPY --from=frontend-build /build/dist ./frontend/dist
 
-# Install the project package itself
-RUN poetry install --no-interaction --only main
+# Install the project package itself (deps already installed above)
+RUN poetry install --no-interaction --only main --no-deps
 
 ENV FRONTEND_DIST_DIR=/app/frontend/dist
 EXPOSE 80

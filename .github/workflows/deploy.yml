@@ -57,13 +57,15 @@ jobs:
           host: ${{ secrets.ORACLE_VM_IP }}
           username: ${{ secrets.ORACLE_SSH_USER }}
           key: ${{ secrets.ORACLE_SSH_KEY }}
-          envs: GHCR_TOKEN
+          envs: GHCR_TOKEN,GHCR_USER
           script: |
             cd ~/ccbenefits
-            echo "$GHCR_TOKEN" | docker login ghcr.io --username ${{ github.actor }} --password-stdin
+            echo "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USER" --password-stdin
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
-            sleep 5
-            curl -f http://localhost/api/health || (docker compose -f docker-compose.prod.yml logs app --tail 50 && exit 1)
+            # Health check with retry
+            for i in $(seq 1 10); do curl -sf http://localhost/api/health && exit 0; sleep 3; done
+            echo "Health check failed"; docker compose -f docker-compose.prod.yml logs app --tail 50; exit 1
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
