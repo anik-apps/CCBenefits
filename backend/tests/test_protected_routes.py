@@ -103,6 +103,54 @@ def test_user_cannot_delete_other_users_card(client):
     assert resp2.status_code == 404
 
 
+# --- Cross-user usage ownership ---
+
+def test_user_cannot_update_other_users_usage(client):
+    h1 = _auth(client, "user1@test.com")
+    h2 = _auth(client, "user2@test.com")
+
+    # User 1 creates card and logs usage
+    resp = client.post("/api/user-cards/", json={"card_template_id": 1}, headers=h1)
+    card_id = resp.json()["id"]
+
+    # Get a valid benefit ID
+    templates = client.get("/api/card-templates/1").json()
+    benefit_id = templates["benefits"][0]["id"]
+
+    resp = client.post(
+        f"/api/user-cards/{card_id}/usage",
+        json={"benefit_template_id": benefit_id, "amount_used": 5.0},
+        headers=h1,
+    )
+    usage_id = resp.json()["id"]
+
+    # User 2 cannot update user 1's usage
+    resp2 = client.put(f"/api/usage/{usage_id}", json={"amount_used": 10.0}, headers=h2)
+    assert resp2.status_code == 404
+
+
+def test_user_cannot_delete_other_users_usage(client):
+    h1 = _auth(client, "user1@test.com")
+    h2 = _auth(client, "user2@test.com")
+
+    resp = client.post("/api/user-cards/", json={"card_template_id": 1}, headers=h1)
+    card_id = resp.json()["id"]
+
+    templates = client.get("/api/card-templates/1").json()
+    benefit_id = templates["benefits"][0]["id"]
+
+    resp = client.post(
+        f"/api/user-cards/{card_id}/usage",
+        json={"benefit_template_id": benefit_id, "amount_used": 5.0},
+        headers=h1,
+    )
+    usage_id = resp.json()["id"]
+
+    # User 2 cannot delete user 1's usage
+    resp2 = client.delete(f"/api/usage/{usage_id}", headers=h2)
+    assert resp2.status_code == 404
+
+
 # --- Card templates stay public ---
 
 def test_card_templates_public(client):

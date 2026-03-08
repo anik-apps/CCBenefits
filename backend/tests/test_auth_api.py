@@ -126,3 +126,84 @@ def test_password_reset_request(client):
     })
     # Always 200 (don't reveal if email exists)
     assert resp.status_code == 200
+
+
+def test_password_reset_request_nonexistent_email(client):
+    resp = client.post("/api/auth/password-reset-request", json={
+        "email": "nobody@test.com",
+    })
+    # Still 200 — no enumeration
+    assert resp.status_code == 200
+
+
+def test_password_reset_end_to_end(client, db_session):
+    from ccbenefits.auth import create_password_reset_token, hash_reset_token
+    from ccbenefits.models import User
+    from datetime import datetime, timedelta
+    from datetime import timezone as dt_timezone
+
+    # Register a user
+    client.post("/api/auth/register", json={
+        "email": "resetflow@test.com", "password": "password123", "display_name": "R",
+    })
+
+    # Simulate password reset request by setting token directly
+    user = db_session.query(User).filter(User.email == "resetflow@test.com").first()
+    raw_token = create_password_reset_token()
+    user.password_reset_token = hash_reset_token(raw_token)
+    user.password_reset_expires = datetime.utcnow() + timedelta(hours=1)
+    db_session.commit()
+
+    # Reset password with valid token
+    resp = client.post("/api/auth/password-reset", json={
+        "token": raw_token, "new_password": "newpassword456",
+    })
+    assert resp.status_code == 200
+
+    # Login with new password
+    resp2 = client.post("/api/auth/login", json={
+        "email": "resetflow@test.com", "password": "newpassword456",
+    })
+    assert resp2.status_code == 200
+
+    # Old password no longer works
+    resp3 = client.post("/api/auth/login", json={
+        "email": "resetflow@test.com", "password": "password123",
+    })
+    assert resp3.status_code == 401
+
+
+def test_password_reset_invalid_token(client):
+    resp = client.post("/api/auth/password-reset", json={
+        "token": "invalid-token-here", "new_password": "newpassword456",
+    })
+    assert resp.status_code == 400
+
+
+def test_password_reset_token_single_use(client, db_session):
+    from ccbenefits.auth import create_password_reset_token, hash_reset_token
+    from ccbenefits.models import User
+    from datetime import datetime, timedelta
+    from datetime import timezone as dt_timezone
+
+    client.post("/api/auth/register", json={
+        "email": "singleuse@test.com", "password": "password123", "display_name": "S",
+    })
+
+    user = db_session.query(User).filter(User.email == "singleuse@test.com").first()
+    raw_token = create_password_reset_token()
+    user.password_reset_token = hash_reset_token(raw_token)
+    user.password_reset_expires = datetime.utcnow() + timedelta(hours=1)
+    db_session.commit()
+
+    # First use succeeds
+    resp = client.post("/api/auth/password-reset", json={
+        "token": raw_token, "new_password": "newpass111111",
+    })
+    assert resp.status_code == 200
+
+    # Second use fails (token cleared)
+    resp2 = client.post("/api/auth/password-reset", json={
+        "token": raw_token, "new_password": "newpass222222",
+    })
+    assert resp2.status_code == 400

@@ -89,8 +89,8 @@ function App() {
 
       <main style={{ flex: 1, padding: isAuthPage ? '0' : '20px', maxWidth: isAuthPage ? 'none' : 960, width: '100%', margin: '0 auto' }}>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+          <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/credits" element={<ProtectedRoute><AllCredits /></ProtectedRoute>} />
           <Route path="/add-card" element={<ProtectedRoute><AddCard /></ProtectedRoute>} />

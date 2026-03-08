@@ -52,6 +52,8 @@ if FRONTEND_DIR.exists():
     app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
 
     # Serve index.html for SPA routes
+    # Note: Using explicit routes instead of catch-all /{path:path} because
+    # FastAPI's catch-all conflicts with API route matching, causing 404s on /api/* paths.
     @app.get("/")
     @app.get("/credits")
     @app.get("/add-card")

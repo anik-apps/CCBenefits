@@ -192,7 +192,7 @@ class RefreshRequest(BaseModel):
 
 
 class PasswordResetRequest(BaseModel):
-    email: EmailStr
+    email: str  # Intentionally not EmailStr — endpoint always returns 200 to prevent email enumeration
 
 
 class PasswordReset(BaseModel):

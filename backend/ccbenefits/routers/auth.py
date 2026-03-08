@@ -60,7 +60,7 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
     if not user or not verify_password(data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if not user.is_active:
-        raise HTTPException(status_code=401, detail="Account deactivated")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
     return TokenResponse(
         access_token=create_access_token(subject=str(user.id)),
@@ -79,7 +79,11 @@ def refresh(data: RefreshRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid token type")
 
     user_id = payload.get("sub")
-    user = db.query(User).filter(User.id == int(user_id)).first()
+    try:
+        uid = int(user_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+    user = db.query(User).filter(User.id == uid).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
 
@@ -96,7 +100,7 @@ def request_password_reset(data: PasswordResetRequest, db: Session = Depends(get
     if user and user.is_active:
         token = create_password_reset_token()
         user.password_reset_token = hash_reset_token(token)
-        user.password_reset_expires = datetime.now(dt_timezone.utc) + timedelta(
+        user.password_reset_expires = datetime.utcnow() + timedelta(
             hours=RESET_TOKEN_EXPIRE_HOURS
         )
         db.commit()
@@ -113,9 +117,7 @@ def reset_password(data: PasswordReset, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=400, detail="Invalid reset token")
 
-    if not user.password_reset_expires or user.password_reset_expires < datetime.now(
-        dt_timezone.utc
-    ):
+    if not user.password_reset_expires or user.password_reset_expires < datetime.utcnow():
         raise HTTPException(status_code=400, detail="Reset token has expired")
 
     user.hashed_password = hash_password(data.new_password)
