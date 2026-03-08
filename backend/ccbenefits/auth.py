@@ -58,4 +58,4 @@ def decode_token(token: str) -> dict:
     try:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except jwt.PyJWTError as e:
-        raise ValueError(f"Invalid token: {e}") from e
+        raise ValueError("Invalid or expired token") from e
