@@ -53,6 +53,7 @@ export default function UsageModal({ benefit, mode, onSave, onClose }: Props) {
 
   return (
     <div
+      data-testid="modal-backdrop"
       style={{
         position: 'fixed',
         inset: 0,

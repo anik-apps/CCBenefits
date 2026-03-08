@@ -90,6 +90,16 @@ jobs:
       - name: Type check & build
         run: npm run build
 
+      - name: Run tests with coverage
+        run: npm test
+
+      - name: Upload frontend coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-report
+          path: frontend/coverage/
+
       - name: Lint
         run: npm run lint
         continue-on-error: true
