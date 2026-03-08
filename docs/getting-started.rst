@@ -48,4 +48,4 @@ Running Tests
    cd backend
    poetry run pytest -v
 
-Tests include coverage reporting (96% coverage, 80% threshold).
+Tests include coverage reporting with an 80% minimum threshold.

@@ -28,7 +28,6 @@ autodoc_typehints = "description"
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "sqlalchemy": ("https://docs.sqlalchemy.org/en/20/", None),
-    "fastapi": ("https://fastapi.tiangolo.com/", None),
 }
 
 napoleon_google_docstrings = True
