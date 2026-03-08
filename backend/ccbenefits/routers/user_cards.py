@@ -4,11 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from ..database import get_db
+from ..dependencies import get_current_user
 from ..models import (
     BenefitTemplate,
     BenefitUsage,
     CardTemplate,
     RedemptionType,
+    User,
     UserBenefitSetting,
     UserCard,
 )
@@ -29,12 +31,17 @@ router = APIRouter(prefix="/api/user-cards", tags=["user-cards"])
 
 
 @router.post("/", response_model=UserCardOut, status_code=201)
-def create_user_card(data: UserCardCreate, db: Session = Depends(get_db)):
+def create_user_card(
+    data: UserCardCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     card_template = db.query(CardTemplate).filter(CardTemplate.id == data.card_template_id).first()
     if not card_template:
         raise HTTPException(status_code=404, detail="Card template not found")
 
     user_card = UserCard(
+        user_id=current_user.id,
         card_template_id=data.card_template_id,
         nickname=data.nickname,
         member_since_date=data.member_since_date,
@@ -57,10 +64,13 @@ def create_user_card(data: UserCardCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=list[UserCardSummaryOut])
-def list_user_cards(db: Session = Depends(get_db)):
+def list_user_cards(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     user_cards = (
         db.query(UserCard)
-        .filter(UserCard.is_active == True)
+        .filter(UserCard.user_id == current_user.id, UserCard.is_active == True)
         .options(
             joinedload(UserCard.card_template).joinedload(CardTemplate.benefits),
             joinedload(UserCard.usages),
@@ -77,7 +87,11 @@ def list_user_cards(db: Session = Depends(get_db)):
 
 
 @router.get("/{user_card_id}", response_model=UserCardDetailOut)
-def get_user_card_detail(user_card_id: int, db: Session = Depends(get_db)):
+def get_user_card_detail(
+    user_card_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     uc = (
         db.query(UserCard)
         .options(
@@ -85,7 +99,7 @@ def get_user_card_detail(user_card_id: int, db: Session = Depends(get_db)):
             joinedload(UserCard.usages),
             joinedload(UserCard.benefit_settings),
         )
-        .filter(UserCard.id == user_card_id)
+        .filter(UserCard.id == user_card_id, UserCard.user_id == current_user.id)
         .first()
     )
     if not uc:
@@ -107,8 +121,12 @@ def get_user_card_detail(user_card_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/{user_card_id}", status_code=204)
-def delete_user_card(user_card_id: int, db: Session = Depends(get_db)):
-    uc = db.query(UserCard).filter(UserCard.id == user_card_id).first()
+def delete_user_card(
+    user_card_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    uc = db.query(UserCard).filter(UserCard.id == user_card_id, UserCard.user_id == current_user.id).first()
     if not uc:
         raise HTTPException(status_code=404, detail="User card not found")
     db.delete(uc)
@@ -116,8 +134,13 @@ def delete_user_card(user_card_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{user_card_id}/usage", response_model=BenefitUsageOut, status_code=201)
-def log_usage(user_card_id: int, data: BenefitUsageCreate, db: Session = Depends(get_db)):
-    uc = db.query(UserCard).filter(UserCard.id == user_card_id).first()
+def log_usage(
+    user_card_id: int,
+    data: BenefitUsageCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    uc = db.query(UserCard).filter(UserCard.id == user_card_id, UserCard.user_id == current_user.id).first()
     if not uc:
         raise HTTPException(status_code=404, detail="User card not found")
     if not uc.is_active:
@@ -192,8 +215,9 @@ def upsert_benefit_setting(
     benefit_template_id: int,
     data: BenefitSettingUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    uc = db.query(UserCard).filter(UserCard.id == user_card_id).first()
+    uc = db.query(UserCard).filter(UserCard.id == user_card_id, UserCard.user_id == current_user.id).first()
     if not uc:
         raise HTTPException(status_code=404, detail="User card not found")
 
@@ -227,7 +251,11 @@ def upsert_benefit_setting(
 
 
 @router.get("/{user_card_id}/summary", response_model=UserCardSummaryOut)
-def get_card_summary(user_card_id: int, db: Session = Depends(get_db)):
+def get_card_summary(
+    user_card_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     uc = (
         db.query(UserCard)
         .options(
@@ -235,7 +263,7 @@ def get_card_summary(user_card_id: int, db: Session = Depends(get_db)):
             joinedload(UserCard.usages),
             joinedload(UserCard.benefit_settings),
         )
-        .filter(UserCard.id == user_card_id)
+        .filter(UserCard.id == user_card_id, UserCard.user_id == current_user.id)
         .first()
     )
     if not uc:
