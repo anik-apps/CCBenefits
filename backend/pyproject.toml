@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "ccbenefits"
+version = "0.1.0"
+description = "Credit Card Benefits Tracker"
+authors = []
+packages = [{include = "ccbenefits"}]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<4.0"
+fastapi = ">=0.115.0"
+uvicorn = {extras = ["standard"], version = ">=0.34.0"}
+sqlalchemy = ">=2.0"
+pydantic = ">=2.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.0"
+httpx = ">=0.27.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
