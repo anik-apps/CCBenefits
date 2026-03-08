@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -51,9 +51,13 @@ def health_check():
 if FRONTEND_DIR.exists():
     app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
 
-    # Catch-all: serve index.html for all non-API routes (SPA routing)
-    @app.api_route("/{path:path}", methods=["GET"], include_in_schema=False)
-    async def serve_frontend(path: str = ""):
-        if path.startswith("api/"):
-            raise HTTPException(status_code=404, detail="Not found")
+    # Serve index.html for SPA routes
+    @app.get("/")
+    @app.get("/credits")
+    @app.get("/add-card")
+    @app.get("/card/{card_id:path}")
+    @app.get("/login")
+    @app.get("/register")
+    @app.get("/profile")
+    async def serve_frontend(card_id: str = ""):
         return FileResponse(FRONTEND_DIR / "index.html")
