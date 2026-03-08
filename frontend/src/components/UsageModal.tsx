@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import type { BenefitStatus } from '../types';
 
 interface Props {
@@ -8,23 +8,19 @@ interface Props {
   onClose: () => void;
 }
 
-export default function UsageModal({ benefit, mode, onSave, onClose }: Props) {
-  const [amount, setAmount] = useState('');
-  const [notes, setNotes] = useState('');
-  const [targetDate, setTargetDate] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+function getInitialAmount(benefit: BenefitStatus, mode: 'usage' | 'perceived'): string {
+  if (mode === 'usage') {
+    return benefit.amount_used > 0 ? benefit.amount_used.toString() : '';
+  }
+  return benefit.perceived_max_value.toString();
+}
 
-  useEffect(() => {
-    if (mode === 'usage') {
-      setAmount(benefit.amount_used > 0 ? benefit.amount_used.toString() : '');
-      // Pre-fill target date from the benefit's period (set by segment click)
-      setTargetDate(benefit.period_start_date || '');
-    } else {
-      setAmount(benefit.perceived_max_value.toString());
-      setTargetDate('');
-    }
-    setTimeout(() => inputRef.current?.focus(), 100);
-  }, [benefit, mode]);
+export default function UsageModal({ benefit, mode, onSave, onClose }: Props) {
+  const [amount, setAmount] = useState(() => getInitialAmount(benefit, mode));
+  const [notes, setNotes] = useState('');
+  const [targetDate, setTargetDate] = useState(() =>
+    mode === 'usage' ? (benefit.period_start_date || '') : '',
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,7 +94,7 @@ export default function UsageModal({ benefit, mode, onSave, onClose }: Props) {
               Amount ($)
             </label>
             <input
-              ref={inputRef}
+              autoFocus
               type="number"
               step="0.01"
               min="0"
