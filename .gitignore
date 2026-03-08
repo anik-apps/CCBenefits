@@ -26,6 +26,13 @@ poetry.lock
 # npm
 package-lock.json
 
+# Docs build
+docs/_build/
+
+# Coverage
+htmlcov/
+.coverage
+
 # Env
 .env
 .env.*
