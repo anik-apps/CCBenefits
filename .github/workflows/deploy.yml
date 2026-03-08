@@ -6,7 +6,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   # Run existing CI first
@@ -25,6 +24,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set image name (lowercase)
+        run: echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
       - name: Set up QEMU (ARM emulation)
         uses: docker/setup-qemu-action@v3
