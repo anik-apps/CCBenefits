@@ -3,16 +3,15 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..dependencies import get_current_user
-from ..models import BenefitTemplate, BenefitUsage, RedemptionType, User, UserCard
+from ..models import BenefitTemplate, BenefitUsage, RedemptionType, User
 from ..schemas import BenefitUsageOut, BenefitUsageUpdate
 
 router = APIRouter(prefix="/api/usage", tags=["usage"])
 
 
-def _verify_usage_ownership(usage: BenefitUsage, current_user: User, db: Session) -> None:
-    """Verify the usage record belongs to the current user via UserCard."""
-    user_card = db.query(UserCard).filter(UserCard.id == usage.user_card_id).first()
-    if not user_card or user_card.user_id != current_user.id:
+def _verify_usage_ownership(usage: BenefitUsage, current_user: User) -> None:
+    """Verify the usage record belongs to the current user via UserCard relationship."""
+    if not usage.user_card or usage.user_card.user_id != current_user.id:
         raise HTTPException(status_code=404, detail="Usage record not found")
 
 
@@ -27,7 +26,7 @@ def update_usage(
     if not usage:
         raise HTTPException(status_code=404, detail="Usage record not found")
 
-    _verify_usage_ownership(usage, current_user, db)
+    _verify_usage_ownership(usage, current_user)
 
     benefit = db.query(BenefitTemplate).filter(BenefitTemplate.id == usage.benefit_template_id).first()
 
@@ -69,6 +68,6 @@ def delete_usage(
     usage = db.query(BenefitUsage).filter(BenefitUsage.id == usage_id).first()
     if not usage:
         raise HTTPException(status_code=404, detail="Usage record not found")
-    _verify_usage_ownership(usage, current_user, db)
+    _verify_usage_ownership(usage, current_user)
     db.delete(usage)
     db.commit()

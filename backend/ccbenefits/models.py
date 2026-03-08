@@ -41,7 +41,7 @@ class User(Base):
     timezone: Mapped[str] = mapped_column(String, default="UTC", nullable=False)
     notification_preferences: Mapped[dict | None] = mapped_column(JSON, default=dict)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    password_reset_token: Mapped[str | None] = mapped_column(String, nullable=True)
+    password_reset_token: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     password_reset_expires: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(dt_timezone.utc), nullable=False

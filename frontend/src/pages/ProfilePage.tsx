@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { updateProfile, changePassword } from '../services/api';
+import { inputStyle, labelStyle, primaryButtonStyle } from '../styles/form';
 
 export default function ProfilePage() {
   const { user, refreshUser, logout } = useAuth();
@@ -42,12 +43,6 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
-  const inputStyle = {
-    width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-sm)',
-    border: '1px solid var(--border-medium)', background: 'var(--bg-tertiary)',
-    color: 'var(--text-primary)',
-  };
-
   return (
     <div style={{ maxWidth: 500 }}>
       <h1 style={{ fontFamily: 'var(--font-display)', marginBottom: 24 }}>Profile</h1>
@@ -56,33 +51,29 @@ export default function ProfilePage() {
         <h3 style={{ marginBottom: 12 }}>Account Settings</h3>
         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 12 }}>{user.email}</p>
         <label style={{ display: 'block', marginBottom: 12 }}>
-          <span style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Display Name</span>
+          <span style={labelStyle}>Display Name</span>
           <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} style={inputStyle} />
         </label>
         <label style={{ display: 'block', marginBottom: 12 }}>
-          <span style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Currency</span>
+          <span style={labelStyle}>Currency</span>
           <input type="text" value={currency} onChange={(e) => setCurrency(e.target.value)} style={inputStyle} />
         </label>
         <label style={{ display: 'block', marginBottom: 16 }}>
-          <span style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Timezone</span>
+          <span style={labelStyle}>Timezone</span>
           <input type="text" value={tz} onChange={(e) => setTz(e.target.value)} style={inputStyle} />
         </label>
-        <button type="submit" style={{
-          padding: '8px 20px', borderRadius: 'var(--radius-sm)',
-          background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-gold-dim))',
-          color: '#0a0a0f', fontWeight: 600, border: 'none', cursor: 'pointer',
-        }}>Save</button>
+        <button type="submit" style={primaryButtonStyle}>Save</button>
         {profileMsg && <span style={{ marginLeft: 12, fontSize: '0.85rem' }}>{profileMsg}</span>}
       </form>
 
       <form onSubmit={handlePasswordChange} style={{ marginBottom: 32 }}>
         <h3 style={{ marginBottom: 12 }}>Change Password</h3>
         <label style={{ display: 'block', marginBottom: 12 }}>
-          <span style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Current Password</span>
+          <span style={labelStyle}>Current Password</span>
           <input type="password" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} required style={inputStyle} />
         </label>
         <label style={{ display: 'block', marginBottom: 16 }}>
-          <span style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', color: 'var(--text-muted)' }}>New Password</span>
+          <span style={labelStyle}>New Password</span>
           <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} required minLength={8} style={inputStyle} />
         </label>
         <button type="submit" style={{

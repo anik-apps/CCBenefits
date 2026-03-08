@@ -1,42 +1,3 @@
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
-from ccbenefits.database import Base, get_db
-from ccbenefits.main import app
-from ccbenefits.seed import seed_data
-
-
-@pytest.fixture()
-def db_session():
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-
-    @event.listens_for(engine, "connect")
-    def set_sqlite_pragma(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys = ON")
-        cursor.close()
-
-    Base.metadata.create_all(bind=engine)
-    session = sessionmaker(bind=engine)()
-    seed_data(session)
-    yield session
-    session.close()
-
-
-@pytest.fixture()
-def client(db_session):
-    def override():
-        yield db_session
-    app.dependency_overrides[get_db] = override
-    with TestClient(app) as c:
-        yield c
-    app.dependency_overrides.clear()
-
 
 def test_register(client):
     resp = client.post("/api/auth/register", json={
@@ -139,8 +100,7 @@ def test_password_reset_request_nonexistent_email(client):
 def test_password_reset_end_to_end(client, db_session):
     from ccbenefits.auth import create_password_reset_token, hash_reset_token
     from ccbenefits.models import User
-    from datetime import datetime, timedelta
-    from datetime import timezone as dt_timezone
+    from datetime import datetime, timedelta, timezone as dt_timezone
 
     # Register a user
     client.post("/api/auth/register", json={
@@ -151,7 +111,7 @@ def test_password_reset_end_to_end(client, db_session):
     user = db_session.query(User).filter(User.email == "resetflow@test.com").first()
     raw_token = create_password_reset_token()
     user.password_reset_token = hash_reset_token(raw_token)
-    user.password_reset_expires = datetime.utcnow() + timedelta(hours=1)
+    user.password_reset_expires = datetime.now(dt_timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
     db_session.commit()
 
     # Reset password with valid token
@@ -183,8 +143,7 @@ def test_password_reset_invalid_token(client):
 def test_password_reset_token_single_use(client, db_session):
     from ccbenefits.auth import create_password_reset_token, hash_reset_token
     from ccbenefits.models import User
-    from datetime import datetime, timedelta
-    from datetime import timezone as dt_timezone
+    from datetime import datetime, timedelta, timezone as dt_timezone
 
     client.post("/api/auth/register", json={
         "email": "singleuse@test.com", "password": "password123", "display_name": "S",
@@ -193,7 +152,7 @@ def test_password_reset_token_single_use(client, db_session):
     user = db_session.query(User).filter(User.email == "singleuse@test.com").first()
     raw_token = create_password_reset_token()
     user.password_reset_token = hash_reset_token(raw_token)
-    user.password_reset_expires = datetime.utcnow() + timedelta(hours=1)
+    user.password_reset_expires = datetime.now(dt_timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
     db_session.commit()
 
     # First use succeeds

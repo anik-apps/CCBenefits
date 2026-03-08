@@ -8,9 +8,9 @@ from ..auth import (
     create_access_token,
     create_password_reset_token,
     create_refresh_token,
-    decode_token,
     hash_password,
     hash_reset_token,
+    resolve_user_from_token,
     verify_password,
 )
 from ..config import RESET_TOKEN_EXPIRE_HOURS
@@ -70,23 +70,7 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
 
 @router.post("/refresh", response_model=TokenResponse)
 def refresh(data: RefreshRequest, db: Session = Depends(get_db)):
-    try:
-        payload = decode_token(data.refresh_token)
-    except ValueError:
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
-
-    if payload.get("type") != "refresh":
-        raise HTTPException(status_code=401, detail="Invalid token type")
-
-    user_id = payload.get("sub")
-    try:
-        uid = int(user_id)
-    except (ValueError, TypeError):
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
-    user = db.query(User).filter(User.id == uid).first()
-    if not user or not user.is_active:
-        raise HTTPException(status_code=401, detail="User not found or inactive")
-
+    user = resolve_user_from_token(data.refresh_token, db, expected_type="refresh")
     return TokenResponse(
         access_token=create_access_token(subject=str(user.id)),
         refresh_token=create_refresh_token(subject=str(user.id)),
@@ -100,7 +84,7 @@ def request_password_reset(data: PasswordResetRequest, db: Session = Depends(get
     if user and user.is_active:
         token = create_password_reset_token()
         user.password_reset_token = hash_reset_token(token)
-        user.password_reset_expires = datetime.utcnow() + timedelta(
+        user.password_reset_expires = datetime.now(dt_timezone.utc).replace(tzinfo=None) + timedelta(
             hours=RESET_TOKEN_EXPIRE_HOURS
         )
         db.commit()
@@ -117,7 +101,8 @@ def reset_password(data: PasswordReset, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=400, detail="Invalid reset token")
 
-    if not user.password_reset_expires or user.password_reset_expires < datetime.utcnow():
+    now = datetime.now(dt_timezone.utc).replace(tzinfo=None)  # SQLite stores naive datetimes
+    if not user.password_reset_expires or user.password_reset_expires < now:
         raise HTTPException(status_code=400, detail="Reset token has expired")
 
     user.hashed_password = hash_password(data.new_password)

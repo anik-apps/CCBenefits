@@ -225,8 +225,5 @@ class UserUpdate(BaseModel):
     notification_preferences: dict | None = None
 
 
-class AuthResponse(BaseModel):
+class AuthResponse(TokenResponse):
     user: UserOut
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"

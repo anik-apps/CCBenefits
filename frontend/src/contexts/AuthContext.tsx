@@ -54,8 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (email: string, password: string, displayName: string) => {
     queryClient.clear();
-    await apiRegister(email, password, displayName);
-    await refreshUser();
+    const response = await apiRegister(email, password, displayName);
+    setUser(response.user);
   };
 
   const logout = () => {

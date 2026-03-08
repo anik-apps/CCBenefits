@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { inputStyle, labelStyle, primaryButtonStyle, errorStyle, authPageStyle } from '../styles/form';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -25,43 +26,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '80px auto', padding: 24 }}>
+    <div style={authPageStyle}>
       <h1 style={{ fontFamily: 'var(--font-display)', marginBottom: 24 }}>Sign In</h1>
-      {error && (
-        <div style={{ color: 'var(--status-danger)', marginBottom: 16, fontSize: '0.9rem' }}>
-          {error}
-        </div>
-      )}
+      {error && <div style={errorStyle}>{error}</div>}
       <form onSubmit={handleSubmit}>
         <label style={{ display: 'block', marginBottom: 12 }}>
-          <span style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Email</span>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-medium)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-          />
+          <span style={labelStyle}>Email</span>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputStyle} />
         </label>
         <label style={{ display: 'block', marginBottom: 20 }}>
-          <span style={{ display: 'block', marginBottom: 4, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Password</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-medium)', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-          />
+          <span style={labelStyle}>Password</span>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required style={inputStyle} />
         </label>
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: '100%', padding: '10px', borderRadius: 'var(--radius-sm)',
-            background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-gold-dim))',
-            color: '#0a0a0f', fontWeight: 600, border: 'none', cursor: 'pointer',
-          }}
-        >
+        <button type="submit" disabled={loading} style={{ ...primaryButtonStyle, width: '100%', padding: '10px' }}>
           {loading ? 'Signing in...' : 'Sign In'}
         </button>
       </form>
