@@ -102,6 +102,23 @@ input:focus, select:focus, textarea:focus {
   to { transform: rotate(360deg); }
 }
 
+/* BenefitRow hover */
+.benefit-row:hover {
+  background: var(--bg-elevated);
+}
+
+/* BenefitRow toggle focus-visible */
+.benefit-row button[role="switch"]:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+/* Button focus-visible */
+.benefit-row button:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 1px;
+}
+
 /* Responsive adjustments for mobile */
 @media (max-width: 600px) {
   html { font-size: 15px; }

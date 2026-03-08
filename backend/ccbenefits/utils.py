@@ -1,7 +1,14 @@
 import calendar
 from datetime import date
 
-from .models import PeriodType
+from .models import BenefitTemplate, PeriodType, RedemptionType
+
+
+def coerce_binary_amount(amount: float, benefit: BenefitTemplate) -> float:
+    """For binary benefits, snap amount to max_value or 0."""
+    if benefit.redemption_type == RedemptionType.binary:
+        return benefit.max_value if amount > 0 else 0.0
+    return amount
 
 
 def get_current_period(period_type: str, reference_date: date | None = None) -> tuple[date, date]:

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { getCardTemplates, createUserCard } from '../services/api';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function AddCard() {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ export default function AddCard() {
   const [creating, setCreating] = useState<number | null>(null);
   const [nickname, setNickname] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const { data: templates, isLoading } = useQuery({
     queryKey: ['card-templates'],
@@ -18,28 +20,19 @@ export default function AddCard() {
   const handleCreate = async () => {
     if (!selectedId) return;
     setCreating(selectedId);
+    setError(null);
     try {
       await createUserCard(selectedId, nickname || undefined);
       await queryClient.invalidateQueries({ queryKey: ['user-cards'] });
       navigate('/');
     } catch {
+      setError('Failed to add card. Please try again.');
       setCreating(null);
     }
   };
 
   if (isLoading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 80 }}>
-        <div style={{
-          width: 40, height: 40,
-          border: '3px solid var(--border-medium)',
-          borderTopColor: 'var(--accent-gold)',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
@@ -117,6 +110,9 @@ export default function AddCard() {
             placeholder="e.g. My Primary Card"
             style={{ width: '100%', marginBottom: 16 }}
           />
+          {error && (
+            <div style={{ color: 'var(--accent-red)', fontSize: '0.85rem', marginBottom: 12 }}>{error}</div>
+          )}
           <button
             onClick={handleCreate}
             disabled={creating !== null}

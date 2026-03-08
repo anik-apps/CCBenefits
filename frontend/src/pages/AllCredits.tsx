@@ -1,17 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { getUserCards, getUserCard, logUsage, updateUsage, deleteUsage, updateBenefitSetting } from '../services/api';
 import type { BenefitStatus, PeriodSegment } from '../types';
 import BenefitRow from '../components/BenefitRow';
 import UsageModal from '../components/UsageModal';
-
-const PERIOD_ORDER = ['monthly', 'quarterly', 'semiannual', 'annual'];
-const PERIOD_LABELS: Record<string, string> = {
-  monthly: 'Monthly',
-  quarterly: 'Quarterly',
-  semiannual: 'Semiannual',
-  annual: 'Annual',
-};
+import LoadingSpinner from '../components/LoadingSpinner';
+import { PERIOD_ORDER, PERIOD_LABELS } from '../constants';
 
 interface BenefitWithCard extends BenefitStatus {
   userCardId: number;
@@ -29,7 +24,7 @@ export default function AllCredits() {
   });
 
   // Fetch detail for each user card
-  const cardIds = summaries?.map(s => s.id) ?? [];
+  const cardIds = useMemo(() => summaries?.map(s => s.id) ?? [], [summaries]);
   const { data: cardDetails, isLoading: loadingDetails } = useQuery({
     queryKey: ['all-card-details', cardIds],
     queryFn: async () => {
@@ -40,105 +35,104 @@ export default function AllCredits() {
     refetchOnMount: 'always',
   });
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['user-cards'] });
     queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
-  };
+  }, [queryClient]);
 
   const isLoading = loadingSummaries || loadingDetails;
 
-  if (isLoading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 80 }}>
-        <div style={{
-          width: 40, height: 40,
-          border: '3px solid var(--border-medium)',
-          borderTopColor: 'var(--accent-gold)',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }} />
-      </div>
-    );
-  }
-
-  if (!cardDetails || cardDetails.length === 0) {
-    return (
-      <div style={{ textAlign: 'center', paddingTop: 80, color: 'var(--text-secondary)' }}>
-        No cards added yet. Add cards from the Cards tab to see all credits here.
-      </div>
-    );
-  }
-
   // Flatten all benefits with card context
-  const allBenefits: BenefitWithCard[] = [];
-  for (const card of cardDetails) {
-    for (const b of card.benefits_status) {
-      allBenefits.push({ ...b, userCardId: card.id, cardName: card.nickname || card.card_name });
+  const { benefitMap, grouped } = useMemo(() => {
+    const all: BenefitWithCard[] = [];
+    if (cardDetails) {
+      for (const card of cardDetails) {
+        for (const b of card.benefits_status) {
+          all.push({ ...b, userCardId: card.id, cardName: card.nickname || card.card_name });
+        }
+      }
     }
-  }
-
-  // Lookup by composite key: "userCardId-benefitTemplateId"
-  const benefitMap = new Map<string, BenefitWithCard>();
-  for (const b of allBenefits) {
-    benefitMap.set(`${b.userCardId}-${b.benefit_template_id}`, b);
-  }
-
-  // Group by period type
-  const grouped: Record<string, BenefitWithCard[]> = {};
-  for (const b of allBenefits) {
-    if (!grouped[b.period_type]) grouped[b.period_type] = [];
-    grouped[b.period_type].push(b);
-  }
+    const bMap = new Map<string, BenefitWithCard>();
+    for (const b of all) {
+      bMap.set(`${b.userCardId}-${b.benefit_template_id}`, b);
+    }
+    const grp: Record<string, BenefitWithCard[]> = {};
+    for (const b of all) {
+      if (!grp[b.period_type]) grp[b.period_type] = [];
+      grp[b.period_type].push(b);
+    }
+    return { benefitMap: bMap, grouped: grp };
+  }, [cardDetails]);
 
   // Factory: create card-scoped handlers for each benefit row
-  const makeHandlers = (cardId: number) => ({
-    onToggleBinary: async (benefitId: number, used: boolean) => {
-      const b = benefitMap.get(`${cardId}-${benefitId}`);
-      if (!b) return;
-      try {
-        if (b.usage_id) {
-          if (used) await updateUsage(b.usage_id, b.max_value);
-          else await deleteUsage(b.usage_id);
-        } else if (used) {
-          await logUsage(cardId, benefitId, b.max_value);
-        }
-      } catch (err) { console.error('Toggle failed:', err); }
-      refresh();
-    },
-    onLogContinuous: (benefitId: number) => {
-      const b = benefitMap.get(`${cardId}-${benefitId}`);
-      if (b) setModal({ benefit: b, mode: 'usage' });
-    },
-    onSetPerceived: (benefitId: number) => {
-      const b = benefitMap.get(`${cardId}-${benefitId}`);
-      if (b) setModal({ benefit: b, mode: 'perceived' });
-    },
-    onSegmentClick: async (benefitId: number, segment: PeriodSegment) => {
-      const b = benefitMap.get(`${cardId}-${benefitId}`);
-      if (!b) return;
-      if (b.redemption_type === 'binary') {
-        try {
-          if (segment.usage_id) {
-            if (segment.is_used) await deleteUsage(segment.usage_id);
-            else await updateUsage(segment.usage_id, b.max_value);
+  const handlersCache = useMemo(() => {
+    const cache = new Map<number, {
+      onToggleBinary: (benefitId: number, used: boolean) => void;
+      onLogContinuous: (benefitId: number) => void;
+      onSetPerceived: (benefitId: number) => void;
+      onSegmentClick: (benefitId: number, segment: PeriodSegment) => void;
+    }>();
+
+    function buildHandlers(cardId: number) {
+      return {
+        onToggleBinary: async (benefitId: number, used: boolean) => {
+          const b = benefitMap.get(`${cardId}-${benefitId}`);
+          if (!b) return;
+          try {
+            if (b.usage_id) {
+              if (used) await updateUsage(b.usage_id, b.max_value);
+              else await deleteUsage(b.usage_id);
+            } else if (used) {
+              await logUsage(cardId, benefitId, b.max_value);
+            }
+          } catch (err) { console.error('Toggle failed:', err); }
+          refresh();
+        },
+        onLogContinuous: (benefitId: number) => {
+          const b = benefitMap.get(`${cardId}-${benefitId}`);
+          if (b) setModal({ benefit: b, mode: 'usage' });
+        },
+        onSetPerceived: (benefitId: number) => {
+          const b = benefitMap.get(`${cardId}-${benefitId}`);
+          if (b) setModal({ benefit: b, mode: 'perceived' });
+        },
+        onSegmentClick: async (benefitId: number, segment: PeriodSegment) => {
+          const b = benefitMap.get(`${cardId}-${benefitId}`);
+          if (!b) return;
+          if (b.redemption_type === 'binary') {
+            try {
+              if (segment.usage_id) {
+                if (segment.is_used) await deleteUsage(segment.usage_id);
+                else await updateUsage(segment.usage_id, b.max_value);
+              } else {
+                await logUsage(cardId, benefitId, b.max_value, undefined, segment.period_start_date);
+              }
+            } catch (err) { console.error('Segment toggle failed:', err); }
+            refresh();
           } else {
-            await logUsage(cardId, benefitId, b.max_value, undefined, segment.period_start_date);
+            const segBenefit: BenefitWithCard = {
+              ...b,
+              usage_id: segment.usage_id,
+              amount_used: segment.amount_used,
+              is_used: segment.is_used,
+              period_start_date: segment.period_start_date,
+              period_end_date: segment.period_end_date,
+            };
+            setModal({ benefit: segBenefit, mode: 'usage' });
           }
-        } catch (err) { console.error('Segment toggle failed:', err); }
-        refresh();
-      } else {
-        const segBenefit: BenefitWithCard = {
-          ...b,
-          usage_id: segment.usage_id,
-          amount_used: segment.amount_used,
-          is_used: segment.is_used,
-          period_start_date: segment.period_start_date,
-          period_end_date: segment.period_end_date,
-        };
-        setModal({ benefit: segBenefit, mode: 'usage' });
+        },
+      };
+    }
+
+    if (cardDetails) {
+      for (const card of cardDetails) {
+        if (!cache.has(card.id)) {
+          cache.set(card.id, buildHandlers(card.id));
+        }
       }
-    },
-  });
+    }
+    return cache;
+  }, [benefitMap, refresh]);
 
   const handleModalSave = async (value: number, notes?: string, targetDate?: string) => {
     if (!modal) return;
@@ -156,6 +150,30 @@ export default function AllCredits() {
     setModal(null);
     refresh();
   };
+
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  if (!cardDetails || cardDetails.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', paddingTop: 80, color: 'var(--text-secondary)' }}>
+        <p>No cards added yet.</p>
+        <Link to="/add-card" style={{
+          display: 'inline-block',
+          marginTop: 16,
+          padding: '10px 24px',
+          borderRadius: 'var(--radius-sm)',
+          background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-gold-dim))',
+          color: '#0a0a0f',
+          fontWeight: 600,
+          fontSize: '0.9rem',
+        }}>
+          Add a Card
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -192,7 +210,7 @@ export default function AllCredits() {
             overflow: 'hidden',
           }}>
             {grouped[periodType].map((b, i) => {
-              const handlers = makeHandlers(b.userCardId);
+              const handlers = handlersCache.get(b.userCardId)!;
               return (
                 <div key={`${b.userCardId}-${b.benefit_template_id}`}>
                   {i > 0 && <div style={{ height: 1, background: 'var(--border-subtle)', margin: '0 14px' }} />}

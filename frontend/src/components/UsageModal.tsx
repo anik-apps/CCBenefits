@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import type { BenefitStatus } from '../types';
 
 interface Props {
@@ -12,25 +12,31 @@ export default function UsageModal({ benefit, mode, onSave, onClose }: Props) {
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
   const [targetDate, setTargetDate] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
     if (mode === 'usage') {
       setAmount(benefit.amount_used > 0 ? benefit.amount_used.toString() : '');
-      // Pre-fill target date from the benefit's period (set by segment click)
       setTargetDate(benefit.period_start_date || '');
     } else {
       setAmount(benefit.perceived_max_value.toString());
       setTargetDate('');
     }
-    setTimeout(() => inputRef.current?.focus(), 100);
+    setValidationError(null);
   }, [benefit, mode]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const val = parseFloat(amount);
-    if (isNaN(val) || val < 0) return;
-    if (mode === 'usage' && val > benefit.max_value) return;
+    if (isNaN(val) || val < 0) {
+      setValidationError('Please enter a valid amount.');
+      return;
+    }
+    if (mode === 'usage' && val > benefit.max_value) {
+      setValidationError(`Amount cannot exceed $${benefit.max_value}.`);
+      return;
+    }
+    setValidationError(null);
     onSave(val, mode === 'usage' ? notes : undefined, mode === 'usage' && targetDate ? targetDate : undefined);
   };
 
@@ -97,16 +103,19 @@ export default function UsageModal({ benefit, mode, onSave, onClose }: Props) {
               Amount ($)
             </label>
             <input
-              ref={inputRef}
+              autoFocus
               type="number"
               step="0.01"
               min="0"
               max={mode === 'usage' ? benefit.max_value : undefined}
               value={amount}
-              onChange={e => setAmount(e.target.value)}
+              onChange={e => { setAmount(e.target.value); setValidationError(null); }}
               style={{ width: '100%' }}
               placeholder="0.00"
             />
+            {validationError && (
+              <div style={{ color: 'var(--accent-red)', fontSize: '0.8rem', marginTop: 4 }}>{validationError}</div>
+            )}
           </div>
 
           {mode === 'usage' && (

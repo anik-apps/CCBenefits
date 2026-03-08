@@ -14,14 +14,20 @@ export default function UtilizationBar({ current, max, height = 6, showLabel = f
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
-      <div style={{
-        flex: 1,
-        height,
-        borderRadius: height / 2,
-        background: 'var(--bg-input)',
-        overflow: 'hidden',
-        position: 'relative',
-      }}>
+      <div
+        role="progressbar"
+        aria-valuenow={Math.round(pct)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        style={{
+          flex: 1,
+          height,
+          borderRadius: height / 2,
+          background: 'var(--bg-input)',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
         <div style={{
           height: '100%',
           width: `${pct}%`,

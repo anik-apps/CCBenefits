@@ -23,7 +23,7 @@ from ..schemas import (
     UserCardOut,
     UserCardSummaryOut,
 )
-from ..utils import compute_annual_max, get_all_periods_in_year, get_current_period
+from ..utils import coerce_binary_amount, compute_annual_max, get_all_periods_in_year, get_current_period
 
 router = APIRouter(prefix="/api/user-cards", tags=["user-cards"])
 
@@ -130,9 +130,7 @@ def log_usage(user_card_id: int, data: BenefitUsageCreate, db: Session = Depends
         raise HTTPException(status_code=400, detail="Benefit does not belong to this card")
 
     # Coerce binary benefits
-    amount = data.amount_used
-    if benefit.redemption_type == RedemptionType.binary:
-        amount = benefit.max_value if amount > 0 else 0.0
+    amount = coerce_binary_amount(data.amount_used, benefit)
 
     if amount > benefit.max_value:
         raise HTTPException(

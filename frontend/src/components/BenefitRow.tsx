@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import type { BenefitStatus, PeriodSegment } from '../types';
+import { CATEGORY_ICONS } from '../constants';
 
 interface Props {
   benefit: BenefitStatus;
@@ -10,32 +10,19 @@ interface Props {
   onSegmentClick: (benefitId: number, segment: PeriodSegment) => void;
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  travel: '\u2708',
-  dining: '\u{1F374}',
-  entertainment: '\u{1F3AC}',
-  shopping: '\u{1F6CD}',
-  wellness: '\u{1F9D8}',
-  lifestyle: '\u2728',
-  membership: '\u{1F511}',
-};
-
 export default function BenefitRow({ benefit, cardName, onToggleBinary, onLogContinuous, onSetPerceived, onSegmentClick }: Props) {
-  const [hovering, setHovering] = useState(false);
   const catIcon = CATEGORY_ICONS[benefit.category] || '\u2022';
   const isExpiringSoon = benefit.days_remaining <= 7 && !benefit.is_used;
   const isBinary = benefit.redemption_type === 'binary';
 
   return (
     <div
+      className="benefit-row"
       style={{
         padding: '10px 14px',
-        background: hovering ? 'var(--bg-elevated)' : 'transparent',
         borderRadius: 'var(--radius-sm)',
         transition: 'background 0.15s',
       }}
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
     >
       {/* Single row: toggle + icon + name + amount + perceived */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -189,6 +176,7 @@ export default function BenefitRow({ benefit, cardName, onToggleBinary, onLogCon
                 key={seg.label}
                 onClick={isClickable ? () => onSegmentClick(benefit.benefit_template_id, seg) : undefined}
                 disabled={!isClickable}
+                aria-label={`${seg.label}: $${seg.amount_used.toFixed(0)} of $${benefit.max_value.toFixed(0)}${seg.is_current ? ' (current period)' : ''}${seg.is_future ? ' (future)' : ''}`}
                 title={`${seg.label}: $${seg.amount_used.toFixed(0)}/$${benefit.max_value.toFixed(0)}${seg.is_current ? ' (current)' : ''}${seg.is_future ? ' (future)' : ''}`}
                 style={{
                   flex: 1,
@@ -201,8 +189,6 @@ export default function BenefitRow({ benefit, cardName, onToggleBinary, onLogCon
                   opacity: seg.is_future ? 0.4 : 1,
                   transition: 'transform 0.15s',
                 }}
-                onMouseEnter={e => { if (isClickable) e.currentTarget.style.transform = 'scale(1.08)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
               >
                 <div style={{
                   width: '100%',

@@ -7,13 +7,8 @@ import BenefitRow from '../components/BenefitRow';
 import UsageModal from '../components/UsageModal';
 import UtilizationBar from '../components/UtilizationBar';
 
-const PERIOD_ORDER = ['monthly', 'quarterly', 'semiannual', 'annual'];
-const PERIOD_LABELS: Record<string, string> = {
-  monthly: 'Monthly',
-  quarterly: 'Quarterly',
-  semiannual: 'Semiannual',
-  annual: 'Annual',
-};
+import LoadingSpinner from '../components/LoadingSpinner';
+import { PERIOD_ORDER, PERIOD_LABELS } from '../constants';
 
 export default function CardDetail() {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +16,7 @@ export default function CardDetail() {
   const queryClient = useQueryClient();
   const [modal, setModal] = useState<{ benefit: BenefitStatus; mode: 'usage' | 'perceived' } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [toggleError, setToggleError] = useState<string | null>(null);
 
   const { data: card, isLoading, isError } = useQuery({
     queryKey: ['user-card', id],
@@ -45,6 +41,7 @@ export default function CardDetail() {
     if (!card) return;
     const benefit = card.benefits_status.find(b => b.benefit_template_id === benefitId);
     if (!benefit) return;
+    setToggleError(null);
     try {
       if (benefit.usage_id) {
         if (used) {
@@ -56,7 +53,7 @@ export default function CardDetail() {
         await logUsage(card.id, benefitId, benefit.max_value);
       }
     } catch {
-      // silently handle — refresh will show correct state
+      setToggleError('Action failed. Please try again.');
     }
     refresh();
   };
@@ -82,6 +79,7 @@ export default function CardDetail() {
 
     if (isBinary) {
       // Toggle directly for binary benefits
+      setToggleError(null);
       try {
         if (segment.usage_id) {
           if (segment.is_used) {
@@ -93,7 +91,7 @@ export default function CardDetail() {
           await logUsage(card.id, benefitId, benefit.max_value, undefined, segment.period_start_date);
         }
       } catch {
-        // silently handle
+        setToggleError('Action failed. Please try again.');
       }
       refresh();
     } else {
@@ -125,6 +123,7 @@ export default function CardDetail() {
     } catch {
       // error handling — refresh will show correct state
     }
+    setToggleError(null);
     setModal(null);
     refresh();
   };
@@ -154,18 +153,7 @@ export default function CardDetail() {
   }
 
   if (isLoading || !card) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 80 }}>
-        <div style={{
-          width: 40, height: 40,
-          border: '3px solid var(--border-medium)',
-          borderTopColor: 'var(--accent-gold)',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   // Group benefits by period type
@@ -278,6 +266,19 @@ export default function CardDetail() {
           <UtilizationBar current={ytdUsed} max={ytdMaxAnnual} height={6} showLabel />
         </div>
       </div>
+
+      {toggleError && (
+        <div style={{
+          color: 'var(--accent-red)',
+          fontSize: '0.85rem',
+          marginBottom: 12,
+          padding: '8px 14px',
+          background: 'rgba(239, 68, 68, 0.1)',
+          borderRadius: 'var(--radius-sm)',
+        }}>
+          {toggleError}
+        </div>
+      )}
 
       {/* Benefits grouped by period */}
       {PERIOD_ORDER.filter(p => grouped[p]).map((periodType, gi) => (

@@ -1,26 +1,32 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from ..database import get_db
-from ..models import BenefitTemplate, BenefitUsage, RedemptionType
+from ..models import BenefitUsage
 from ..schemas import BenefitUsageOut, BenefitUsageUpdate
+from ..utils import coerce_binary_amount
 
 router = APIRouter(prefix="/api/usage", tags=["usage"])
 
 
 @router.put("/{usage_id}", response_model=BenefitUsageOut)
 def update_usage(usage_id: int, data: BenefitUsageUpdate, db: Session = Depends(get_db)):
-    usage = db.query(BenefitUsage).filter(BenefitUsage.id == usage_id).first()
+    usage = (
+        db.query(BenefitUsage)
+        .options(joinedload(BenefitUsage.benefit_template))
+        .filter(BenefitUsage.id == usage_id)
+        .first()
+    )
     if not usage:
         raise HTTPException(status_code=404, detail="Usage record not found")
 
-    benefit = db.query(BenefitTemplate).filter(BenefitTemplate.id == usage.benefit_template_id).first()
+    benefit = usage.benefit_template
+    if not benefit:
+        raise HTTPException(status_code=404, detail="Benefit template not found")
 
     if data.amount_used is not None:
-        amount = data.amount_used
-        if benefit and benefit.redemption_type == RedemptionType.binary:
-            amount = benefit.max_value if amount > 0 else 0.0
-        if benefit and amount > benefit.max_value:
+        amount = coerce_binary_amount(data.amount_used, benefit)
+        if amount > benefit.max_value:
             raise HTTPException(
                 status_code=400,
                 detail=f"Amount {amount} exceeds max value {benefit.max_value}",
@@ -36,7 +42,7 @@ def update_usage(usage_id: int, data: BenefitUsageUpdate, db: Session = Depends(
     return BenefitUsageOut(
         id=usage.id,
         benefit_template_id=usage.benefit_template_id,
-        benefit_name=benefit.name if benefit else "Unknown",
+        benefit_name=benefit.name,
         period_start_date=usage.period_start_date,
         period_end_date=usage.period_end_date,
         amount_used=usage.amount_used,
