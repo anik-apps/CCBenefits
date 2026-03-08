@@ -22,6 +22,8 @@ if not SECRET_KEY:
         stacklevel=2,
     )
 
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./ccbenefits.db")
+
 ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.environ.get(
