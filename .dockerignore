@@ -1,0 +1,16 @@
+.git
+.github
+.claude
+__pycache__
+*.pyc
+node_modules
+frontend/coverage
+frontend/.vite
+backend/htmlcov
+backend/.coverage
+backend/ccbenefits.db
+docs
+badges
+*.md
+.env
+.env.*
