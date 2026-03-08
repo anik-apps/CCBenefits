@@ -1,7 +1,10 @@
 import axios from 'axios';
 import type {
+  AuthResponse,
   CardTemplateListItem,
   CardTemplateDetail,
+  TokenResponse,
+  User,
   UserCardOut,
   UserCardDetail,
   UserCardSummary,
@@ -10,6 +13,78 @@ import type {
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '',
 });
+
+// Token management
+const TOKEN_KEY = 'ccb_access_token';
+const REFRESH_KEY = 'ccb_refresh_token';
+
+export function getStoredTokens() {
+  return {
+    access: localStorage.getItem(TOKEN_KEY),
+    refresh: localStorage.getItem(REFRESH_KEY),
+  };
+}
+
+export function storeTokens(access: string, refresh: string) {
+  localStorage.setItem(TOKEN_KEY, access);
+  localStorage.setItem(REFRESH_KEY, refresh);
+}
+
+export function clearTokens() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_KEY);
+}
+
+// Axios interceptor: attach token
+api.interceptors.request.use((config) => {
+  const { access } = getStoredTokens();
+  if (access) {
+    config.headers.Authorization = `Bearer ${access}`;
+  }
+  return config;
+});
+
+// Axios interceptor: refresh on 401
+let refreshPromise: Promise<string> | null = null;
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const original = error.config;
+    if (error.response?.status === 401 && !original._retry) {
+      original._retry = true;
+      const { refresh } = getStoredTokens();
+      if (!refresh) {
+        clearTokens();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      if (!refreshPromise) {
+        refreshPromise = api
+          .post('/api/auth/refresh', { refresh_token: refresh })
+          .then((res) => {
+            const data: TokenResponse = res.data;
+            storeTokens(data.access_token, data.refresh_token);
+            return data.access_token;
+          })
+          .catch(() => {
+            clearTokens();
+            window.location.href = '/login';
+            throw error;
+          })
+          .finally(() => {
+            refreshPromise = null;
+          });
+      }
+
+      const newToken = await refreshPromise;
+      original.headers.Authorization = `Bearer ${newToken}`;
+      return api(original);
+    }
+    return Promise.reject(error);
+  }
+);
 
 export async function getCardTemplates(): Promise<CardTemplateListItem[]> {
   const { data } = await api.get('/api/card-templates');
@@ -86,4 +161,45 @@ export async function updateBenefitSetting(
   await api.put(`/api/user-cards/${userCardId}/benefits/${benefitTemplateId}/setting`, {
     perceived_max_value: perceivedMaxValue,
   });
+}
+
+// Auth API functions
+export async function register(
+  email: string, password: string, displayName: string
+): Promise<AuthResponse> {
+  const { data } = await api.post('/api/auth/register', {
+    email, password, display_name: displayName,
+  });
+  storeTokens(data.access_token, data.refresh_token);
+  return data;
+}
+
+export async function login(email: string, password: string): Promise<TokenResponse> {
+  const { data } = await api.post('/api/auth/login', { email, password });
+  storeTokens(data.access_token, data.refresh_token);
+  return data;
+}
+
+export async function getProfile(): Promise<User> {
+  const { data } = await api.get('/api/users/me');
+  return data;
+}
+
+export async function updateProfile(updates: Partial<User>): Promise<User> {
+  const { data } = await api.put('/api/users/me', updates);
+  return data;
+}
+
+export async function changePassword(
+  currentPassword: string, newPassword: string
+): Promise<void> {
+  await api.put('/api/users/me/password', {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
+}
+
+export function logout() {
+  clearTokens();
+  window.location.href = '/login';
 }
