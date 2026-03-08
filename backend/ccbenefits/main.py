@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .database import Base, SessionLocal, engine
-from .routers import card_templates, usage, user_cards
+from .routers import auth, card_templates, usage, user_cards
 from .seed import seed_data
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
@@ -35,6 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(card_templates.router)
 app.include_router(user_cards.router)
 app.include_router(usage.router)
