@@ -21,11 +21,7 @@ frontend/.vite/
 .DS_Store
 Thumbs.db
 
-# Poetry
-poetry.lock
-
-# npm
-package-lock.json
+# Lockfiles committed for reproducible Docker builds
 
 # Docs build
 docs/_build/
