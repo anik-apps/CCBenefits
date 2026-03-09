@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import ALLOWED_ORIGINS
-from .routers import auth, card_templates, usage, user_cards, users
+from .routers import auth, card_templates, feedback, usage, user_cards, users
 
 FRONTEND_DIR = Path(os.environ.get(
     "FRONTEND_DIST_DIR",
@@ -34,6 +34,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(card_templates.router)
 app.include_router(user_cards.router)
+app.include_router(feedback.router)
 app.include_router(usage.router)
 app.include_router(users.router)
 
