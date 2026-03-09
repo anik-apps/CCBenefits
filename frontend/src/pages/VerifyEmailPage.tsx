@@ -41,7 +41,7 @@ export default function VerifyEmailPage() {
     };
     verify();
     return () => { cancelled = true; if (navTimeout) clearTimeout(navTimeout); };
-  }, [token, status, refreshUser]);
+  }, [token, status, refreshUser, navigate]);
 
   return (
     <div style={{ maxWidth: 400, margin: '80px auto', padding: 24, textAlign: 'center' }}>
