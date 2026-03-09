@@ -7,10 +7,10 @@ from sqlalchemy.orm import Session
 
 from ..auth import (
     create_access_token,
-    create_password_reset_token,
+    create_opaque_token,
     create_refresh_token,
     hash_password,
-    hash_reset_token,
+    hash_opaque_token,
     resolve_user_from_token,
     verify_password,
 )
@@ -60,8 +60,8 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
         raise HTTPException(status_code=409, detail="Email already registered")
 
     # Generate verification token before commit
-    verification_raw = create_password_reset_token()
-    verification_hash = hash_reset_token(verification_raw)
+    verification_raw = create_opaque_token()
+    verification_hash = hash_opaque_token(verification_raw)
 
     user = User(
         email=email,
@@ -114,7 +114,7 @@ def refresh(data: RefreshRequest, db: Session = Depends(get_db)):
 
 @router.post("/verify-email")
 def verify_email(data: VerifyEmailRequest, db: Session = Depends(get_db)):
-    hashed = hash_reset_token(data.token)
+    hashed = hash_opaque_token(data.token)
     user = db.query(User).filter(User.verification_token == hashed).first()
 
     if not user:
@@ -122,7 +122,7 @@ def verify_email(data: VerifyEmailRequest, db: Session = Depends(get_db)):
 
     now = _now_naive()
     if not user.verification_token_expires or user.verification_token_expires < now:
-        raise HTTPException(status_code=400, detail="Verification token has expired. Request a new one.")
+        raise HTTPException(status_code=400, detail="Invalid or expired verification token")
 
     user.is_verified = True
     user.verification_token = None
@@ -149,8 +149,8 @@ def resend_verification(
             raise HTTPException(status_code=429, detail="Please wait before requesting another email")
 
     # Generate new token
-    verification_raw = create_password_reset_token()
-    current_user.verification_token = hash_reset_token(verification_raw)
+    verification_raw = create_opaque_token()
+    current_user.verification_token = hash_opaque_token(verification_raw)
     current_user.verification_token_expires = now + timedelta(hours=VERIFICATION_TOKEN_EXPIRE_HOURS)
     db.commit()
 
@@ -168,8 +168,8 @@ def request_password_reset(data: PasswordResetRequest, db: Session = Depends(get
     # Always return 200 to avoid email enumeration
     user = db.query(User).filter(User.email == data.email.lower()).first()
     if user and user.is_active:
-        token = create_password_reset_token()
-        user.password_reset_token = hash_reset_token(token)
+        token = create_opaque_token()
+        user.password_reset_token = hash_opaque_token(token)
         user.password_reset_expires = _now_naive() + timedelta(hours=RESET_TOKEN_EXPIRE_HOURS)
         db.commit()
         try:
@@ -182,7 +182,7 @@ def request_password_reset(data: PasswordResetRequest, db: Session = Depends(get
 
 @router.post("/password-reset")
 def reset_password(data: PasswordReset, db: Session = Depends(get_db)):
-    hashed = hash_reset_token(data.token)
+    hashed = hash_opaque_token(data.token)
     user = db.query(User).filter(User.password_reset_token == hashed).first()
 
     if not user:

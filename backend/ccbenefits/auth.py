@@ -45,14 +45,19 @@ def create_refresh_token(
     return _create_token(subject, "refresh", timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS), expires_delta)
 
 
-def create_password_reset_token() -> str:
+def create_opaque_token() -> str:
     """Generate a random opaque token (32 bytes, hex-encoded)."""
     return secrets.token_hex(32)
 
 
-def hash_reset_token(token: str) -> str:
-    """SHA-256 hash of a reset token for safe database storage."""
+def hash_opaque_token(token: str) -> str:
+    """SHA-256 hash of an opaque token for safe database storage."""
     return hashlib.sha256(token.encode()).hexdigest()
+
+
+# Backward-compatible aliases
+create_password_reset_token = create_opaque_token
+hash_reset_token = hash_opaque_token
 
 
 def decode_token(token: str) -> dict:

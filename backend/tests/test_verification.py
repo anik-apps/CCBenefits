@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone as dt_timezone
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
-from ccbenefits.auth import create_password_reset_token, hash_reset_token
+from ccbenefits.auth import create_opaque_token, hash_opaque_token
 from ccbenefits.models import User
 
 
@@ -41,8 +41,8 @@ def test_verify_email_valid_token(client, db_session):
     user = db_session.query(User).filter(User.email == "valid@test.com").first()
 
     # Create a known token and set it on the user
-    raw_token = create_password_reset_token()
-    user.verification_token = hash_reset_token(raw_token)
+    raw_token = create_opaque_token()
+    user.verification_token = hash_opaque_token(raw_token)
     user.verification_token_expires = datetime.now(dt_timezone.utc).replace(tzinfo=None) + timedelta(hours=24)
     db_session.commit()
 
@@ -66,8 +66,8 @@ def test_verify_email_expired_token(client, db_session):
     })
     user = db_session.query(User).filter(User.email == "expired@test.com").first()
 
-    raw_token = create_password_reset_token()
-    user.verification_token = hash_reset_token(raw_token)
+    raw_token = create_opaque_token()
+    user.verification_token = hash_opaque_token(raw_token)
     user.verification_token_expires = datetime.now(dt_timezone.utc).replace(tzinfo=None) - timedelta(hours=1)
     db_session.commit()
 
@@ -82,8 +82,8 @@ def test_verify_email_single_use(client, db_session):
     })
     user = db_session.query(User).filter(User.email == "single@test.com").first()
 
-    raw_token = create_password_reset_token()
-    user.verification_token = hash_reset_token(raw_token)
+    raw_token = create_opaque_token()
+    user.verification_token = hash_opaque_token(raw_token)
     user.verification_token_expires = datetime.now(dt_timezone.utc).replace(tzinfo=None) + timedelta(hours=24)
     db_session.commit()
 
@@ -129,3 +129,15 @@ def test_resend_verification_rate_limited(client, db_session):
     # Token was just created during register — should be rate limited
     resp = client.post("/api/auth/resend-verification", headers=headers)
     assert resp.status_code == 429
+
+
+@patch("ccbenefits.routers.auth.send_verification_email")
+def test_register_sends_verification_email(mock_send, client):
+    resp = client.post("/api/auth/register", json={
+        "email": "emailsend@test.com", "password": "password123", "display_name": "E",
+    })
+    assert resp.status_code == 201
+    mock_send.assert_called_once()
+    call_args = mock_send.call_args
+    assert call_args[0][1] == "emailsend@test.com"  # to
+    assert len(call_args[0][2]) == 64  # raw token (32 bytes hex)

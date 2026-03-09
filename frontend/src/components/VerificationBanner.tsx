@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { resendVerification } from '../services/api';
 
 export default function VerificationBanner() {
-  const [sent, setSent] = useState(false);
+  const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
@@ -12,14 +12,16 @@ export default function VerificationBanner() {
 
   const handleResend = async () => {
     setSending(true);
+    setMessage('');
     try {
       await resendVerification();
-      setSent(true);
-      timerRef.current = setTimeout(() => setSent(false), 5000);
-    } catch {
-      // Rate limited or other error — user can try again
+      setMessage('Sent!');
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      setMessage(status === 429 ? 'Please wait before resending' : 'Failed to send');
     } finally {
       setSending(false);
+      timerRef.current = setTimeout(() => setMessage(''), 5000);
     }
   };
 
@@ -41,8 +43,8 @@ export default function VerificationBanner() {
       <span style={{ color: 'var(--accent-gold)' }}>
         Please verify your email. Check your inbox.
       </span>
-      {sent ? (
-        <span style={{ color: 'var(--text-muted)' }}>Sent!</span>
+      {message ? (
+        <span style={{ color: 'var(--text-muted)' }}>{message}</span>
       ) : (
         <button
           onClick={handleResend}
