@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from ..config import ADMIN_EMAILS
 from ..database import get_db
@@ -46,7 +46,7 @@ def list_feedback(
 
     feedbacks = (
         db.query(Feedback)
-        .join(User)
+        .options(joinedload(Feedback.user))
         .order_by(Feedback.created_at.desc())
         .offset(skip)
         .limit(min(limit, 500))
