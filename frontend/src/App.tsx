@@ -7,6 +7,7 @@ import AllCredits from './pages/AllCredits';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
+import FeedbackModal from './components/FeedbackModal';
 import { useState } from 'react';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -21,6 +22,7 @@ function App() {
   const { user } = useAuth();
   const isTabPage = location.pathname === '/' || location.pathname === '/credits';
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -82,6 +84,22 @@ function App() {
             }}>
               + Add
             </Link>
+            {user && (
+              <button
+                onClick={() => setFeedbackOpen(true)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid var(--border-medium)',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                }}
+              >
+                Feedback
+              </button>
+            )}
             {user && <UserMenu displayName={user.display_name} />}
           </div>
         </header>
@@ -98,6 +116,7 @@ function App() {
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         </Routes>
       </main>
+      {user && <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />}
     </div>
   );
 }

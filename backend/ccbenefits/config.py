@@ -24,6 +24,12 @@ if not SECRET_KEY:
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./ccbenefits.db")
 
+ADMIN_EMAILS = [
+    e.strip().lower()
+    for e in os.environ.get("CCB_ADMIN_EMAILS", "").split(",")
+    if e.strip()
+]
+
 ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.environ.get(
