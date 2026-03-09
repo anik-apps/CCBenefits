@@ -199,6 +199,12 @@ export async function changePassword(
   });
 }
 
+export async function submitFeedback(
+  category: string, message: string
+): Promise<void> {
+  await api.post('/api/feedback/', { category, message });
+}
+
 export function logout() {
   clearTokens();
   window.location.href = '/login';
