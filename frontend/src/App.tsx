@@ -10,6 +10,8 @@ import ProfilePage from './pages/ProfilePage';
 import FeedbackModal from './components/FeedbackModal';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminFeedback from './pages/AdminFeedback';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+import VerificationBanner from './components/VerificationBanner';
 import TabLink from './components/TabLink';
 import UserMenu from './components/UserMenu';
 import { useState } from 'react';
@@ -101,11 +103,13 @@ function App() {
           </div>
         </header>
       )}
+      {user && !user.is_verified && !isAuthPage && <VerificationBanner />}
 
       <main style={{ flex: 1, padding: isAuthPage ? '0' : '20px', maxWidth: isAuthPage ? 'none' : 960, width: '100%', margin: '0 auto' }}>
         <Routes>
           <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
           <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
+          <Route path="/verify" element={<VerifyEmailPage />} />
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/credits" element={<ProtectedRoute><AllCredits /></ProtectedRoute>} />
           <Route path="/add-card" element={<ProtectedRoute><AddCard /></ProtectedRoute>} />
