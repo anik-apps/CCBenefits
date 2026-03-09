@@ -23,13 +23,14 @@ export default function VerifyEmailPage() {
     if (status !== 'loading' || !token) return;
 
     let cancelled = false;
+    let navTimeout: ReturnType<typeof setTimeout> | null = null;
     const verify = async () => {
       try {
         await verifyEmail(token);
         if (!cancelled) {
           setStatus('success');
           await refreshUser();
-          setTimeout(() => navigate('/'), 2000);
+          navTimeout = setTimeout(() => navigate('/'), 2000);
         }
       } catch (err: unknown) {
         if (!cancelled) {
@@ -39,8 +40,8 @@ export default function VerifyEmailPage() {
       }
     };
     verify();
-    return () => { cancelled = true; };
-  }, [token, status, refreshUser]);
+    return () => { cancelled = true; if (navTimeout) clearTimeout(navTimeout); };
+  }, [token, status, refreshUser, navigate]);
 
   return (
     <div style={{ maxWidth: 400, margin: '80px auto', padding: 24, textAlign: 'center' }}>

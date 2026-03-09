@@ -8,7 +8,9 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import ALLOWED_ORIGINS, RESEND_API_KEY, EMAIL_FROM
+from .database import engine
 from .email import set_email_sender, ResendEmailSender
+from .observability import setup_observability, shutdown_observability
 from .routers import auth, card_templates, feedback, usage, user_cards, users
 
 # Conditionally use Resend for emails in production
@@ -24,9 +26,13 @@ FRONTEND_DIR = Path(os.environ.get(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
+    shutdown_observability()
 
 
 app = FastAPI(title="CCBenefits", version="0.1.0", lifespan=lifespan)
+
+# Set up observability (OTel + JSON logging)
+setup_observability(app, engine)
 
 app.add_middleware(
     CORSMiddleware,

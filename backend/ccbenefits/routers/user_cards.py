@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from ..database import get_db
 from ..dependencies import get_current_user
+from ..metrics import cards_added_counter
 from ..models import (
     BenefitTemplate,
     BenefitUsage,
@@ -49,6 +50,7 @@ def create_user_card(
     db.add(user_card)
     db.commit()
     db.refresh(user_card)
+    cards_added_counter.add(1)
 
     return UserCardOut(
         id=user_card.id,

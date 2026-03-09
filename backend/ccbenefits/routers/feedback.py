@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from ..config import ADMIN_EMAILS
 from ..database import get_db
+from ..metrics import feedback_submitted_counter
 from ..dependencies import get_current_user
 from ..models import Feedback, User
 from ..schemas import FeedbackCreate, FeedbackOut
@@ -24,6 +25,7 @@ def submit_feedback(
     db.add(fb)
     db.commit()
     db.refresh(fb)
+    feedback_submitted_counter.add(1, {"category": data.category})
 
     return FeedbackOut(
         id=fb.id,
