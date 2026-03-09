@@ -13,6 +13,7 @@ from ..auth import (
     resolve_user_from_token,
     verify_password,
 )
+from ..config import ADMIN_EMAILS
 from ..config import RESET_TOKEN_EXPIRE_HOURS
 from ..database import get_db
 from ..email import get_email_sender
@@ -47,8 +48,10 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
+    user_out = UserOut.model_validate(user)
+    user_out.is_admin = user.email.lower() in ADMIN_EMAILS
     return AuthResponse(
-        user=UserOut.model_validate(user),
+        user=user_out,
         access_token=create_access_token(subject=str(user.id)),
         refresh_token=create_refresh_token(subject=str(user.id)),
     )

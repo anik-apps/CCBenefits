@@ -215,6 +215,7 @@ class UserOut(BaseModel):
     timezone: str
     notification_preferences: dict | None
     is_active: bool
+    is_admin: bool = False
     created_at: datetime
 
 
