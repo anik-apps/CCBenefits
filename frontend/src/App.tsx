@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import FeedbackModal from './components/FeedbackModal';
+import AdminFeedback from './pages/AdminFeedback';
 import { useState } from 'react';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -114,6 +115,7 @@ function App() {
           <Route path="/add-card" element={<ProtectedRoute><AddCard /></ProtectedRoute>} />
           <Route path="/card/:id" element={<ProtectedRoute><CardDetail /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/admin/feedback" element={<ProtectedRoute><AdminFeedback /></ProtectedRoute>} />
         </Routes>
       </main>
       {user && <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />}
@@ -184,6 +186,18 @@ function UserMenu({ displayName }: { displayName: string }) {
             }}
           >
             Profile
+          </Link>
+          <Link
+            to="/admin/feedback"
+            onClick={() => setOpen(false)}
+            style={{
+              display: 'block',
+              padding: '8px 14px',
+              fontSize: '0.85rem',
+              color: 'var(--text-muted)',
+            }}
+          >
+            Admin: Feedback
           </Link>
           <button
             onClick={() => { setOpen(false); logout(); }}

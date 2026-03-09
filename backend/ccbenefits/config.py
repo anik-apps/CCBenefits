@@ -1,4 +1,5 @@
 import os
+import re
 import warnings
 
 
@@ -24,10 +25,12 @@ if not SECRET_KEY:
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./ccbenefits.db")
 
+_EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+
 ADMIN_EMAILS = [
     e.strip().lower()
     for e in os.environ.get("CCB_ADMIN_EMAILS", "").split(",")
-    if e.strip()
+    if e.strip() and _EMAIL_RE.match(e.strip())
 ]
 
 ALLOWED_ORIGINS = [
