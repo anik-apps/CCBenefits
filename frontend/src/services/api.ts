@@ -218,6 +218,14 @@ export async function getAdminFeedback(): Promise<FeedbackItem[]> {
   return data;
 }
 
+export async function verifyEmail(token: string): Promise<void> {
+  await api.post('/api/auth/verify-email', { token });
+}
+
+export async function resendVerification(): Promise<void> {
+  await api.post('/api/auth/resend-verification');
+}
+
 export function logout() {
   clearTokens();
   window.location.href = '/login';

@@ -118,7 +118,6 @@ def verify_email(data: VerifyEmailRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.verification_token == hashed).first()
 
     if not user:
-        # Check if any user with this email is already verified (double-click on link)
         raise HTTPException(status_code=400, detail="Invalid or expired verification token")
 
     now = _now_naive()

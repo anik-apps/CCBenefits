@@ -108,6 +108,7 @@ export interface User {
   notification_preferences: Record<string, unknown> | null;
   is_active: boolean;
   is_admin: boolean;
+  is_verified: boolean;
   created_at: string;
 }
 

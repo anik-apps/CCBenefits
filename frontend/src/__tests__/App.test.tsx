@@ -9,7 +9,7 @@ vi.mock('../services/api', () => ({
   getProfile: () => Promise.resolve({
     id: 1, email: 'test@test.com', display_name: 'Test User',
     preferred_currency: 'USD', timezone: 'UTC',
-    notification_preferences: null, is_active: true, created_at: '2026-01-01',
+    notification_preferences: null, is_active: true, is_admin: false, is_verified: true, created_at: '2026-01-01',
   }),
   clearTokens: vi.fn(),
   storeTokens: vi.fn(),
