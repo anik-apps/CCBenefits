@@ -227,3 +227,21 @@ class UserUpdate(BaseModel):
 
 class AuthResponse(TokenResponse):
     user: UserOut
+
+
+# --- Feedback schemas ---
+
+
+class FeedbackCreate(BaseModel):
+    category: str = Field(pattern=r"^(bug_report|feature_request|general)$")
+    message: str = Field(min_length=1, max_length=1000)
+
+
+class FeedbackOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    user_email: str  # Populated manually from user relationship, not from ORM attribute
+    category: str
+    message: str
+    created_at: datetime
