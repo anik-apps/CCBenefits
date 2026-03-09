@@ -97,7 +97,7 @@ function App() {
                 Feedback
               </button>
             )}
-            {user && <UserMenu displayName={user.display_name} />}
+            {user && <UserMenu displayName={user.display_name} isAdmin={user.is_admin} />}
           </div>
         </header>
       )}

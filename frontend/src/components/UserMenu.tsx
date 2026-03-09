@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
-export default function UserMenu({ displayName }: { displayName: string }) {
+export default function UserMenu({ displayName, isAdmin }: { displayName: string; isAdmin: boolean }) {
   const { logout } = useAuth();
   const [open, setOpen] = useState(false);
 
@@ -47,18 +47,20 @@ export default function UserMenu({ displayName }: { displayName: string }) {
           >
             Profile
           </Link>
-          <Link
-            to="/admin/feedback"
-            onClick={() => setOpen(false)}
-            style={{
-              display: 'block',
-              padding: '8px 14px',
-              fontSize: '0.85rem',
-              color: 'var(--text-muted)',
-            }}
-          >
-            Admin: Feedback
-          </Link>
+          {isAdmin && (
+            <Link
+              to="/admin/feedback"
+              onClick={() => setOpen(false)}
+              style={{
+                display: 'block',
+                padding: '8px 14px',
+                fontSize: '0.85rem',
+                color: 'var(--text-muted)',
+              }}
+            >
+              Admin: Feedback
+            </Link>
+          )}
           <button
             onClick={() => { setOpen(false); logout(); }}
             style={{

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..auth import hash_password, verify_password
+from ..config import ADMIN_EMAILS
 from ..database import get_db
 from ..dependencies import get_current_user
 from ..models import User
@@ -10,9 +11,15 @@ from ..schemas import PasswordChange, UserOut, UserUpdate
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
+def _user_out(user: User) -> UserOut:
+    out = UserOut.model_validate(user)
+    out.is_admin = user.email.lower() in ADMIN_EMAILS
+    return out
+
+
 @router.get("/me", response_model=UserOut)
 def get_profile(current_user: User = Depends(get_current_user)):
-    return UserOut.model_validate(current_user)
+    return _user_out(current_user)
 
 
 @router.put("/me", response_model=UserOut)
@@ -31,7 +38,7 @@ def update_profile(
         current_user.notification_preferences = data.notification_preferences
     db.commit()
     db.refresh(current_user)
-    return UserOut.model_validate(current_user)
+    return _user_out(current_user)
 
 
 @router.put("/me/password")
