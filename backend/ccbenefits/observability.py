@@ -61,6 +61,11 @@ def setup_json_logging() -> None:
                 "stream": "ext://sys.stdout",
             },
         },
+        "loggers": {
+            "uvicorn": {"handlers": ["console"], "level": "INFO", "propagate": True},
+            "uvicorn.access": {"handlers": [], "level": "INFO", "propagate": True},
+            "uvicorn.error": {"handlers": [], "level": "INFO", "propagate": True},
+        },
         "root": {
             "level": "INFO",
             "handlers": ["console"],
