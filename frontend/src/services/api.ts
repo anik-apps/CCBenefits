@@ -205,6 +205,19 @@ export async function submitFeedback(
   await api.post('/api/feedback/', { category, message });
 }
 
+export interface FeedbackItem {
+  id: number;
+  user_email: string;
+  category: string;
+  message: string;
+  created_at: string;
+}
+
+export async function getAdminFeedback(): Promise<FeedbackItem[]> {
+  const { data } = await api.get('/api/feedback/');
+  return data;
+}
+
 export function logout() {
   clearTokens();
   window.location.href = '/login';
