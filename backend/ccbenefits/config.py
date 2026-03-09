@@ -33,6 +33,11 @@ ADMIN_EMAILS = [
     if e.strip() and _EMAIL_RE.match(e.strip())
 ]
 
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+EMAIL_FROM = os.environ.get("CCB_EMAIL_FROM", "noreply@kumaranik.com")
+FRONTEND_URL = os.environ.get("CCB_FRONTEND_URL", "http://localhost:5173")
+VERIFICATION_TOKEN_EXPIRE_HOURS = 24
+
 ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.environ.get(

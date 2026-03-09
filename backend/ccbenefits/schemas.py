@@ -216,7 +216,12 @@ class UserOut(BaseModel):
     notification_preferences: dict | None
     is_active: bool
     is_admin: bool = False
+    is_verified: bool = False
     created_at: datetime
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str
 
 
 class UserUpdate(BaseModel):

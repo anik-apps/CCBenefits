@@ -7,8 +7,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .config import ALLOWED_ORIGINS
+from .config import ALLOWED_ORIGINS, RESEND_API_KEY, EMAIL_FROM
+from .email import set_email_sender, ResendEmailSender
 from .routers import auth, card_templates, feedback, usage, user_cards, users
+
+# Conditionally use Resend for emails in production
+if RESEND_API_KEY:
+    set_email_sender(ResendEmailSender(api_key=RESEND_API_KEY, from_address=EMAIL_FROM))
 
 FRONTEND_DIR = Path(os.environ.get(
     "FRONTEND_DIST_DIR",
@@ -59,5 +64,6 @@ if FRONTEND_DIR.exists():
     @app.get("/register")
     @app.get("/profile")
     @app.get("/admin/feedback")
+    @app.get("/verify")
     async def serve_frontend(card_id: str = ""):
         return FileResponse(FRONTEND_DIR / "index.html")
