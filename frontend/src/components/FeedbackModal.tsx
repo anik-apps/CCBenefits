@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { submitFeedback } from '../services/api';
 import { inputStyle, labelStyle, primaryButtonStyle, errorStyle } from '../styles/form';
 
@@ -21,8 +21,9 @@ export default function FeedbackModal({ open, onClose }: Props) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  // Reset state when modal opens
+  // Reset state and clear timer when modal opens/closes
   useEffect(() => {
     if (open) {
       setCategory('general');
@@ -30,6 +31,7 @@ export default function FeedbackModal({ open, onClose }: Props) {
       setError('');
       setSuccess(false);
     }
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [open]);
 
   if (!open) return null;
@@ -41,7 +43,7 @@ export default function FeedbackModal({ open, onClose }: Props) {
     try {
       await submitFeedback(category, message);
       setSuccess(true);
-      setTimeout(() => { setSuccess(false); onClose(); }, 1500);
+      timerRef.current = setTimeout(() => { setSuccess(false); onClose(); }, 1500);
     } catch {
       setError('Failed to submit feedback');
     } finally {

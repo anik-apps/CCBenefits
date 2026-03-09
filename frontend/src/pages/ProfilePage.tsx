@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { updateProfile, changePassword } from '../services/api';
 import { inputStyle, labelStyle, primaryButtonStyle } from '../styles/form';
 
