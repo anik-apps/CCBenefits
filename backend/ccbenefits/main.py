@@ -65,5 +65,6 @@ if FRONTEND_DIR.exists():
     @app.get("/profile")
     @app.get("/admin/feedback")
     @app.get("/verify")
+    @app.get("/verify-pending")
     async def serve_frontend(card_id: str = ""):
         return FileResponse(FRONTEND_DIR / "index.html")

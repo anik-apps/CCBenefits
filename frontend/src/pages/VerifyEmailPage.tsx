@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { verifyEmail } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 
@@ -12,6 +12,7 @@ function getInitialStatus(isVerified: boolean | undefined, token: string | null)
 }
 
 export default function VerifyEmailPage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const { user, refreshUser } = useAuth();
@@ -27,7 +28,8 @@ export default function VerifyEmailPage() {
         await verifyEmail(token);
         if (!cancelled) {
           setStatus('success');
-          refreshUser();
+          await refreshUser();
+          setTimeout(() => navigate('/'), 2000);
         }
       } catch (err: unknown) {
         if (!cancelled) {
