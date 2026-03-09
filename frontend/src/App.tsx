@@ -11,7 +11,7 @@ import FeedbackModal from './components/FeedbackModal';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminFeedback from './pages/AdminFeedback';
 import VerifyEmailPage from './pages/VerifyEmailPage';
-import VerificationBanner from './components/VerificationBanner';
+import VerifyPendingPage from './pages/VerifyPendingPage';
 import TabLink from './components/TabLink';
 import UserMenu from './components/UserMenu';
 import { useState } from 'react';
@@ -20,7 +20,7 @@ function App() {
   const location = useLocation();
   const { user } = useAuth();
   const isTabPage = location.pathname === '/' || location.pathname === '/credits';
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/verify-pending';
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   return (
@@ -103,13 +103,12 @@ function App() {
           </div>
         </header>
       )}
-      {user && !user.is_verified && !isAuthPage && <VerificationBanner />}
-
       <main style={{ flex: 1, padding: isAuthPage ? '0' : '20px', maxWidth: isAuthPage ? 'none' : 960, width: '100%', margin: '0 auto' }}>
         <Routes>
-          <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
-          <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
+          <Route path="/login" element={user && user.is_verified ? <Navigate to="/" replace /> : <LoginPage />} />
+          <Route path="/register" element={user && user.is_verified ? <Navigate to="/" replace /> : <RegisterPage />} />
           <Route path="/verify" element={<VerifyEmailPage />} />
+          <Route path="/verify-pending" element={<VerifyPendingPage />} />
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/credits" element={<ProtectedRoute><AllCredits /></ProtectedRoute>} />
           <Route path="/add-card" element={<ProtectedRoute><AddCard /></ProtectedRoute>} />
