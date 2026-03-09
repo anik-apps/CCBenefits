@@ -33,7 +33,7 @@ RUN chmod +x prestart.sh
 COPY --from=frontend-build /build/dist ./frontend/dist
 
 # Install the project package itself (deps already installed above)
-RUN poetry install --no-interaction --only main --no-deps
+RUN poetry install --no-interaction --only main
 
 ENV FRONTEND_DIST_DIR=/app/frontend/dist
 EXPOSE 80
