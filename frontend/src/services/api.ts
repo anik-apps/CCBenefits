@@ -87,7 +87,7 @@ api.interceptors.response.use(
 );
 
 export async function getCardTemplates(): Promise<CardTemplateListItem[]> {
-  const { data } = await api.get('/api/card-templates');
+  const { data } = await api.get('/api/card-templates/');
   return data;
 }
 
