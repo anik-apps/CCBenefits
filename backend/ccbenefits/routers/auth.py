@@ -23,6 +23,14 @@ from ..config import (
 from ..database import get_db
 from ..dependencies import get_current_user
 from ..email import get_email_sender, send_password_reset_email, send_verification_email
+from ..metrics import (
+    auth_failure_counter,
+    auth_login_counter,
+    auth_register_counter,
+    password_reset_counter,
+    verification_completed_counter,
+    verification_sent_counter,
+)
 from ..models import User
 from ..schemas import (
     AuthResponse,
@@ -75,10 +83,13 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
+    auth_register_counter.add(1)
+
     # Send verification email (best-effort — user can resend if this fails)
     try:
         sender = get_email_sender()
         send_verification_email(sender, user.email, verification_raw, FRONTEND_URL)
+        verification_sent_counter.add(1)
     except Exception:
         logger.warning(f"Failed to send verification email to {user.email}", exc_info=True)
 
@@ -93,10 +104,15 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
 def login(data: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email.lower()).first()
     if not user or not verify_password(data.password, user.hashed_password):
+        auth_login_counter.add(1, {"success": "false"})
+        auth_failure_counter.add(1, {"reason": "invalid_credentials"})
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if not user.is_active:
+        auth_login_counter.add(1, {"success": "false"})
+        auth_failure_counter.add(1, {"reason": "inactive"})
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
+    auth_login_counter.add(1, {"success": "true"})
     return TokenResponse(
         access_token=create_access_token(subject=str(user.id)),
         refresh_token=create_refresh_token(subject=str(user.id)),
@@ -128,6 +144,7 @@ def verify_email(data: VerifyEmailRequest, db: Session = Depends(get_db)):
     user.verification_token = None
     user.verification_token_expires = None
     db.commit()
+    verification_completed_counter.add(1)
     return {"message": "Email verified successfully"}
 
 
@@ -167,6 +184,7 @@ def resend_verification(
 def request_password_reset(data: PasswordResetRequest, db: Session = Depends(get_db)):
     # Always return 200 to avoid email enumeration
     user = db.query(User).filter(User.email == data.email.lower()).first()
+    password_reset_counter.add(1)
     if user and user.is_active:
         token = create_opaque_token()
         user.password_reset_token = hash_opaque_token(token)

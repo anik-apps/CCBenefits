@@ -38,6 +38,10 @@ EMAIL_FROM = os.environ.get("CCB_EMAIL_FROM", "noreply@kumaranik.com")
 FRONTEND_URL = os.environ.get("CCB_FRONTEND_URL", "http://localhost:5173")
 VERIFICATION_TOKEN_EXPIRE_HOURS = 24
 
+GRAFANA_OTLP_ENDPOINT = os.environ.get("GRAFANA_OTLP_ENDPOINT", "")
+GRAFANA_INSTANCE_ID = os.environ.get("GRAFANA_INSTANCE_ID", "")
+GRAFANA_OTLP_TOKEN = os.environ.get("GRAFANA_OTLP_TOKEN", "")
+
 ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.environ.get(

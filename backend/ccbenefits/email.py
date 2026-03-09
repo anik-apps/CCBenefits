@@ -1,6 +1,8 @@
 import logging
 from typing import Protocol
 
+from .metrics import email_sent_counter
+
 logger = logging.getLogger(__name__)
 
 
@@ -57,7 +59,12 @@ def send_verification_email(sender: EmailSender, to: str, token: str, base_url: 
     <p style="color:#888;font-size:0.85em;">Or copy this link: {link}</p>
     <p style="color:#888;font-size:0.85em;">This link expires in 24 hours.</p>
     """
-    sender.send(to, "Verify your CCBenefits email", html)
+    try:
+        sender.send(to, "Verify your CCBenefits email", html)
+        email_sent_counter.add(1, {"type": "verification", "success": "true"})
+    except Exception:
+        email_sent_counter.add(1, {"type": "verification", "success": "false"})
+        raise
 
 
 def send_password_reset_email(sender: EmailSender, to: str, token: str, base_url: str) -> None:
@@ -69,4 +76,9 @@ def send_password_reset_email(sender: EmailSender, to: str, token: str, base_url
     <p style="color:#888;font-size:0.85em;">Or copy this link: {link}</p>
     <p style="color:#888;font-size:0.85em;">This link expires in 1 hour. If you didn't request this, ignore this email.</p>
     """
-    sender.send(to, "Reset your CCBenefits password", html)
+    try:
+        sender.send(to, "Reset your CCBenefits password", html)
+        email_sent_counter.add(1, {"type": "reset", "success": "true"})
+    except Exception:
+        email_sent_counter.add(1, {"type": "reset", "success": "false"})
+        raise
