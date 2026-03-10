@@ -15,7 +15,8 @@ logger = logging.getLogger("ccbenefits.access")
 
 _SENSITIVE_FIELDS = {
     "password", "new_password", "current_password",
-    "token", "access_token", "refresh_token", "refresh_token",
+    "token", "access_token", "refresh_token",
+    "email",  # fully masked to prevent enumeration via logs
 }
 
 # Skip logging for these paths/methods
@@ -55,7 +56,12 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
         # Read request body for POST/PUT/PATCH (small JSON payloads only)
         body_data = None
-        if request.method in ("POST", "PUT", "PATCH") and path.startswith("/api/"):
+        content_type = request.headers.get("content-type", "")
+        if (
+            request.method in ("POST", "PUT", "PATCH")
+            and path.startswith("/api/")
+            and "application/json" in content_type
+        ):
             try:
                 body = await request.body()
                 if 0 < len(body) < 4096:
