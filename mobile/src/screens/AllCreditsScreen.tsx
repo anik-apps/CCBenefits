@@ -5,7 +5,7 @@ import { View, Text, StyleSheet, SectionList, ActivityIndicator, TouchableOpacit
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUserCards, getUserCard, logUsage, updateUsage, deleteUsage } from '../services/api';
 import UsageModal from '../components/UsageModal';
-import { colors, spacing, radius } from '../theme';
+import { colors, spacing, radius, getIssuerColor } from '../theme';
 import type { BenefitStatus } from '../types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -14,7 +14,28 @@ type Props = NativeStackScreenProps<any, 'AllCredits'>;
 interface BenefitWithCard extends BenefitStatus {
   userCardId: number;
   cardName: string;
+  issuer: string;
 }
+
+const CATEGORY_ICONS: Record<string, string> = {
+  travel: '\u2708\uFE0F',
+  dining: '\uD83C\uDF74',
+  entertainment: '\uD83C\uDFAC',
+  shopping: '\uD83D\uDECD\uFE0F',
+  wellness: '\uD83E\uDDD8',
+  lifestyle: '\u2728',
+  membership: '\uD83D\uDD11',
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  travel: '#3b82f6',
+  dining: '#f59e0b',
+  entertainment: '#a855f7',
+  shopping: '#ec4899',
+  wellness: '#10b981',
+  lifestyle: '#6366f1',
+  membership: '#64748b',
+};
 
 const PERIOD_ORDER = ['monthly', 'quarterly', 'semiannual', 'annual'];
 const PERIOD_LABELS: Record<string, string> = {
@@ -68,7 +89,7 @@ export default function AllCreditsScreen({ navigation }: Props) {
   }
 
   const allBenefits: BenefitWithCard[] = cardDetails.flatMap(card =>
-    card.benefits_status.map(b => ({ ...b, userCardId: card.id, cardName: card.card_name }))
+    card.benefits_status.map(b => ({ ...b, userCardId: card.id, cardName: card.card_name, issuer: card.issuer }))
   );
 
   const sections = PERIOD_ORDER
@@ -95,15 +116,24 @@ export default function AllCreditsScreen({ navigation }: Props) {
         renderSectionHeader={({ section }) => (
           <Text style={styles.sectionHeader}>{section.title}</Text>
         )}
-        renderItem={({ item }) => (
+        renderItem={({ item }) => {
+          const catIcon = CATEGORY_ICONS[item.category] || '\u2022';
+          const catColor = CATEGORY_COLORS[item.category] || '#64748b';
+          return (
           <TouchableOpacity
-            style={styles.benefitCard}
+            style={[styles.benefitCard, { borderLeftWidth: 3, borderLeftColor: getIssuerColor(item.issuer).bg }]}
             onPress={() => setSelectedBenefit(item)}
             activeOpacity={0.7}
           >
             <View style={styles.benefitRow}>
-              <View style={{ flex: 1 }}>
+              <View style={[styles.catIconBox, { backgroundColor: catColor + '20', borderColor: catColor + '40' }]}>
+                <Text style={styles.catIconText}>{catIcon}</Text>
+              </View>
+              <View style={{ flex: 1, marginLeft: spacing.sm }}>
                 <Text style={styles.benefitName}>{item.name}</Text>
+                {item.description ? (
+                  <Text style={styles.benefitDesc} numberOfLines={2}>{item.description}</Text>
+                ) : null}
                 <Text style={styles.cardLabel}>{item.cardName}</Text>
               </View>
               <View style={styles.benefitRight}>
@@ -133,7 +163,8 @@ export default function AllCreditsScreen({ navigation }: Props) {
               })}
             </View>
           </TouchableOpacity>
-        )}
+          );
+        }}
       />
 
       {selectedBenefit && (
@@ -166,10 +197,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgCard, borderRadius: radius.md, padding: spacing.md,
     marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.borderSubtle,
   },
-  benefitRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm },
+  benefitRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.sm },
+  catIconBox: {
+    width: 36, height: 36, borderRadius: radius.sm,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1,
+  },
+  catIconText: { fontSize: 16 },
   benefitName: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
+  benefitDesc: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   cardLabel: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
-  benefitRight: { alignItems: 'flex-end' },
+  benefitRight: { alignItems: 'flex-end', marginLeft: 'auto' },
   benefitValue: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
   benefitUsedStyle: { color: colors.accentGold },
   tapHint: { fontSize: 10, color: colors.accentGold, marginTop: 2 },

@@ -89,9 +89,12 @@ export default function UsageModal({ visible, benefit, onClose, onLogUsage, onUp
         <TouchableOpacity activeOpacity={1} style={styles.modal}>
           <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.title}>{benefit.name}</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.subtitle, !benefit.description && { marginBottom: spacing.lg }]}>
               ${benefit.max_value} / {benefit.period_type}
             </Text>
+            {benefit.description ? (
+              <Text style={styles.description}>{benefit.description}</Text>
+            ) : null}
 
             {/* Period selector */}
             {benefit.periods.length === 0 ? (
@@ -147,7 +150,12 @@ export default function UsageModal({ visible, benefit, onClose, onLogUsage, onUp
                   </View>
                 ) : (
                   <>
-                    <Text style={styles.label}>Amount Used</Text>
+                    <View style={styles.amountLabelRow}>
+                      <Text style={styles.label}>Amount Used</Text>
+                      <TouchableOpacity onPress={() => setAmount(benefit.max_value.toString())}>
+                        <Text style={styles.maxBtn}>Fill Max (${benefit.max_value})</Text>
+                      </TouchableOpacity>
+                    </View>
                     <TextInput
                       style={styles.input}
                       value={amount}
@@ -212,8 +220,11 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.borderMedium,
   },
   title: { fontSize: 17, fontWeight: '700', color: colors.textPrimary, marginBottom: 2 },
-  subtitle: { fontSize: 12, color: colors.textMuted, marginBottom: spacing.lg },
+  subtitle: { fontSize: 12, color: colors.textMuted, marginBottom: spacing.xs },
+  description: { fontSize: 13, color: colors.textSecondary, marginBottom: spacing.lg, lineHeight: 18 },
   label: { fontSize: 12, color: colors.textMuted, marginBottom: spacing.xs },
+  amountLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
+  maxBtn: { fontSize: 12, color: colors.accentGold, fontWeight: '600' },
   input: {
     backgroundColor: colors.bgTertiary, borderWidth: 1, borderColor: colors.borderMedium,
     borderRadius: radius.sm, padding: spacing.md, color: colors.textPrimary,

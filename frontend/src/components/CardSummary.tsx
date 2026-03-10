@@ -1,15 +1,8 @@
 import { Link } from 'react-router-dom';
 import type { UserCardSummary } from '../types';
 import UtilizationBar from './UtilizationBar';
-
-const ISSUER_GRADIENTS: Record<string, string> = {
-  'American Express': 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-  'Chase': 'linear-gradient(135deg, #1a1a2e 0%, #1a2332 50%, #003087 100%)',
-  'Citi': 'linear-gradient(135deg, #1a1a2e 0%, #1e2a3a 50%, #003b70 100%)',
-  'Bilt': 'linear-gradient(135deg, #1a1a2e 0%, #2a1a2e 50%, #4a1942 100%)',
-  'Capital One': 'linear-gradient(135deg, #1a1a2e 0%, #1a2a1e 50%, #1a4a2e 100%)',
-  'Bank of America': 'linear-gradient(135deg, #1a1a2e 0%, #2e1a1a 50%, #5a1a1a 100%)',
-};
+import CardIcon from './CardIcon';
+import { getIssuerGradient } from '../constants/issuerTheme';
 
 interface Props {
   card: UserCardSummary;
@@ -17,7 +10,7 @@ interface Props {
 }
 
 export default function CardSummary({ card, index }: Props) {
-  const gradient = ISSUER_GRADIENTS[card.issuer] || ISSUER_GRADIENTS['Chase'];
+  const gradient = getIssuerGradient(card.issuer);
   const netColor = card.net_perceived >= 0 ? 'var(--accent-emerald)' : 'var(--accent-red)';
 
   return (
@@ -50,14 +43,13 @@ export default function CardSummary({ card, index }: Props) {
       >
         {/* Top: name + fee + net */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <CardIcon issuer={card.issuer} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
               fontFamily: 'var(--font-display)',
               fontSize: '1rem',
               fontWeight: 600,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
+              lineHeight: 1.3,
             }}>
               {card.nickname || card.card_name}
             </div>

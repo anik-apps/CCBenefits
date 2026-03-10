@@ -34,9 +34,9 @@ describe('App', () => {
     expect(screen.getByText('All Credits')).toBeInTheDocument();
   });
 
-  it('renders Add button', async () => {
+  it('renders Add FAB', async () => {
     renderWithProviders(<App />, { route: '/' });
-    expect(await screen.findByText('+ Add')).toBeInTheDocument();
+    expect(await screen.findByTitle('Add a card')).toBeInTheDocument();
   });
 
   it('renders tab navigation on credits page', async () => {
@@ -50,7 +50,7 @@ describe('App', () => {
     // Wait for auth to resolve
     expect(await screen.findByText('CCBenefits')).toBeInTheDocument();
     expect(screen.queryByText('Cards')).not.toBeInTheDocument();
-    expect(screen.getByText('+ Add')).toBeInTheDocument();
+    expect(screen.getByTitle('Add a card')).toBeInTheDocument();
   });
 
   it('hides tab navigation on add card page', async () => {

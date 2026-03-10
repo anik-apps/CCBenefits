@@ -1,44 +1,101 @@
 import { useState } from 'react';
 import type { BenefitStatus, PeriodSegment } from '../types';
+import { getIssuerColor } from '../constants/issuerTheme';
+import { getCategoryColor, getCategoryIcon } from '../constants/categoryTheme';
 
 interface Props {
   benefit: BenefitStatus;
   cardName?: string;
+  issuer?: string;
   onToggleBinary: (benefitId: number, used: boolean) => void;
   onLogContinuous: (benefitId: number) => void;
   onSetPerceived: (benefitId: number) => void;
   onSegmentClick: (benefitId: number, segment: PeriodSegment) => void;
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  travel: '\u2708',
-  dining: '\u{1F374}',
-  entertainment: '\u{1F3AC}',
-  shopping: '\u{1F6CD}',
-  wellness: '\u{1F9D8}',
-  lifestyle: '\u2728',
-  membership: '\u{1F511}',
-};
-
-export default function BenefitRow({ benefit, cardName, onToggleBinary, onLogContinuous, onSetPerceived, onSegmentClick }: Props) {
+export default function BenefitRow({ benefit, cardName, issuer, onToggleBinary, onLogContinuous, onSetPerceived, onSegmentClick }: Props) {
   const [hovering, setHovering] = useState(false);
-  const catIcon = CATEGORY_ICONS[benefit.category] || '\u2022';
+  const catIcon = getCategoryIcon(benefit.category);
+  const catColor = getCategoryColor(benefit.category);
+  // Left border uses issuer color when available; falls back to category color
+  // for contexts where issuer isn't known (e.g. standalone benefit lists)
+  const issuerBorderColor = issuer ? getIssuerColor(issuer).bg : catColor;
   const isExpiringSoon = benefit.days_remaining <= 7 && !benefit.is_used;
   const isBinary = benefit.redemption_type === 'binary';
 
   return (
     <div
       style={{
-        padding: '10px 14px',
+        padding: '12px 14px',
         background: hovering ? 'var(--bg-elevated)' : 'transparent',
         borderRadius: 'var(--radius-sm)',
+        borderLeft: `3px solid ${issuerBorderColor}`,
         transition: 'background 0.15s',
       }}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
     >
-      {/* Single row: toggle + icon + name + amount + perceived */}
+      {/* Single row: category icon + name + toggle + amount + perceived */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* Category icon box */}
+        <div style={{
+          width: 44,
+          height: 44,
+          borderRadius: 'var(--radius-sm)',
+          background: `${catColor}20`,
+          border: `1px solid ${catColor}40`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '1.3rem',
+          flexShrink: 0,
+        }}>
+          {catIcon}
+        </div>
+
+        {/* Name + description + card name */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}>
+                {benefit.name}
+              </span>
+              {isExpiringSoon && (
+                <span style={{
+                  fontSize: '0.6rem',
+                  fontWeight: 600,
+                  color: 'var(--accent-red)',
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  padding: '1px 5px',
+                  borderRadius: 3,
+                  flexShrink: 0,
+                }}>
+                  {benefit.days_remaining}d
+                </span>
+              )}
+            </div>
+            {benefit.description && (
+              <div style={{
+                fontSize: '0.75rem',
+                color: 'var(--text-muted)',
+                marginTop: 1,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}>{benefit.description}</div>
+            )}
+            {cardName && (
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 1 }}>{cardName}</div>
+            )}
+          </div>
+        </div>
+
         {/* Toggle/amount button */}
         <div style={{ flexShrink: 0 }}>
           {isBinary ? (
@@ -94,43 +151,6 @@ export default function BenefitRow({ benefit, cardName, onToggleBinary, onLogCon
           )}
         </div>
 
-        {/* Icon + name + card name */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: '0.85rem', flexShrink: 0 }}>{catIcon}</span>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{
-                fontSize: '0.85rem',
-                fontWeight: 500,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}>
-                {benefit.name}
-              </span>
-              {isExpiringSoon && (
-                <span style={{
-                  fontSize: '0.6rem',
-                  fontWeight: 600,
-                  color: 'var(--accent-red)',
-                  background: 'rgba(239, 68, 68, 0.12)',
-                  padding: '1px 5px',
-                  borderRadius: 3,
-                  flexShrink: 0,
-                }}>
-                  {benefit.days_remaining}d
-                </span>
-              )}
-            </div>
-            {benefit.description && (
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 1 }}>{benefit.description}</div>
-            )}
-            {cardName && (
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 1 }}>{cardName}</div>
-            )}
-          </div>
-        </div>
-
         {/* Amount / max */}
         <span style={{
           fontSize: '0.72rem',
@@ -162,9 +182,9 @@ export default function BenefitRow({ benefit, cardName, onToggleBinary, onLogCon
       {benefit.periods.length > 0 && (
         <div style={{
           display: 'flex',
-          gap: 2,
-          marginTop: 6,
-          marginLeft: 46,
+          gap: 3,
+          marginTop: 8,
+          marginLeft: 54,
         }}>
           {benefit.periods.map((seg) => {
             const pct = benefit.max_value > 0 ? (seg.amount_used / benefit.max_value) : 0;
@@ -209,15 +229,15 @@ export default function BenefitRow({ benefit, cardName, onToggleBinary, onLogCon
               >
                 <div style={{
                   width: '100%',
-                  height: 16,
-                  borderRadius: 3,
+                  height: 22,
+                  borderRadius: 4,
                   background: bgColor,
                   transition: 'background 0.3s',
                   border: seg.is_current ? '1.5px solid rgba(255,255,255,0.25)' : '1px solid transparent',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '0.55rem',
+                  fontSize: '0.6rem',
                   fontWeight: 700,
                   color: seg.is_used ? '#fff' : 'var(--text-muted)',
                 }}>

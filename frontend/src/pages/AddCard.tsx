@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { getCardTemplates, createUserCard } from '../services/api';
 import { primaryButtonStyle } from '../styles/form';
+import CardIcon from '../components/CardIcon';
+import { getIssuerGradient } from '../constants/issuerTheme';
 
 export default function AddCard() {
   const navigate = useNavigate();
@@ -63,21 +65,27 @@ export default function AddCard() {
       </p>
 
       <div style={{ display: 'grid', gap: 10 }}>
-        {templates?.map((t, i) => (
+        {templates?.map((t, i) => {
+          const gradient = getIssuerGradient(t.issuer);
+          return (
           <div key={t.id} style={{ animation: `fadeInUp 0.4s ease-out ${(i + 1) * 0.06}s both` }}>
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '18px 20px',
+                padding: '14px 18px',
                 borderRadius: expandedId === t.id ? 'var(--radius-md) var(--radius-md) 0 0' : 'var(--radius-md)',
-                background: expandedId === t.id ? 'rgba(201, 168, 76, 0.08)' : 'var(--bg-card)',
-                border: `1.5px solid ${expandedId === t.id ? 'var(--accent-gold)' : 'var(--border-subtle)'}`,
+                background: expandedId === t.id ? 'rgba(201, 168, 76, 0.08)' : gradient,
+                border: `1px solid ${expandedId === t.id ? 'var(--accent-gold)' : 'var(--border-subtle)'}`,
                 borderBottom: expandedId === t.id ? 'none' : undefined,
+                boxShadow: 'var(--shadow-card)',
                 transition: 'all 0.2s',
               }}
             >
+              <div style={{ marginRight: 12 }}>
+                <CardIcon issuer={t.issuer} />
+              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, marginBottom: 2 }}>{t.name}</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -151,7 +159,8 @@ export default function AddCard() {
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

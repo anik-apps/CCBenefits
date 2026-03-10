@@ -72,33 +72,6 @@ function App() {
                 <div style={{ width: 1, height: 20, background: 'var(--border-medium)', margin: '0 6px' }} />
               </>
             )}
-            <Link to="/add-card" style={{
-              padding: '6px 16px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-gold-dim))',
-              color: '#0a0a0f',
-              fontWeight: 600,
-              fontSize: '0.8rem',
-              transition: 'opacity 0.2s',
-            }}>
-              + Add
-            </Link>
-            {user && (
-              <button
-                onClick={() => setFeedbackOpen(true)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid var(--border-medium)',
-                  color: 'var(--text-muted)',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                }}
-              >
-                Feedback
-              </button>
-            )}
             {user && <UserMenu displayName={user.display_name} isAdmin={user.is_admin} />}
           </div>
         </header>
@@ -118,6 +91,65 @@ function App() {
         </Routes>
       </main>
       {user && <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />}
+
+      {/* Floating action buttons */}
+      {user && !isAuthPage && (
+        <>
+          <button
+            onClick={() => setFeedbackOpen(true)}
+            style={{
+              position: 'fixed',
+              bottom: 24,
+              left: 24,
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-medium)',
+              color: 'var(--text-muted)',
+              fontSize: 18,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              zIndex: 90,
+              transition: 'transform 0.2s, box-shadow 0.2s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.4)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)'; }}
+            title="Send feedback"
+          >
+            💬
+          </button>
+          <Link
+            to="/add-card"
+            style={{
+              position: 'fixed',
+              bottom: 'clamp(24px, 4vh, 40px)',
+              right: 'clamp(32px, 5vw, 80px)',
+              width: 'clamp(56px, 6vw, 72px)',
+              height: 'clamp(56px, 6vw, 72px)',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-gold-dim))',
+              color: '#0a0a0f',
+              fontSize: 'clamp(28px, 3vw, 36px)',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+              zIndex: 90,
+              transition: 'transform 0.2s, box-shadow 0.2s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.5)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.4)'; }}
+            title="Add a card"
+          >
+            +
+          </Link>
+        </>
+      )}
     </div>
   );
 }

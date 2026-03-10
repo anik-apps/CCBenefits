@@ -8,9 +8,29 @@ import UsageModal from '../components/UsageModal';
 import PerceivedValueModal from '../components/PerceivedValueModal';
 import CardIcon from '../components/CardIcon';
 import { Alert } from 'react-native';
-import { colors, spacing, radius } from '../theme';
+import { colors, spacing, radius, getIssuerColor } from '../theme';
 import type { BenefitStatus } from '../types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+
+const CATEGORY_ICONS: Record<string, string> = {
+  travel: '\u2708\uFE0F',
+  dining: '\uD83C\uDF74',
+  entertainment: '\uD83C\uDFAC',
+  shopping: '\uD83D\uDECD\uFE0F',
+  wellness: '\uD83E\uDDD8',
+  lifestyle: '\u2728',
+  membership: '\uD83D\uDD11',
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  travel: '#3b82f6',
+  dining: '#f59e0b',
+  entertainment: '#a855f7',
+  shopping: '#ec4899',
+  wellness: '#10b981',
+  lifestyle: '#6366f1',
+  membership: '#64748b',
+};
 
 type Props = NativeStackScreenProps<any, 'CardDetail'>;
 
@@ -108,18 +128,25 @@ export default function CardDetailScreen({ route, navigation }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        {card.benefits_status.map((benefit) => (
+        {card.benefits_status.map((benefit) => {
+          const catIcon = CATEGORY_ICONS[benefit.category] || '\u2022';
+          const catColor = CATEGORY_COLORS[benefit.category] || '#64748b';
+          const issuerBorderColor = getIssuerColor(card.issuer).bg;
+          return (
           <TouchableOpacity
             key={benefit.benefit_template_id}
-            style={styles.benefitCard}
+            style={[styles.benefitCard, { borderLeftWidth: 3, borderLeftColor: issuerBorderColor }]}
             onPress={() => setSelectedBenefit(benefit)}
             activeOpacity={0.7}
           >
             <View style={styles.benefitHeader}>
-              <View style={{ flex: 1 }}>
+              <View style={[styles.catIconBox, { backgroundColor: catColor + '20', borderColor: catColor + '40' }]}>
+                <Text style={styles.catIconText}>{catIcon}</Text>
+              </View>
+              <View style={{ flex: 1, marginLeft: spacing.sm }}>
                 <Text style={styles.benefitName}>{benefit.name}</Text>
                 {benefit.description ? (
-                  <Text style={styles.benefitDesc}>{benefit.description}</Text>
+                  <Text style={styles.benefitDesc} numberOfLines={2}>{benefit.description}</Text>
                 ) : null}
               </View>
               <TouchableOpacity style={styles.benefitRight} onPress={() => setPerceivedBenefit(benefit)}>
@@ -127,7 +154,8 @@ export default function CardDetailScreen({ route, navigation }: Props) {
                 {benefit.perceived_max_value !== benefit.max_value && (
                   <Text style={styles.perceivedValue}>You: ${benefit.perceived_max_value}</Text>
                 )}
-                <Text style={styles.benefitPeriod}>{benefit.period_type} · Edit ✎</Text>
+                <Text style={styles.benefitEdit}>Edit ✎</Text>
+                <Text style={styles.benefitPeriod}>{benefit.period_type}</Text>
               </TouchableOpacity>
             </View>
 
@@ -169,7 +197,8 @@ export default function CardDetailScreen({ route, navigation }: Props) {
               </Text>
             </View>
           </TouchableOpacity>
-        ))}
+          );
+        })}
       </ScrollView>
 
       {selectedBenefit && (
@@ -211,13 +240,20 @@ const styles = StyleSheet.create({
     padding: spacing.lg, marginBottom: spacing.md,
     borderWidth: 1, borderColor: colors.borderSubtle,
   },
-  benefitHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.md },
+  benefitHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.md },
+  catIconBox: {
+    width: 36, height: 36, borderRadius: radius.sm,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1,
+  },
+  catIconText: { fontSize: 16 },
   benefitName: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
   benefitDesc: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  benefitRight: { alignItems: 'flex-end' },
+  benefitRight: { alignItems: 'flex-end', marginLeft: 'auto' },
   benefitValue: { fontSize: 15, fontWeight: '700', color: colors.accentGold },
   perceivedValue: { fontSize: 11, color: colors.statusSuccess, marginTop: 1 },
-  benefitPeriod: { fontSize: 11, color: colors.textMuted, textTransform: 'capitalize' },
+  benefitEdit: { fontSize: 11, color: colors.accentGold, marginTop: 2 },
+  benefitPeriod: { fontSize: 10, color: colors.textMuted, textTransform: 'capitalize', marginTop: 1 },
   periodsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: spacing.md },
   periodDot: {
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4,
