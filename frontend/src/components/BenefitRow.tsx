@@ -1,14 +1,7 @@
 import { useState } from 'react';
 import type { BenefitStatus, PeriodSegment } from '../types';
-
-const ISSUER_COLORS: Record<string, string> = {
-  'American Express': '#006FCF',
-  'Chase': '#0A3D8F',
-  'Capital One': '#D03027',
-  'Citi': '#003B70',
-  'Bilt': '#C9A84C',
-  'Bank of America': '#DC1431',
-};
+import { getIssuerColor } from '../constants/issuerTheme';
+import { getCategoryColor, getCategoryIcon } from '../constants/categoryTheme';
 
 interface Props {
   benefit: BenefitStatus;
@@ -20,31 +13,13 @@ interface Props {
   onSegmentClick: (benefitId: number, segment: PeriodSegment) => void;
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  travel: '\u2708',
-  dining: '\u{1F374}',
-  entertainment: '\u{1F3AC}',
-  shopping: '\u{1F6CD}',
-  wellness: '\u{1F9D8}',
-  lifestyle: '\u2728',
-  membership: '\u{1F511}',
-};
-
-const CATEGORY_COLORS: Record<string, string> = {
-  travel: '#3b82f6',
-  dining: '#f59e0b',
-  entertainment: '#a855f7',
-  shopping: '#ec4899',
-  wellness: '#10b981',
-  lifestyle: '#6366f1',
-  membership: '#64748b',
-};
-
 export default function BenefitRow({ benefit, cardName, issuer, onToggleBinary, onLogContinuous, onSetPerceived, onSegmentClick }: Props) {
   const [hovering, setHovering] = useState(false);
-  const catIcon = CATEGORY_ICONS[benefit.category] || '\u2022';
-  const catColor = CATEGORY_COLORS[benefit.category] || '#64748b';
-  const issuerColor = issuer ? (ISSUER_COLORS[issuer] || '#3a3a4a') : catColor;
+  const catIcon = getCategoryIcon(benefit.category);
+  const catColor = getCategoryColor(benefit.category);
+  // Left border uses issuer color when available; falls back to category color
+  // for contexts where issuer isn't known (e.g. standalone benefit lists)
+  const issuerBorderColor = issuer ? getIssuerColor(issuer).bg : catColor;
   const isExpiringSoon = benefit.days_remaining <= 7 && !benefit.is_used;
   const isBinary = benefit.redemption_type === 'binary';
 
@@ -54,7 +29,7 @@ export default function BenefitRow({ benefit, cardName, issuer, onToggleBinary, 
         padding: '12px 14px',
         background: hovering ? 'var(--bg-elevated)' : 'transparent',
         borderRadius: 'var(--radius-sm)',
-        borderLeft: `3px solid ${issuerColor}`,
+        borderLeft: `3px solid ${issuerBorderColor}`,
         transition: 'background 0.15s',
       }}
       onMouseEnter={() => setHovering(true)}

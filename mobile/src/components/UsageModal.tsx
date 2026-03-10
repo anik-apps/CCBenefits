@@ -89,7 +89,7 @@ export default function UsageModal({ visible, benefit, onClose, onLogUsage, onUp
         <TouchableOpacity activeOpacity={1} style={styles.modal}>
           <ScrollView showsVerticalScrollIndicator={false}>
             <Text style={styles.title}>{benefit.name}</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.subtitle, !benefit.description && { marginBottom: spacing.lg }]}>
               ${benefit.max_value} / {benefit.period_type}
             </Text>
             {benefit.description ? (

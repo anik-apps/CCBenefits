@@ -3,24 +3,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { getCardTemplates, createUserCard } from '../services/api';
 import { primaryButtonStyle } from '../styles/form';
-
-const ISSUER_GRADIENTS: Record<string, string> = {
-  'American Express': 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-  'Chase': 'linear-gradient(135deg, #1a1a2e 0%, #1a2332 50%, #003087 100%)',
-  'Citi': 'linear-gradient(135deg, #1a1a2e 0%, #1e2a3a 50%, #003b70 100%)',
-  'Bilt': 'linear-gradient(135deg, #1a1a2e 0%, #2a1a2e 50%, #4a1942 100%)',
-  'Capital One': 'linear-gradient(135deg, #1a1a2e 0%, #1a2a1e 50%, #1a4a2e 100%)',
-  'Bank of America': 'linear-gradient(135deg, #1a1a2e 0%, #2e1a1a 50%, #5a1a1a 100%)',
-};
-
-const ISSUER_COLORS: Record<string, { bg: string; text: string }> = {
-  'American Express': { bg: '#006FCF', text: '#FFFFFF' },
-  'Chase': { bg: '#0A3D8F', text: '#FFFFFF' },
-  'Capital One': { bg: '#D03027', text: '#FFFFFF' },
-  'Citi': { bg: '#003B70', text: '#FFFFFF' },
-  'Bilt': { bg: '#1A1A2E', text: '#C9A84C' },
-  'Bank of America': { bg: '#DC1431', text: '#FFFFFF' },
-};
+import CardIcon from '../components/CardIcon';
+import { getIssuerColor, getIssuerGradient } from '../constants/issuerTheme';
 
 export default function AddCard() {
   const navigate = useNavigate();
@@ -82,9 +66,8 @@ export default function AddCard() {
 
       <div style={{ display: 'grid', gap: 10 }}>
         {templates?.map((t, i) => {
-          const ic = ISSUER_COLORS[t.issuer] || { bg: '#3a3a4a', text: '#FFFFFF' };
-          const gradient = ISSUER_GRADIENTS[t.issuer] || ISSUER_GRADIENTS['Chase'];
-          const initials = t.issuer.split(' ').map(w => w[0] || '').join('');
+          const ic = getIssuerColor(t.issuer);
+          const gradient = getIssuerGradient(t.issuer);
           return (
           <div key={t.id} style={{ animation: `fadeInUp 0.4s ease-out ${(i + 1) * 0.06}s both` }}>
             <div
@@ -101,22 +84,8 @@ export default function AddCard() {
                 transition: 'all 0.2s',
               }}
             >
-              <div style={{
-                width: 48,
-                height: 32,
-                borderRadius: 6,
-                background: ic.bg,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 11,
-                fontWeight: 700,
-                color: ic.text,
-                letterSpacing: 0.5,
-                flexShrink: 0,
-                marginRight: 12,
-              }}>
-                {initials}
+              <div style={{ marginRight: 12 }}>
+                <CardIcon issuer={t.issuer} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, marginBottom: 2 }}>{t.name}</div>
