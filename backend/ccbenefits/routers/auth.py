@@ -95,8 +95,8 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
 
     return AuthResponse(
         user=_user_out(user),
-        access_token=create_access_token(subject=str(user.id)),
-        refresh_token=create_refresh_token(subject=str(user.id)),
+        access_token=create_access_token(subject=str(user.id), email=user.email),
+        refresh_token=create_refresh_token(subject=str(user.id), email=user.email),
     )
 
 
@@ -114,8 +114,8 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
 
     auth_login_counter.add(1, {"success": "true"})
     return TokenResponse(
-        access_token=create_access_token(subject=str(user.id)),
-        refresh_token=create_refresh_token(subject=str(user.id)),
+        access_token=create_access_token(subject=str(user.id), email=user.email),
+        refresh_token=create_refresh_token(subject=str(user.id), email=user.email),
     )
 
 
@@ -123,8 +123,8 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
 def refresh(data: RefreshRequest, db: Session = Depends(get_db)):
     user = resolve_user_from_token(data.refresh_token, db, expected_type="refresh")
     return TokenResponse(
-        access_token=create_access_token(subject=str(user.id)),
-        refresh_token=create_refresh_token(subject=str(user.id)),
+        access_token=create_access_token(subject=str(user.id), email=user.email),
+        refresh_token=create_refresh_token(subject=str(user.id), email=user.email),
     )
 
 
