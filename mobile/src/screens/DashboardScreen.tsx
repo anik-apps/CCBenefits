@@ -1,3 +1,5 @@
+import ScreenWrapper from '../components/ScreenWrapper';
+import LoadingScreen from '../components/LoadingScreen';
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -24,7 +26,7 @@ export default function DashboardScreen({ navigation }: Props) {
   }
 
   return (
-    <View style={styles.container}>
+    <ScreenWrapper padBottom={false}>
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Hello, {user?.display_name}</Text>
@@ -96,7 +98,7 @@ export default function DashboardScreen({ navigation }: Props) {
       <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('AddCard')}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
-    </View>
+    </ScreenWrapper>
   );
 }
 

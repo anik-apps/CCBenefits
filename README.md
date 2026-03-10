@@ -20,6 +20,7 @@ Track utilization of credit card benefits (monthly, quarterly, semiannual, annua
 - **ROI dashboard**: Net value = perceived value redeemed - annual fee
 - **All Credits view**: See every benefit across all your cards in one place
 - **Feedback system**: Submit feedback via modal, admin API to review
+- **Mobile app**: React Native (Expo) Android app with full feature parity
 - **Observability**: Structured logging + metrics via OpenTelemetry → Grafana Cloud
 - **Data isolation**: Each user sees only their own cards and benefits
 
@@ -28,8 +29,9 @@ Track utilization of credit card benefits (monthly, quarterly, semiannual, annua
 - **Backend**: Python 3.12+ / FastAPI / SQLAlchemy 2.0 / PostgreSQL (SQLite for dev)
 - **Auth**: bcrypt / PyJWT / OAuth2 Bearer tokens / Resend (email verification)
 - **Frontend**: React / Vite / TypeScript / TanStack Query
+- **Mobile**: React Native / Expo SDK 54 / React Navigation v7
 - **Observability**: OpenTelemetry SDK → Grafana Cloud (Loki + Prometheus via OTLP)
-- **Deployment**: Docker / Docker Compose / Caddy (HTTPS) / Oracle Cloud ARM VM
+- **Deployment**: Docker / Docker Compose / Caddy (HTTPS) / Oracle Cloud VM
 - **CI/CD**: GitHub Actions → GHCR → SSH deploy
 - **Package management**: Poetry (backend), npm (frontend)
 
@@ -62,6 +64,16 @@ npm run dev
 ```
 
 This starts Vite at `http://localhost:5173` with API proxy to the backend.
+
+### Mobile App
+
+```bash
+cd mobile
+npm install
+npx expo start
+```
+
+Scan the QR code with Expo Go on your Android phone. The app connects to the live API at `https://ccb.kumaranik.com`.
 
 ### Run Tests
 
@@ -152,6 +164,18 @@ CCBenefits/
 │           ├── TabLink.tsx
 │           ├── UserMenu.tsx
 │           └── ROISummary.tsx
+├── mobile/                     # React Native (Expo) Android app
+│   ├── app.json                # Expo config
+│   ├── App.tsx                 # Root navigator (auth/verify/app)
+│   └── src/
+│       ├── services/api.ts     # API client (async SecureStore + token cache)
+│       ├── contexts/           # AuthContext
+│       ├── hooks/              # useAuth
+│       ├── navigation/         # Auth stack + App stack
+│       ├── screens/            # Login, Register, VerifyPending, Dashboard,
+│       │                       # CardDetail, AddCard, AllCredits, Profile, Feedback
+│       ├── components/         # UsageModal, ScreenWrapper, LoadingScreen
+│       └── theme.ts            # Dark theme colors/spacing
 ├── Dockerfile                  # Multi-stage (Node build + Python slim)
 ├── docker-compose.prod.yml     # App + Postgres + Caddy
 ├── .env.example                # Production env var template
@@ -229,3 +253,14 @@ Metrics and logs are exported to Grafana Cloud via OpenTelemetry:
 - **Business metrics**: logins, registrations, verifications, cards added, feedback, email delivery
 - **Structured logs**: JSON format with action names, user context (masked email), request bodies (PII masked)
 - **Dashboard**: [Grafana Cloud](https://anikapps.grafana.net) with request rate, error rate, latency percentiles, auth events, and live logs
+
+## Mobile App
+
+React Native (Expo SDK 54) Android app with full feature parity:
+
+- **8 screens**: Login, Register, Verify Pending, Dashboard, Card Detail, Add Card, All Credits, Feedback, Profile
+- **Usage logging**: Tap any benefit to log/update/delete usage with period selector and binary/continuous support
+- **Dark theme**: Matches web frontend with gold accents
+- **Safe area handling**: Content properly inset for notch/status bar on all devices
+- **Offline-ready**: TanStack Query with netinfo detection and AppState-based refetching
+- **Secure storage**: Tokens stored in encrypted expo-secure-store with in-memory cache

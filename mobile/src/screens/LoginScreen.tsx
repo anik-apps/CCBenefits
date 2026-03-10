@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
+import ScreenWrapper from '../components/ScreenWrapper';
 import { colors, spacing, radius } from '../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -12,8 +13,13 @@ export default function LoginScreen({ navigation }: Props) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const passwordRef = useRef<TextInput>(null);
 
   const handleSubmit = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter both email and password');
+      return;
+    }
     setError('');
     setLoading(true);
     try {
@@ -26,7 +32,7 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <ScreenWrapper keyboard>
       <View style={styles.inner}>
         <View style={styles.logo}>
           <Text style={styles.logoText}>CC</Text>
@@ -42,22 +48,29 @@ export default function LoginScreen({ navigation }: Props) {
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
+          returnKeyType="next"
+          onSubmitEditing={() => passwordRef.current?.focus()}
           placeholderTextColor={colors.textMuted}
+          placeholder="you@example.com"
         />
 
         <Text style={styles.label}>Password</Text>
         <TextInput
+          ref={passwordRef}
           style={styles.input}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
+          returnKeyType="go"
+          onSubmitEditing={handleSubmit}
+          placeholder="Password"
           placeholderTextColor={colors.textMuted}
         />
 
         <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
+          style={[styles.button, (loading || !email.trim() || !password.trim()) && styles.buttonDisabled]}
           onPress={handleSubmit}
-          disabled={loading}
+          disabled={loading || !email.trim() || !password.trim()}
         >
           <Text style={styles.buttonText}>{loading ? 'Signing in...' : 'Sign In'}</Text>
         </TouchableOpacity>
@@ -66,12 +79,11 @@ export default function LoginScreen({ navigation }: Props) {
           <Text style={styles.link}>Don't have an account? <Text style={styles.linkAccent}>Sign up</Text></Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgPrimary },
   inner: { flex: 1, justifyContent: 'center', padding: spacing.xxl },
   logo: {
     width: 48, height: 48, borderRadius: radius.md,

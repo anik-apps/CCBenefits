@@ -1,3 +1,4 @@
+import ScreenWrapper from '../components/ScreenWrapper';
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
@@ -35,7 +36,8 @@ export default function VerifyPendingScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScreenWrapper>
+      <View style={styles.inner}>
       <View style={styles.icon}>
         <Text style={styles.iconText}>@</Text>
       </View>
@@ -57,12 +59,13 @@ export default function VerifyPendingScreen() {
       <TouchableOpacity onPress={logout}>
         <Text style={styles.signOut}>Sign out</Text>
       </TouchableOpacity>
-    </View>
+      </View>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgPrimary, justifyContent: 'center', padding: spacing.xxl },
+  inner: { flex: 1, justifyContent: 'center', padding: spacing.xxl },
   icon: {
     width: 64, height: 64, borderRadius: radius.lg, backgroundColor: colors.accentGold,
     alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: spacing.xxl,

@@ -1,5 +1,6 @@
+import ScreenWrapper from '../components/ScreenWrapper';
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { submitFeedback } from '../services/api';
 import { colors, spacing, radius } from '../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -37,19 +38,19 @@ export default function FeedbackScreen({ navigation }: Props) {
 
   if (success) {
     return (
-      <View style={styles.container}>
+      <ScreenWrapper>
         <View style={styles.successBox}>
           <Text style={styles.successText}>Thanks for your feedback!</Text>
           <TouchableOpacity style={styles.doneBtn} onPress={() => navigation.goBack()}>
             <Text style={styles.doneBtnText}>Done</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <ScreenWrapper keyboard>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>← Back</Text>
@@ -96,7 +97,7 @@ export default function FeedbackScreen({ navigation }: Props) {
           <Text style={styles.submitText}>{loading ? 'Sending...' : 'Submit'}</Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </ScreenWrapper>
   );
 }
 
