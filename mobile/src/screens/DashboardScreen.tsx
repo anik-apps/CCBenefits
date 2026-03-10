@@ -30,8 +30,8 @@ export default function DashboardScreen({ navigation }: Props) {
           <Text style={styles.greeting}>Hello, {user?.display_name}</Text>
           <Text style={styles.subtitle}>Your credit cards</Text>
         </View>
-        <TouchableOpacity onPress={logout}>
-          <Text style={styles.logoutText}>Sign out</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+          <Text style={styles.profileText}>{user?.display_name?.[0] || '?'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -45,7 +45,7 @@ export default function DashboardScreen({ navigation }: Props) {
       ) : cards?.length === 0 ? (
         <View style={styles.center}>
           <Text style={styles.emptyText}>No cards yet</Text>
-          <TouchableOpacity style={styles.addButton} onPress={() => { /* Phase 2: navigation.navigate('AddCard') */ }}>
+          <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('AddCard')}>
             <Text style={styles.addButtonText}>+ Add a Card</Text>
           </TouchableOpacity>
         </View>
@@ -59,7 +59,7 @@ export default function DashboardScreen({ navigation }: Props) {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.card}
-              onPress={() => { /* Phase 2: navigation.navigate('CardDetail', { id: item.id }) */ }}
+              onPress={() => navigation.navigate('CardDetail', { id: item.id })}
             >
               <Text style={styles.cardName}>{item.card_name}</Text>
               <Text style={styles.cardIssuer}>{item.issuer}</Text>
@@ -83,6 +83,11 @@ export default function DashboardScreen({ navigation }: Props) {
           )}
         />
       )}
+
+      {/* Floating Add button */}
+      <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('AddCard')}>
+        <Text style={styles.fabText}>+</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -93,7 +98,11 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl, marginTop: spacing.xl },
   greeting: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
   subtitle: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  logoutText: { color: colors.textMuted, fontSize: 13 },
+  profileText: {
+    color: colors.bgPrimary, fontSize: 14, fontWeight: '700',
+    backgroundColor: colors.accentGold, width: 32, height: 32, borderRadius: 16,
+    textAlign: 'center', lineHeight: 32, overflow: 'hidden',
+  },
   card: {
     backgroundColor: colors.bgCard, borderRadius: radius.md,
     padding: spacing.lg, marginBottom: spacing.md,
@@ -112,4 +121,14 @@ const styles = StyleSheet.create({
   addButtonText: { color: colors.bgPrimary, fontWeight: '600', fontSize: 15 },
   errorText: { color: colors.statusDanger, fontSize: 15, marginBottom: spacing.md },
   retryText: { color: colors.accentGold, fontSize: 14 },
+  fab: {
+    position: 'absolute', bottom: 24, right: 24,
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: colors.accentGold,
+    alignItems: 'center', justifyContent: 'center',
+    elevation: 8,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8,
+  },
+  fabText: { fontSize: 28, color: colors.bgPrimary, fontWeight: '600', marginTop: -2 },
 });
