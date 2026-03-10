@@ -13,7 +13,12 @@ export default function ScreenWrapper({ children, keyboard = false, padBottom = 
   const insets = useSafeAreaInsets();
 
   const content = (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: padBottom ? insets.bottom : 0 }]}>
+    <View style={[styles.container, {
+      paddingTop: insets.top,
+      paddingBottom: padBottom ? insets.bottom : 0,
+      paddingLeft: Math.max(insets.left, 8),
+      paddingRight: Math.max(insets.right, 8),
+    }]}>
       {children}
     </View>
   );
