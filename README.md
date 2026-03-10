@@ -7,22 +7,30 @@
 
 Track utilization of credit card benefits (monthly, quarterly, semiannual, annual) across multiple cards. See how much value you're actually getting vs. the annual fee.
 
+**Live:** [https://ccb.kumaranik.com](https://ccb.kumaranik.com)
+
 ## Features
 
 - **Multi-user authentication**: Email/password registration, JWT access/refresh tokens, user profiles
+- **Email verification**: Verification emails via Resend, unverified users blocked until verified
 - **11 pre-seeded cards**: Amex Platinum, Amex Business Platinum, Amex Gold, Hilton Surpass, Hilton Aspire, Chase Sapphire Reserve, CSR for Business, Capital One Venture X, Citi Strata Elite, Bilt Palladium, BofA Premium Rewards Elite
 - **Perceived value tracking**: Set your own valuation per benefit (e.g., value a $25 Equinox credit at $10 if you rarely go)
 - **Period segments**: Visual grid showing usage across all months/quarters/halves of the year
 - **Binary vs continuous benefits**: Toggle for all-or-nothing credits, dollar input for partial-use credits
 - **ROI dashboard**: Net value = perceived value redeemed - annual fee
 - **All Credits view**: See every benefit across all your cards in one place
+- **Feedback system**: Submit feedback via modal, admin API to review
+- **Observability**: Structured logging + metrics via OpenTelemetry → Grafana Cloud
 - **Data isolation**: Each user sees only their own cards and benefits
 
 ## Tech Stack
 
-- **Backend**: Python 3.12+ / FastAPI / SQLAlchemy 2.0 / SQLite
-- **Auth**: bcrypt / PyJWT / OAuth2 Bearer tokens
+- **Backend**: Python 3.12+ / FastAPI / SQLAlchemy 2.0 / PostgreSQL (SQLite for dev)
+- **Auth**: bcrypt / PyJWT / OAuth2 Bearer tokens / Resend (email verification)
 - **Frontend**: React / Vite / TypeScript / TanStack Query
+- **Observability**: OpenTelemetry SDK → Grafana Cloud (Loki + Prometheus via OTLP)
+- **Deployment**: Docker / Docker Compose / Caddy (HTTPS) / Oracle Cloud ARM VM
+- **CI/CD**: GitHub Actions → GHCR → SSH deploy
 - **Package management**: Poetry (backend), npm (frontend)
 
 ## Quick Start
@@ -36,14 +44,6 @@ poetry run uvicorn ccbenefits.main:app --reload
 ```
 
 The API runs at `http://localhost:8000` and serves the frontend if built.
-
-**Environment variables** (optional):
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `CCB_SECRET_KEY` | dev default (insecure) | JWT signing key. **Required in production** (`CCB_ENV=production`). |
-| `CCB_ENV` | `development` | Set to `production` to enforce secret key requirement. |
-| `CCB_ALLOWED_ORIGINS` | `http://localhost:5173,http://localhost:8000` | Comma-separated CORS origins. |
 
 ### Frontend
 
@@ -66,9 +66,30 @@ This starts Vite at `http://localhost:5173` with API proxy to the backend.
 ### Run Tests
 
 ```bash
+# Backend (105 tests, 96% coverage)
 cd backend
 poetry run pytest -v
+
+# Frontend (52 tests)
+cd frontend
+npm test -- --run
 ```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CCB_SECRET_KEY` | dev default (insecure) | JWT signing key. **Required in production** (`CCB_ENV=production`). |
+| `CCB_ENV` | `development` | Set to `production` to enforce secret key requirement. |
+| `CCB_ALLOWED_ORIGINS` | `http://localhost:5173,http://localhost:8000` | Comma-separated CORS origins. |
+| `DATABASE_URL` | `sqlite:///./ccbenefits.db` | Database connection string. |
+| `RESEND_API_KEY` | _(empty)_ | Resend API key for email verification + password reset. |
+| `CCB_EMAIL_FROM` | `noreply@kumaranik.com` | From address for emails. |
+| `CCB_FRONTEND_URL` | `http://localhost:5173` | Base URL for email links (verification, reset). |
+| `CCB_ADMIN_EMAILS` | _(empty)_ | Comma-separated admin emails (for feedback access). |
+| `GRAFANA_OTLP_ENDPOINT` | _(empty)_ | Grafana Cloud OTLP endpoint (leave empty to disable). |
+| `GRAFANA_INSTANCE_ID` | _(empty)_ | Grafana Cloud instance ID. |
+| `GRAFANA_OTLP_TOKEN` | _(empty)_ | Grafana Cloud API token. |
 
 ## Project Structure
 
@@ -76,24 +97,29 @@ poetry run pytest -v
 CCBenefits/
 ├── backend/
 │   ├── pyproject.toml          # Poetry config
+│   ├── prestart.sh             # DB init script (runs before uvicorn)
 │   ├── ccbenefits/
 │   │   ├── main.py             # FastAPI app + static file serving
-│   │   ├── config.py           # Environment config (secrets, CORS, token expiry)
+│   │   ├── config.py           # Environment config
 │   │   ├── database.py         # SQLAlchemy engine + session
 │   │   ├── auth.py             # Password hashing, JWT tokens, token resolution
 │   │   ├── dependencies.py     # get_current_user FastAPI dependency
-│   │   ├── email.py            # Pluggable email sender (console default)
-│   │   ├── models.py           # 6 ORM models (User, CardTemplate, etc.)
+│   │   ├── email.py            # Email sender (Console / Resend)
+│   │   ├── observability.py    # OpenTelemetry setup for Grafana Cloud
+│   │   ├── metrics.py          # Business metric counters
+│   │   ├── middleware.py        # Request logging with PII masking
+│   │   ├── models.py           # 7 ORM models (User, Feedback, CardTemplate, etc.)
 │   │   ├── schemas.py          # Pydantic request/response schemas
 │   │   ├── seed.py             # 11 pre-seeded cards with benefits
 │   │   ├── utils.py            # Period calculation helpers
 │   │   └── routers/
-│   │       ├── auth.py         # Register, login, refresh, password reset
+│   │       ├── auth.py         # Register, login, verify, refresh, password reset
 │   │       ├── users.py        # User profile CRUD
+│   │       ├── feedback.py     # Feedback submit + admin list
 │   │       ├── card_templates.py
 │   │       ├── user_cards.py
 │   │       └── usage.py
-│   └── tests/                  # 79 tests (95% coverage)
+│   └── tests/                  # 105 tests (96% coverage)
 ├── frontend/
 │   ├── package.json
 │   ├── vite.config.ts
@@ -102,23 +128,33 @@ CCBenefits/
 │       ├── types.ts            # TypeScript interfaces
 │       ├── contexts/
 │       │   └── AuthContext.tsx  # Auth state, login/logout/register
+│       ├── hooks/useAuth.ts    # Auth hook
 │       ├── styles/form.ts      # Shared form styles
 │       ├── services/api.ts     # Axios client + token interceptor
 │       ├── pages/
 │       │   ├── Dashboard.tsx   # Card list + ROI summary
 │       │   ├── AllCredits.tsx  # All benefits across cards
-│       │   ├── AddCard.tsx     # Add from templates
+│       │   ├── AddCard.tsx     # Add from templates (inline buttons)
 │       │   ├── CardDetail.tsx  # Per-card benefit tracking
 │       │   ├── LoginPage.tsx   # Sign in
 │       │   ├── RegisterPage.tsx # Create account
-│       │   └── ProfilePage.tsx # Profile settings + password change
+│       │   ├── ProfilePage.tsx # Profile settings + password change
+│       │   ├── VerifyEmailPage.tsx # Email verification handler
+│       │   ├── VerifyPendingPage.tsx # "Check your email" gate
+│       │   └── AdminFeedback.tsx # Admin: view all feedback
 │       └── components/
 │           ├── CardSummary.tsx
 │           ├── BenefitRow.tsx
 │           ├── UtilizationBar.tsx
 │           ├── UsageModal.tsx
+│           ├── FeedbackModal.tsx
+│           ├── ProtectedRoute.tsx
+│           ├── TabLink.tsx
+│           ├── UserMenu.tsx
 │           └── ROISummary.tsx
-├── docs/plans/                 # Design docs and implementation plans
+├── Dockerfile                  # Multi-stage (Node build + Python slim)
+├── docker-compose.prod.yml     # App + Postgres + Caddy
+├── .env.example                # Production env var template
 └── README.md
 ```
 
@@ -131,7 +167,9 @@ CCBenefits/
 | POST | `/api/auth/register` | Create account, returns user + tokens |
 | POST | `/api/auth/login` | Login, returns access + refresh tokens |
 | POST | `/api/auth/refresh` | Exchange refresh token for new access token |
-| POST | `/api/auth/password-reset-request` | Request password reset (email pluggable) |
+| POST | `/api/auth/verify-email` | Verify email with token from link |
+| POST | `/api/auth/resend-verification` | Resend verification email (auth required) |
+| POST | `/api/auth/password-reset-request` | Request password reset email |
 | POST | `/api/auth/password-reset` | Reset password with token |
 
 ### User Profile (authenticated)
@@ -147,8 +185,8 @@ CCBenefits/
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/card-templates` | List all pre-seeded cards |
-| GET | `/api/card-templates/{id}` | Card with all benefits |
+| GET | `/api/card-templates/` | List all pre-seeded cards |
+| GET | `/api/card-templates/{id}/` | Card with all benefits |
 
 ### User Cards & Usage (authenticated)
 
@@ -163,3 +201,31 @@ CCBenefits/
 | GET | `/api/user-cards/{id}/summary` | ROI summary |
 | PUT | `/api/usage/{id}` | Update usage |
 | DELETE | `/api/usage/{id}` | Delete usage |
+
+### Feedback (authenticated)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/feedback/` | Submit feedback (bug report, feature request, general) |
+| GET | `/api/feedback/` | List all feedback (admin only, paginated) |
+
+## Deployment
+
+Deployed on Oracle Cloud Always Free tier with Docker Compose:
+
+```
+Caddy (HTTPS) → FastAPI (app) → PostgreSQL
+```
+
+CI/CD: Push to master → GitHub Actions builds Docker image → pushes to GHCR → SSH deploys to Oracle VM.
+
+See `.env.example` for production configuration.
+
+## Observability
+
+Metrics and logs are exported to Grafana Cloud via OpenTelemetry:
+
+- **Auto-instrumented**: HTTP request duration/count, DB query timing, active requests
+- **Business metrics**: logins, registrations, verifications, cards added, feedback, email delivery
+- **Structured logs**: JSON format with action names, user context (masked email), request bodies (PII masked)
+- **Dashboard**: [Grafana Cloud](https://anikapps.grafana.net) with request rate, error rate, latency percentiles, auth events, and live logs

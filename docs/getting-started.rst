@@ -27,6 +27,23 @@ For production, set environment variables:
    export CCB_SECRET_KEY="your-secret-key-here"
    export CCB_ENV="production"
    export CCB_ALLOWED_ORIGINS="https://yourdomain.com"
+   export DATABASE_URL="postgresql+psycopg://user:pass@localhost/ccbenefits"
+
+Optional — email verification (requires Resend account):
+
+.. code-block:: bash
+
+   export RESEND_API_KEY="re_xxxxx"
+   export CCB_EMAIL_FROM="noreply@yourdomain.com"
+   export CCB_FRONTEND_URL="https://yourdomain.com"
+
+Optional — observability (requires Grafana Cloud account):
+
+.. code-block:: bash
+
+   export GRAFANA_OTLP_ENDPOINT="https://otlp-gateway-prod-xxx.grafana.net/otlp"
+   export GRAFANA_INSTANCE_ID="your-instance-id"
+   export GRAFANA_OTLP_TOKEN="glc_xxxxx"
 
 Frontend Setup
 --------------
@@ -48,12 +65,27 @@ Production Build
 
 Then start the backend — it serves the built frontend from ``frontend/dist/``.
 
+Docker Deployment
+-----------------
+
+For production deployment with Docker Compose:
+
+.. code-block:: bash
+
+   # Copy and fill in environment variables
+   cp .env.example .env
+
+   # Start all services (app + postgres + caddy)
+   docker compose -f docker-compose.prod.yml up -d
+
+See ``.env.example`` for all available configuration options.
+
 Running Tests
 -------------
 
 .. code-block:: bash
 
-   # Backend (79 tests, 95% coverage)
+   # Backend (105 tests, 96% coverage)
    cd backend
    poetry run pytest -v
 
