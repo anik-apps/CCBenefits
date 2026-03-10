@@ -30,9 +30,14 @@ export default function DashboardScreen({ navigation }: Props) {
           <Text style={styles.greeting}>Hello, {user?.display_name}</Text>
           <Text style={styles.subtitle}>Your credit cards</Text>
         </View>
-        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-          <Text style={styles.profileText}>{user?.display_name?.[0] || '?'}</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.allCreditsBtn} onPress={() => navigation.navigate('AllCredits')}>
+            <Text style={styles.allCreditsText}>All Credits</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+            <Text style={styles.profileText}>{user?.display_name?.[0] || '?'}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {isError ? (
@@ -84,7 +89,10 @@ export default function DashboardScreen({ navigation }: Props) {
         />
       )}
 
-      {/* Floating Add button */}
+      {/* Floating buttons */}
+      <TouchableOpacity style={styles.fabFeedback} onPress={() => navigation.navigate('Feedback')}>
+        <Text style={styles.fabFeedbackText}>💬</Text>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('AddCard')}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
@@ -121,6 +129,22 @@ const styles = StyleSheet.create({
   addButtonText: { color: colors.bgPrimary, fontWeight: '600', fontSize: 15 },
   errorText: { color: colors.statusDanger, fontSize: 15, marginBottom: spacing.md },
   retryText: { color: colors.accentGold, fontSize: 14 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  allCreditsBtn: {
+    paddingVertical: 6, paddingHorizontal: spacing.md,
+    borderRadius: radius.sm, borderWidth: 1, borderColor: colors.borderMedium,
+  },
+  allCreditsText: { fontSize: 12, color: colors.textMuted },
+  fabFeedback: {
+    position: 'absolute', bottom: 24, left: 24,
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.borderMedium,
+    alignItems: 'center', justifyContent: 'center',
+    elevation: 6,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25, shadowRadius: 6,
+  },
+  fabFeedbackText: { fontSize: 18, color: colors.textMuted, fontWeight: '600' },
   fab: {
     position: 'absolute', bottom: 24, right: 24,
     width: 56, height: 56, borderRadius: 28,
