@@ -14,6 +14,8 @@ import type {
 const API_URL = 'https://ccb.kumaranik.com';
 
 const api = axios.create({ baseURL: API_URL });
+// Separate instance for token refresh — no interceptors, prevents infinite 401 loop
+const refreshApi = axios.create({ baseURL: API_URL });
 
 // Token management — in-memory cache + SecureStore
 const TOKEN_KEY = 'ccb_access_token';
@@ -81,7 +83,7 @@ api.interceptors.response.use(
       }
 
       if (!refreshPromise) {
-        refreshPromise = api
+        refreshPromise = refreshApi
           .post('/api/auth/refresh', { refresh_token: _refreshToken })
           .then(async (res) => {
             const data: TokenResponse = res.data;

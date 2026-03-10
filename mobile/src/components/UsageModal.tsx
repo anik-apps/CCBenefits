@@ -37,6 +37,7 @@ export default function UsageModal({ visible, benefit, onClose, onLogUsage, onUp
       setAmount('');
       setBinaryUsed(false);
     }
+    setNotes('');
     setError('');
   };
 
@@ -93,6 +94,10 @@ export default function UsageModal({ visible, benefit, onClose, onLogUsage, onUp
             </Text>
 
             {/* Period selector */}
+            {benefit.periods.length === 0 ? (
+              <Text style={styles.futureText}>No periods available for this benefit.</Text>
+            ) : (
+            <>
             <Text style={styles.label}>Period</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.periodScroll}>
               <View style={styles.periodRow}>
@@ -182,6 +187,8 @@ export default function UsageModal({ visible, benefit, onClose, onLogUsage, onUp
                   </TouchableOpacity>
                 )}
               </>
+            )}
+            </>
             )}
 
             <TouchableOpacity onPress={onClose}>

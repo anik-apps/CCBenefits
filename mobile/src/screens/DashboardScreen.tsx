@@ -80,7 +80,7 @@ export default function DashboardScreen({ navigation }: Props) {
                 <View>
                   <Text style={styles.statLabel}>Utilization</Text>
                   <Text style={[styles.statValue, { color: item.utilization_pct > 50 ? colors.statusSuccess : colors.accentGold }]}>
-                    {item.utilization_pct.toFixed(0)}%
+                    {(item.utilization_pct ?? 0).toFixed(0)}%
                   </Text>
                 </View>
               </View>
