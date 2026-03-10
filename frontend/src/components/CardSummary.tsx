@@ -11,6 +11,15 @@ const ISSUER_GRADIENTS: Record<string, string> = {
   'Bank of America': 'linear-gradient(135deg, #1a1a2e 0%, #2e1a1a 50%, #5a1a1a 100%)',
 };
 
+const ISSUER_COLORS: Record<string, { bg: string; text: string }> = {
+  'American Express': { bg: '#006FCF', text: '#FFFFFF' },
+  'Chase': { bg: '#0A3D8F', text: '#FFFFFF' },
+  'Capital One': { bg: '#D03027', text: '#FFFFFF' },
+  'Citi': { bg: '#003B70', text: '#FFFFFF' },
+  'Bilt': { bg: '#1A1A2E', text: '#C9A84C' },
+  'Bank of America': { bg: '#DC1431', text: '#FFFFFF' },
+};
+
 interface Props {
   card: UserCardSummary;
   index: number;
@@ -19,6 +28,8 @@ interface Props {
 export default function CardSummary({ card, index }: Props) {
   const gradient = ISSUER_GRADIENTS[card.issuer] || ISSUER_GRADIENTS['Chase'];
   const netColor = card.net_perceived >= 0 ? 'var(--accent-emerald)' : 'var(--accent-red)';
+  const issuerColor = ISSUER_COLORS[card.issuer] || { bg: '#3a3a4a', text: '#FFFFFF' };
+  const issuerInitials = card.issuer.split(' ').map(w => w[0] || '').join('');
 
   return (
     <Link
@@ -50,14 +61,28 @@ export default function CardSummary({ card, index }: Props) {
       >
         {/* Top: name + fee + net */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <div style={{
+            width: 48,
+            height: 32,
+            borderRadius: 6,
+            background: issuerColor.bg,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 11,
+            fontWeight: 700,
+            color: issuerColor.text,
+            letterSpacing: 0.5,
+            flexShrink: 0,
+          }}>
+            {issuerInitials}
+          </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
               fontFamily: 'var(--font-display)',
               fontSize: '1rem',
               fontWeight: 600,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
+              lineHeight: 1.3,
             }}>
               {card.nickname || card.card_name}
             </div>

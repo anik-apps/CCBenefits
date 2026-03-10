@@ -307,6 +307,7 @@ export default function CardDetail() {
                 {i > 0 && <div style={{ height: 1, background: 'var(--border-subtle)', margin: '0 18px' }} />}
                 <BenefitRow
                   benefit={b}
+                  issuer={card.issuer}
                   onToggleBinary={handleToggleBinary}
                   onLogContinuous={handleLogContinuous}
                   onSetPerceived={handleSetPerceived}

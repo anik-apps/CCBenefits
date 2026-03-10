@@ -84,9 +84,14 @@ export default function UsageModal({ benefit, mode, onSave, onClose }: Props) {
         }}>
           {title}
         </h3>
-        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 20 }}>
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: benefit.description ? 4 : 20 }}>
           {maxHint}
         </p>
+        {benefit.description && (
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.4 }}>
+            {benefit.description}
+          </p>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 16 }}>

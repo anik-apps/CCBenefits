@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCardTemplates, createUserCard } from '../services/api';
-import { colors, spacing, radius } from '../theme';
+import { colors, spacing, radius, getIssuerColor } from '../theme';
+import CardIcon from '../components/CardIcon';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type Props = NativeStackScreenProps<any, 'AddCard'>;
@@ -48,11 +49,14 @@ export default function AddCardScreen({ navigation }: Props) {
         data={templates}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
-        renderItem={({ item: t }) => (
+        renderItem={({ item: t }) => {
+          const { bg: issuerBg } = getIssuerColor(t.issuer);
+          return (
           <View>
-            <View style={[styles.card, expandedId === t.id && styles.cardExpanded]}>
+            <View style={[styles.card, { borderLeftWidth: 4, borderLeftColor: issuerBg, backgroundColor: issuerBg + '12' }, expandedId === t.id && styles.cardExpanded]}>
               <View style={styles.cardContent}>
-                <View style={{ flex: 1 }}>
+                <CardIcon issuer={t.issuer} size="small" />
+                <View style={{ flex: 1, marginLeft: spacing.sm }}>
                   <Text style={styles.cardName}>{t.name}</Text>
                   <Text style={styles.cardMeta}>
                     {t.issuer} · {t.benefit_count} benefits · Up to ${t.total_annual_value.toLocaleString()}/yr
@@ -93,7 +97,8 @@ export default function AddCardScreen({ navigation }: Props) {
               </View>
             )}
           </View>
-        )}
+          );
+        }}
       />
     </ScreenWrapper>
   );

@@ -6,7 +6,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator }
 import { useQuery } from '@tanstack/react-query';
 import { getUserCards } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
-import { colors, spacing, radius } from '../theme';
+import { colors, spacing, radius, getIssuerColor } from '../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type Props = NativeStackScreenProps<any, 'Dashboard'>;
@@ -64,9 +64,11 @@ export default function DashboardScreen({ navigation }: Props) {
           onRefresh={refetch}
           refreshing={isLoading}
           contentContainerStyle={{ paddingBottom: spacing.xxl }}
-          renderItem={({ item }) => (
+          renderItem={({ item }) => {
+            const { bg: issuerBg } = getIssuerColor(item.issuer);
+            return (
             <TouchableOpacity
-              style={styles.card}
+              style={[styles.card, { borderLeftWidth: 4, borderLeftColor: issuerBg, backgroundColor: issuerBg + '12' }]}
               onPress={() => navigation.navigate('CardDetail', { id: item.id })}
             >
               <View style={styles.cardHeader}>
@@ -94,7 +96,8 @@ export default function DashboardScreen({ navigation }: Props) {
                 </View>
               </View>
             </TouchableOpacity>
-          )}
+            );
+          }}
         />
       )}
 

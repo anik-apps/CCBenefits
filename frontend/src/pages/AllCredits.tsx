@@ -16,6 +16,7 @@ const PERIOD_LABELS: Record<string, string> = {
 interface BenefitWithCard extends BenefitStatus {
   userCardId: number;
   cardName: string;
+  issuer: string;
 }
 
 export default function AllCredits() {
@@ -73,7 +74,7 @@ export default function AllCredits() {
   const allBenefits: BenefitWithCard[] = [];
   for (const card of cardDetails) {
     for (const b of card.benefits_status) {
-      allBenefits.push({ ...b, userCardId: card.id, cardName: card.nickname || card.card_name });
+      allBenefits.push({ ...b, userCardId: card.id, cardName: card.nickname || card.card_name, issuer: card.issuer });
     }
   }
 
@@ -199,6 +200,7 @@ export default function AllCredits() {
                   <BenefitRow
                     benefit={b}
                     cardName={b.cardName}
+                    issuer={b.issuer}
                     onToggleBinary={handlers.onToggleBinary}
                     onLogContinuous={handlers.onLogContinuous}
                     onSetPerceived={handlers.onSetPerceived}
