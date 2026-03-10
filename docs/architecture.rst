@@ -4,25 +4,30 @@ Architecture
 Overview
 --------
 
-CCBenefits is a full-stack application with a FastAPI backend and React frontend.
+CCBenefits is a full-stack application with a FastAPI backend and React frontend,
+deployed on Oracle Cloud with Docker Compose and Caddy for HTTPS.
 
 .. code-block:: text
 
    backend/
      ccbenefits/
        main.py            # FastAPI app, lifespan, static file serving
-       config.py          # Environment config (secrets, CORS, token expiry)
+       config.py          # Environment config (secrets, CORS, token expiry, Grafana)
        auth.py            # Password hashing, JWT tokens, shared token resolution
        dependencies.py    # get_current_user FastAPI dependency
-       email.py           # Pluggable email sender interface
-       models.py          # SQLAlchemy ORM models (6 models)
+       email.py           # Email sender (Console / Resend)
+       observability.py   # OpenTelemetry setup for Grafana Cloud
+       metrics.py         # Business metric counters
+       middleware.py       # Request logging with PII masking
+       models.py          # SQLAlchemy ORM models (7 models)
        schemas.py         # Pydantic request/response schemas
-       database.py        # Engine, session, base
+       database.py        # Engine, session, base (Postgres/SQLite)
        utils.py           # Period calculation, helpers
        seed.py            # Card template seed data
        routers/
-         auth.py            # Register, login, refresh, password reset
+         auth.py            # Register, login, verify, refresh, password reset
          users.py           # User profile CRUD
+         feedback.py        # Feedback submit + admin list
          card_templates.py  # GET card templates
          user_cards.py      # CRUD user cards, usage logging, summaries
          usage.py           # PUT/DELETE individual usage records
@@ -30,15 +35,18 @@ CCBenefits is a full-stack application with a FastAPI backend and React frontend
    frontend/
      src/
        contexts/         # AuthContext (auth state, login/logout)
-       styles/            # Shared form styles
-       pages/            # Dashboard, CardDetail, AllCredits, AddCard, Login, Register, Profile
-       components/       # BenefitRow, UsageModal, UtilizationBar, etc.
+       hooks/            # useAuth hook
+       styles/           # Shared form styles
+       pages/            # Dashboard, CardDetail, AllCredits, AddCard, Login, Register,
+                         # Profile, VerifyEmail, VerifyPending, AdminFeedback
+       components/       # BenefitRow, UsageModal, FeedbackModal, ProtectedRoute, etc.
        services/api.ts   # Axios API client with token interceptor
 
 Data Model
 ----------
 
-- **User** — registered user (email, password hash, profile settings)
+- **User** — registered user (email, password hash, profile settings, verification status)
+- **Feedback** — user feedback (category, message, timestamp)
 - **CardTemplate** — credit card definition (name, issuer, annual fee)
 - **BenefitTemplate** — a benefit belonging to a card (name, max value, period type, redemption type)
 - **UserCard** — a user's instance of a card template (linked to User via ``user_id`` FK)
@@ -50,13 +58,41 @@ Authentication
 
 JWT-based authentication with email/password. Access tokens (30 min) are sent
 as ``Authorization: Bearer`` headers. Refresh tokens (7 days) are used to obtain
-new access tokens without re-login.
+new access tokens without re-login. JWTs include user email for logging.
 
-All ``/api/user-cards/`` and ``/api/usage/`` endpoints require authentication and
-filter data by the authenticated user. Card templates remain public.
+Email verification is required after registration. Unverified users are blocked
+from accessing the app until they click the verification link sent via Resend.
 
-Password reset uses opaque random tokens (SHA-256 hashed in DB) with a pluggable
-email sender interface (defaults to console logging in development).
+All ``/api/user-cards/``, ``/api/usage/``, and ``/api/feedback/`` endpoints require
+authentication and filter data by the authenticated user. Card templates remain public.
+
+Password reset and email verification use opaque random tokens (SHA-256 hashed in DB)
+with the pluggable email sender interface (Resend in production, console in development).
+
+Observability
+-------------
+
+Metrics and structured logs are exported to Grafana Cloud via OpenTelemetry OTLP:
+
+- **Auto-instrumented**: HTTP request duration/count (FastAPI), DB query timing (SQLAlchemy)
+- **Business counters**: auth events, verifications, cards added, feedback, emails
+- **Structured logging**: JSON to stdout + OTel bridge to Grafana Loki
+- **Request middleware**: logs method, path, status, duration, action name, user context (masked)
+- **PII masking**: emails and sensitive fields masked before cloud export
+
+Disabled when ``GRAFANA_OTLP_ENDPOINT`` is not set (development mode).
+
+Deployment
+----------
+
+Production runs on Oracle Cloud Always Free tier (E2.1.Micro VM, 1 OCPU, 1GB RAM):
+
+.. code-block:: text
+
+   Caddy (HTTPS, Let's Encrypt) → FastAPI app → PostgreSQL
+
+   GitHub Actions CI/CD:
+   Push to master → build Docker image → push to GHCR → SSH deploy to VM
 
 Key Concepts
 ------------
