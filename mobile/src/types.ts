@@ -87,6 +87,7 @@ export interface UserCardSummary {
   id: number;
   card_name: string;
   issuer: string;
+  nickname: string | null;
   annual_fee: number;
   total_max_annual_value: number;
   total_perceived_annual_value: number;

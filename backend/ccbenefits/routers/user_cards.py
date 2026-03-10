@@ -401,6 +401,7 @@ def _compute_summary(uc: UserCard) -> UserCardSummaryOut:
         id=uc.id,
         card_name=uc.card_template.name,
         issuer=uc.card_template.issuer,
+        nickname=uc.nickname,
         annual_fee=uc.card_template.annual_fee,
         total_max_annual_value=round(total_annual_max, 2),
         total_perceived_annual_value=round(total_perceived_annual, 2),

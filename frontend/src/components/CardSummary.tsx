@@ -59,8 +59,13 @@ export default function CardSummary({ card, index }: Props) {
               overflow: 'hidden',
               textOverflow: 'ellipsis',
             }}>
-              {card.card_name}
+              {card.nickname || card.card_name}
             </div>
+            {card.nickname && (
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 1 }}>
+                {card.card_name}
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>

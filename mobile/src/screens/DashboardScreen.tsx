@@ -72,7 +72,8 @@ export default function DashboardScreen({ navigation }: Props) {
               <View style={styles.cardHeader}>
                 <CardIcon issuer={item.issuer} />
                 <View style={{ flex: 1, marginLeft: spacing.md }}>
-                  <Text style={styles.cardName}>{item.card_name}</Text>
+                  <Text style={styles.cardName}>{item.nickname || item.card_name}</Text>
+                  {item.nickname ? <Text style={styles.cardSubname}>{item.card_name}</Text> : null}
                   <Text style={styles.cardIssuer}>{item.issuer}</Text>
                 </View>
               </View>
@@ -126,6 +127,7 @@ const styles = StyleSheet.create({
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
   cardName: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
+  cardSubname: { fontSize: 12, color: colors.textSecondary, marginBottom: 1 },
   cardIssuer: { fontSize: 12, color: colors.textMuted, marginBottom: spacing.md },
   cardStats: { flexDirection: 'row', justifyContent: 'space-between' },
   statLabel: { fontSize: 11, color: colors.textMuted, marginBottom: 2 },

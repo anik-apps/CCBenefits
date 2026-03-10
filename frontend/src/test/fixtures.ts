@@ -48,6 +48,7 @@ export const mockCardSummary = (overrides: Partial<UserCardSummary> = {}): UserC
   id: 1,
   card_name: 'Amex Platinum',
   issuer: 'American Express',
+  nickname: null,
   annual_fee: 895,
   total_max_annual_value: 2000,
   total_perceived_annual_value: 1800,
