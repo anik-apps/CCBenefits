@@ -155,6 +155,7 @@ class UserCardSummaryOut(BaseModel):
     id: int
     card_name: str
     issuer: str
+    nickname: str | None = None
     annual_fee: float
     total_max_annual_value: float
     total_perceived_annual_value: float

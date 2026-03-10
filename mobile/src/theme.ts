@@ -30,6 +30,19 @@ export const radius = {
   lg: 16,
 };
 
+// Issuer color map for card visuals
+export const issuerColors: Record<string, { bg: string; text: string }> = {
+  'American Express': { bg: '#006FCF', text: '#FFFFFF' },
+  'Chase': { bg: '#0A3D8F', text: '#FFFFFF' },
+  'Capital One': { bg: '#D03027', text: '#FFFFFF' },
+  'Citi': { bg: '#003B70', text: '#FFFFFF' },
+  'Bilt': { bg: '#1A1A2E', text: '#C9A84C' },
+  'Bank of America': { bg: '#DC1431', text: '#FFFFFF' },
+};
+
+export const getIssuerColor = (issuer: string) =>
+  issuerColors[issuer] || { bg: '#3a3a4a', text: '#FFFFFF' };
+
 export const fonts = {
   regular: { fontSize: 14, color: colors.textPrimary },
   small: { fontSize: 12, color: colors.textMuted },

@@ -122,6 +122,9 @@ export default function BenefitRow({ benefit, cardName, onToggleBinary, onLogCon
                 </span>
               )}
             </div>
+            {benefit.description && (
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 1 }}>{benefit.description}</div>
+            )}
             {cardName && (
               <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: 1 }}>{cardName}</div>
             )}
