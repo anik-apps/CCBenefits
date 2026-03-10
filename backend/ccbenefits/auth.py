@@ -25,24 +25,28 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 def _create_token(
-    subject: str, token_type: str, default_delta: timedelta, expires_delta: timedelta | None = None
+    subject: str, token_type: str, default_delta: timedelta,
+    expires_delta: timedelta | None = None, extra_claims: dict | None = None,
 ) -> str:
     expire = datetime.now(dt_timezone.utc) + (expires_delta or default_delta)
-    return jwt.encode(
-        {"sub": subject, "exp": expire, "type": token_type}, SECRET_KEY, algorithm=ALGORITHM
-    )
+    payload = {"sub": subject, "exp": expire, "type": token_type}
+    if extra_claims:
+        payload.update(extra_claims)
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def create_access_token(
-    subject: str, expires_delta: timedelta | None = None
+    subject: str, expires_delta: timedelta | None = None, email: str | None = None,
 ) -> str:
-    return _create_token(subject, "access", timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES), expires_delta)
+    extra = {"email": email} if email else None
+    return _create_token(subject, "access", timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES), expires_delta, extra)
 
 
 def create_refresh_token(
-    subject: str, expires_delta: timedelta | None = None
+    subject: str, expires_delta: timedelta | None = None, email: str | None = None,
 ) -> str:
-    return _create_token(subject, "refresh", timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS), expires_delta)
+    extra = {"email": email} if email else None
+    return _create_token(subject, "refresh", timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS), expires_delta, extra)
 
 
 def create_opaque_token() -> str:
