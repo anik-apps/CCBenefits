@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { getCardTemplates, createUserCard } from '../services/api';
 import { primaryButtonStyle } from '../styles/form';
 import CardIcon from '../components/CardIcon';
-import { getIssuerColor, getIssuerGradient } from '../constants/issuerTheme';
+import { getIssuerGradient } from '../constants/issuerTheme';
 
 export default function AddCard() {
   const navigate = useNavigate();
@@ -66,7 +66,6 @@ export default function AddCard() {
 
       <div style={{ display: 'grid', gap: 10 }}>
         {templates?.map((t, i) => {
-          const ic = getIssuerColor(t.issuer);
           const gradient = getIssuerGradient(t.issuer);
           return (
           <div key={t.id} style={{ animation: `fadeInUp 0.4s ease-out ${(i + 1) * 0.06}s both` }}>
