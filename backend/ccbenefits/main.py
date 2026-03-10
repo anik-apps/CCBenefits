@@ -34,6 +34,9 @@ app = FastAPI(title="CCBenefits", version="0.1.0", lifespan=lifespan)
 # Set up observability (OTel + JSON logging)
 setup_observability(app, engine)
 
+from .middleware import RequestLoggingMiddleware
+
+app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,

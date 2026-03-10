@@ -17,8 +17,15 @@ logger = logging.getLogger(__name__)
 _meter_provider = None
 _logger_provider = None
 
-# PII masking filter for OTel log handler
+# Shared PII masking
 _EMAIL_PATTERN = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
+
+
+def mask_email(text: str) -> str:
+    """Mask email addresses in a string: 'user@example.com' → 'use***@example.com'."""
+    return _EMAIL_PATTERN.sub(
+        lambda m: m.group().split("@")[0][:3] + "***@" + m.group().split("@")[1], text
+    )
 
 
 class _PIIMaskingFilter(logging.Filter):
@@ -31,12 +38,7 @@ class _PIIMaskingFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         msg = record.getMessage()
         if "@" in msg:
-            import copy
-            masked = _EMAIL_PATTERN.sub(
-                lambda m: m.group().split("@")[0][:3] + "***@" + m.group().split("@")[1], msg
-            )
-            # Mutate record for this handler only — OTel handler gets masked version
-            record.msg = masked
+            record.msg = mask_email(msg)
             record.args = None
         return True
 
