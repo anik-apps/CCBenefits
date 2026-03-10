@@ -75,6 +75,11 @@ npx expo start
 
 Scan the QR code with Expo Go on your Android phone. The app connects to the live API at `https://ccb.kumaranik.com`.
 
+**Emulators:**
+- **Android:** Install Java 17 + Android SDK via Homebrew, create AVD, run `npx expo start --android --lan` (see `docs/getting-started.rst` for full setup)
+- **iOS:** Install Xcode, run `npx expo start --ios`, or build via `eas build --profile simulator --platform ios`
+- **Standalone APK:** `eas build --profile preview --platform android`
+
 ### Run Tests
 
 ```bash

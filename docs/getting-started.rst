@@ -77,11 +77,75 @@ Mobile App Setup
 Install **Expo Go** on your Android phone from the Play Store, then scan the QR code
 shown in the terminal. The app connects to the live API at ``https://ccb.kumaranik.com``.
 
-To build a standalone APK:
+Android Emulator Setup
+~~~~~~~~~~~~~~~~~~~~~~
+
+One-time setup (macOS with Homebrew):
 
 .. code-block:: bash
 
-   npx eas build --profile preview --platform android
+   # Install Java 17 and Android SDK
+   brew install openjdk@17
+   brew install --cask android-commandlinetools
+
+   # Symlink Java for system discovery (requires sudo)
+   sudo ln -sfn /opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk \
+     /Library/Java/JavaVirtualMachines/openjdk-17.jdk
+
+   # Accept SDK licenses
+   sdkmanager --licenses
+
+   # Install emulator + system image
+   sdkmanager "platforms;android-34" "build-tools;34.0.0" "emulator" \
+     "platform-tools" "system-images;android-34;google_apis;arm64-v8a"
+
+   # Create virtual device
+   avdmanager create avd -n ccb_pixel \
+     -k "system-images;android-34;google_apis;arm64-v8a" -d pixel_7
+
+Add to ``~/.zshrc``:
+
+.. code-block:: bash
+
+   export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+   export ANDROID_HOME="/opt/homebrew/share/android-commandlinetools"
+   export PATH=$PATH:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator
+
+To run the emulator:
+
+.. code-block:: bash
+
+   # Start emulator
+   $ANDROID_HOME/emulator/emulator -avd ccb_pixel &
+
+   # Start Expo and open on emulator
+   cd mobile && npx expo start --android --lan
+
+iOS Simulator
+~~~~~~~~~~~~~
+
+Requires **Xcode** (free from Mac App Store). Build via EAS:
+
+.. code-block:: bash
+
+   eas build --profile simulator --platform ios
+
+Or run directly with Expo:
+
+.. code-block:: bash
+
+   cd mobile && npx expo start --ios
+
+Building Standalone Apps
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+   # Android APK
+   eas build --profile preview --platform android
+
+   # iOS Simulator .app
+   eas build --profile simulator --platform ios
 
 Docker Deployment
 -----------------
