@@ -65,6 +65,24 @@ Production Build
 
 Then start the backend — it serves the built frontend from ``frontend/dist/``.
 
+Mobile App Setup
+----------------
+
+.. code-block:: bash
+
+   cd mobile
+   npm install
+   npx expo start
+
+Install **Expo Go** on your Android phone from the Play Store, then scan the QR code
+shown in the terminal. The app connects to the live API at ``https://ccb.kumaranik.com``.
+
+To build a standalone APK:
+
+.. code-block:: bash
+
+   npx eas build --profile preview --platform android
+
 Docker Deployment
 -----------------
 

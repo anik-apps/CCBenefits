@@ -1,3 +1,4 @@
+import ScreenWrapper from '../components/ScreenWrapper';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
@@ -10,7 +11,7 @@ export default function ProfileScreen({ navigation }: Props) {
   const { user, logout } = useAuth();
 
   return (
-    <View style={styles.container}>
+    <ScreenWrapper>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>← Back</Text>
@@ -36,7 +37,7 @@ export default function ProfileScreen({ navigation }: Props) {
       <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
         <Text style={styles.logoutText}>Sign Out</Text>
       </TouchableOpacity>
-    </View>
+    </ScreenWrapper>
   );
 }
 

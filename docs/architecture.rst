@@ -4,8 +4,9 @@ Architecture
 Overview
 --------
 
-CCBenefits is a full-stack application with a FastAPI backend and React frontend,
-deployed on Oracle Cloud with Docker Compose and Caddy for HTTPS.
+CCBenefits is a full-stack application with a FastAPI backend, React web frontend,
+and React Native mobile app, deployed on Oracle Cloud with Docker Compose and Caddy
+for HTTPS.
 
 .. code-block:: text
 
@@ -41,6 +42,15 @@ deployed on Oracle Cloud with Docker Compose and Caddy for HTTPS.
                          # Profile, VerifyEmail, VerifyPending, AdminFeedback
        components/       # BenefitRow, UsageModal, FeedbackModal, ProtectedRoute, etc.
        services/api.ts   # Axios API client with token interceptor
+
+   mobile/                  # React Native (Expo) Android app
+     src/
+       services/api.ts    # API client (async SecureStore + memory cache)
+       contexts/           # AuthContext (token hydration, auth state)
+       navigation/         # Auth stack + App stack
+       screens/            # 9 screens matching web functionality
+       components/         # UsageModal, ScreenWrapper, LoadingScreen
+       theme.ts            # Dark theme (colors, spacing, radius)
 
 Data Model
 ----------
@@ -93,6 +103,24 @@ Production runs on Oracle Cloud Always Free tier (E2.1.Micro VM, 1 OCPU, 1GB RAM
 
    GitHub Actions CI/CD:
    Push to master → build Docker image → push to GHCR → SSH deploy to VM
+
+Mobile App
+----------
+
+React Native (Expo SDK 54) Android app with full feature parity to the web frontend.
+
+- **9 screens**: Login, Register, Verify Pending, Dashboard, Card Detail, Add Card,
+  All Credits, Feedback, Profile
+- **Shared API client**: adapted from the web frontend's ``api.ts`` with async
+  ``expo-secure-store`` for token persistence and in-memory cache for fast access
+- **Usage logging**: tap any benefit to log/update/delete with period selector,
+  binary toggle, and full/partial color coding (gold = partial, green = fully used)
+- **Auth flow**: conditional root navigator renders Auth stack, Verify Pending gate,
+  or App stack based on user state and verification status
+- **TanStack Query**: same server-state management as web, with React Native-specific
+  ``netinfo`` (online/offline) and ``AppState`` (focus/refetch) listeners
+- **Safe area handling**: ``ScreenWrapper`` component ensures content does not sit
+  under notch/status bar on all devices
 
 Key Concepts
 ------------

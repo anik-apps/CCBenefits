@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import ScreenWrapper from '../components/ScreenWrapper';
 import { useAuth } from '../hooks/useAuth';
 import { colors, spacing, radius } from '../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -34,7 +35,7 @@ export default function RegisterScreen({ navigation }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <ScreenWrapper keyboard>
       <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Create Account</Text>
 
@@ -60,7 +61,7 @@ export default function RegisterScreen({ navigation }: Props) {
           <Text style={styles.link}>Already have an account? <Text style={styles.linkAccent}>Sign in</Text></Text>
         </TouchableOpacity>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </ScreenWrapper>
   );
 }
 

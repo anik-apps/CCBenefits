@@ -1,3 +1,5 @@
+import ScreenWrapper from '../components/ScreenWrapper';
+import LoadingScreen from '../components/LoadingScreen';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, SectionList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -62,7 +64,7 @@ export default function AllCreditsScreen({ navigation }: Props) {
   };
 
   if (isLoading || !cardDetails) {
-    return <View style={styles.center}><ActivityIndicator size="large" color={colors.accentGold} /></View>;
+    return <LoadingScreen />;
   }
 
   const allBenefits: BenefitWithCard[] = cardDetails.flatMap(card =>
@@ -77,7 +79,7 @@ export default function AllCreditsScreen({ navigation }: Props) {
     .filter(s => s.data.length > 0);
 
   return (
-    <View style={styles.container}>
+    <ScreenWrapper>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>← Back</Text>
@@ -144,7 +146,7 @@ export default function AllCreditsScreen({ navigation }: Props) {
           onDeleteUsage={handleDeleteUsage}
         />
       )}
-    </View>
+    </ScreenWrapper>
   );
 }
 

@@ -1,3 +1,5 @@
+import ScreenWrapper from '../components/ScreenWrapper';
+import LoadingScreen from '../components/LoadingScreen';
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -30,11 +32,11 @@ export default function AddCardScreen({ navigation }: Props) {
   };
 
   if (isLoading) {
-    return <View style={styles.center}><ActivityIndicator size="large" color={colors.accentGold} /></View>;
+    return <LoadingScreen />;
   }
 
   return (
-    <View style={styles.container}>
+    <ScreenWrapper>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>← Back</Text>
@@ -93,7 +95,7 @@ export default function AddCardScreen({ navigation }: Props) {
           </View>
         )}
       />
-    </View>
+    </ScreenWrapper>
   );
 }
 
