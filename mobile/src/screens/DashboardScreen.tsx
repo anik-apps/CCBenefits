@@ -1,5 +1,6 @@
 import ScreenWrapper from '../components/ScreenWrapper';
 import LoadingScreen from '../components/LoadingScreen';
+import CardIcon from '../components/CardIcon';
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -68,8 +69,13 @@ export default function DashboardScreen({ navigation }: Props) {
               style={styles.card}
               onPress={() => navigation.navigate('CardDetail', { id: item.id })}
             >
-              <Text style={styles.cardName}>{item.card_name}</Text>
-              <Text style={styles.cardIssuer}>{item.issuer}</Text>
+              <View style={styles.cardHeader}>
+                <CardIcon issuer={item.issuer} />
+                <View style={{ flex: 1, marginLeft: spacing.md }}>
+                  <Text style={styles.cardName}>{item.card_name}</Text>
+                  <Text style={styles.cardIssuer}>{item.issuer}</Text>
+                </View>
+              </View>
               <View style={styles.cardStats}>
                 <View>
                   <Text style={styles.statLabel}>Annual Fee</Text>
@@ -118,6 +124,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg, marginBottom: spacing.md,
     borderWidth: 1, borderColor: colors.borderSubtle,
   },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
   cardName: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
   cardIssuer: { fontSize: 12, color: colors.textMuted, marginBottom: spacing.md },
   cardStats: { flexDirection: 'row', justifyContent: 'space-between' },

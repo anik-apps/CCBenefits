@@ -3,8 +3,11 @@ import LoadingScreen from '../components/LoadingScreen';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getUserCard, logUsage, updateUsage, deleteUsage } from '../services/api';
+import { getUserCard, logUsage, updateUsage, deleteUsage, deleteUserCard, updateBenefitSetting } from '../services/api';
 import UsageModal from '../components/UsageModal';
+import PerceivedValueModal from '../components/PerceivedValueModal';
+import CardIcon from '../components/CardIcon';
+import { Alert } from 'react-native';
 import { colors, spacing, radius } from '../theme';
 import type { BenefitStatus } from '../types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -15,6 +18,7 @@ export default function CardDetailScreen({ route, navigation }: Props) {
   const { id } = route.params as { id: number };
   const queryClient = useQueryClient();
   const [selectedBenefit, setSelectedBenefit] = useState<BenefitStatus | null>(null);
+  const [perceivedBenefit, setPerceivedBenefit] = useState<BenefitStatus | null>(null);
 
   const { data: card, isLoading, isError, refetch } = useQuery({
     queryKey: ['user-card', id],
@@ -43,6 +47,31 @@ export default function CardDetailScreen({ route, navigation }: Props) {
     await queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
   };
 
+  const handleUpdatePerceivedValue = async (benefitTemplateId: number, value: number) => {
+    await updateBenefitSetting(id, benefitTemplateId, value);
+    await queryClient.invalidateQueries({ queryKey: ['user-card', id] });
+    await queryClient.invalidateQueries({ queryKey: ['user-cards'] });
+    await queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
+  };
+
+  const handleDeleteCard = () => {
+    Alert.alert('Delete Card', `Remove ${card?.card_name} from your collection?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          try {
+            await deleteUserCard(id);
+            await queryClient.invalidateQueries({ queryKey: ['user-cards'] });
+            await queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
+            navigation.goBack();
+          } catch {
+            Alert.alert('Error', 'Failed to delete card. Please try again.');
+          }
+        },
+      },
+    ]);
+  };
+
   if (isLoading) {
     return <LoadingScreen />;
   }
@@ -61,11 +90,21 @@ export default function CardDetailScreen({ route, navigation }: Props) {
   return (
     <ScreenWrapper>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.cardName}>{card.card_name}</Text>
-        <Text style={styles.issuer}>{card.issuer} · ${card.annual_fee}/yr</Text>
+        <View style={styles.headerTop}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.backText}>← Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleDeleteCard}>
+            <Text style={styles.deleteCardText}>Delete Card</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.cardHeaderRow}>
+          <CardIcon issuer={card.issuer} />
+          <View style={{ flex: 1, marginLeft: spacing.md }}>
+            <Text style={styles.cardName}>{card.card_name}</Text>
+            <Text style={styles.issuer}>{card.issuer} · ${card.annual_fee}/yr</Text>
+          </View>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -83,10 +122,13 @@ export default function CardDetailScreen({ route, navigation }: Props) {
                   <Text style={styles.benefitDesc}>{benefit.description}</Text>
                 ) : null}
               </View>
-              <View style={styles.benefitRight}>
+              <TouchableOpacity style={styles.benefitRight} onPress={() => setPerceivedBenefit(benefit)}>
                 <Text style={styles.benefitValue}>${benefit.max_value}</Text>
-                <Text style={styles.benefitPeriod}>{benefit.period_type}</Text>
-              </View>
+                {benefit.perceived_max_value !== benefit.max_value && (
+                  <Text style={styles.perceivedValue}>You: ${benefit.perceived_max_value}</Text>
+                )}
+                <Text style={styles.benefitPeriod}>{benefit.period_type} · Edit ✎</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Period segments */}
@@ -140,6 +182,15 @@ export default function CardDetailScreen({ route, navigation }: Props) {
           onDeleteUsage={handleDeleteUsage}
         />
       )}
+
+      {perceivedBenefit && (
+        <PerceivedValueModal
+          visible={!!perceivedBenefit}
+          benefit={perceivedBenefit}
+          onClose={() => setPerceivedBenefit(null)}
+          onSave={handleUpdatePerceivedValue}
+        />
+      )}
     </ScreenWrapper>
   );
 }
@@ -148,7 +199,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bgPrimary },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgPrimary },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.xxl, paddingBottom: spacing.md },
-  backText: { color: colors.accentGold, fontSize: 14, marginBottom: spacing.sm },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
+  backText: { color: colors.accentGold, fontSize: 14 },
+  deleteCardText: { color: colors.statusDanger, fontSize: 13 },
+  cardHeaderRow: { flexDirection: 'row', alignItems: 'center' },
   cardName: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
   issuer: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
   scroll: { padding: spacing.lg, paddingTop: 0, paddingBottom: spacing.xxl },
@@ -162,6 +216,7 @@ const styles = StyleSheet.create({
   benefitDesc: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   benefitRight: { alignItems: 'flex-end' },
   benefitValue: { fontSize: 15, fontWeight: '700', color: colors.accentGold },
+  perceivedValue: { fontSize: 11, color: colors.statusSuccess, marginTop: 1 },
   benefitPeriod: { fontSize: 11, color: colors.textMuted, textTransform: 'capitalize' },
   periodsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: spacing.md },
   periodDot: {

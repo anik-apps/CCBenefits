@@ -1,6 +1,7 @@
 import ScreenWrapper from '../components/ScreenWrapper';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import Constants from 'expo-constants';
 import { useAuth } from '../hooks/useAuth';
 import { colors, spacing, radius } from '../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -37,6 +38,8 @@ export default function ProfileScreen({ navigation }: Props) {
       <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
         <Text style={styles.logoutText}>Sign Out</Text>
       </TouchableOpacity>
+
+      <Text style={styles.version}>CCBenefits v{Constants.expoConfig?.version ?? '1.0.0'}</Text>
     </ScreenWrapper>
   );
 }
@@ -57,4 +60,5 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.statusDanger, alignItems: 'center',
   },
   logoutText: { color: colors.statusDanger, fontWeight: '600', fontSize: 15 },
+  version: { color: colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: spacing.xxl },
 });
