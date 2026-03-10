@@ -1,19 +1,45 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
-import { getUserCard } from '../services/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getUserCard, logUsage, updateUsage, deleteUsage } from '../services/api';
+import UsageModal from '../components/UsageModal';
 import { colors, spacing, radius } from '../theme';
+import type { BenefitStatus } from '../types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type Props = NativeStackScreenProps<any, 'CardDetail'>;
 
 export default function CardDetailScreen({ route, navigation }: Props) {
   const { id } = route.params as { id: number };
+  const queryClient = useQueryClient();
+  const [selectedBenefit, setSelectedBenefit] = useState<BenefitStatus | null>(null);
 
   const { data: card, isLoading, isError, refetch } = useQuery({
     queryKey: ['user-card', id],
     queryFn: () => getUserCard(id),
   });
+
+  const handleLogUsage = async (amount: number, notes?: string, targetDate?: string) => {
+    if (!selectedBenefit) return;
+    await logUsage(id, selectedBenefit.benefit_template_id, amount, notes, targetDate);
+    await queryClient.invalidateQueries({ queryKey: ['user-card', id] });
+    await queryClient.invalidateQueries({ queryKey: ['user-cards'] });
+    await queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
+  };
+
+  const handleUpdateUsage = async (usageId: number, amount: number, notes?: string) => {
+    await updateUsage(usageId, amount, notes);
+    await queryClient.invalidateQueries({ queryKey: ['user-card', id] });
+    await queryClient.invalidateQueries({ queryKey: ['user-cards'] });
+    await queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
+  };
+
+  const handleDeleteUsage = async (usageId: number) => {
+    await deleteUsage(usageId);
+    await queryClient.invalidateQueries({ queryKey: ['user-card', id] });
+    await queryClient.invalidateQueries({ queryKey: ['user-cards'] });
+    await queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
+  };
 
   if (isLoading) {
     return <View style={styles.center}><ActivityIndicator size="large" color={colors.accentGold} /></View>;
@@ -42,7 +68,12 @@ export default function CardDetailScreen({ route, navigation }: Props) {
 
       <ScrollView contentContainerStyle={styles.scroll}>
         {card.benefits_status.map((benefit) => (
-          <View key={benefit.benefit_template_id} style={styles.benefitCard}>
+          <TouchableOpacity
+            key={benefit.benefit_template_id}
+            style={styles.benefitCard}
+            onPress={() => setSelectedBenefit(benefit)}
+            activeOpacity={0.7}
+          >
             <View style={styles.benefitHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.benefitName}>{benefit.name}</Text>
@@ -58,38 +89,55 @@ export default function CardDetailScreen({ route, navigation }: Props) {
 
             {/* Period segments */}
             <View style={styles.periodsRow}>
-              {benefit.periods.map((p) => (
-                <View
-                  key={p.label}
-                  style={[
-                    styles.periodDot,
-                    p.is_used && styles.periodUsed,
-                    p.is_current && styles.periodCurrent,
-                    p.is_future && styles.periodFuture,
-                  ]}
-                >
-                  <Text style={[styles.periodLabel, p.is_used && styles.periodLabelUsed]}>
-                    {p.label}
-                  </Text>
-                </View>
-              ))}
+              {benefit.periods.map((p) => {
+                const isFullyUsed = p.is_used && p.amount_used >= benefit.max_value;
+                const isPartial = p.is_used && !isFullyUsed;
+                return (
+                  <View
+                    key={p.label}
+                    style={[
+                      styles.periodDot,
+                      isPartial && styles.periodPartial,
+                      isFullyUsed && styles.periodFull,
+                      p.is_current && styles.periodCurrent,
+                      p.is_future && styles.periodFuture,
+                    ]}
+                  >
+                    <Text style={[
+                      styles.periodLabel,
+                      isPartial && styles.periodLabelPartial,
+                      isFullyUsed && styles.periodLabelFull,
+                    ]}>
+                      {p.label}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
 
-            {/* Usage status */}
+            {/* Usage status + tap hint */}
             <View style={styles.usageRow}>
               <Text style={styles.usageText}>
                 {benefit.is_used ? `Used: $${benefit.amount_used}` : 'Not used'}
               </Text>
-              {benefit.remaining > 0 && benefit.is_used && (
-                <Text style={styles.remainingText}>${benefit.remaining} remaining</Text>
-              )}
-              {!benefit.is_used && (
-                <Text style={styles.daysText}>{benefit.days_remaining}d left</Text>
-              )}
+              <Text style={styles.tapHint}>
+                {benefit.is_used ? 'Tap to edit' : 'Tap to log'}
+              </Text>
             </View>
-          </View>
+          </TouchableOpacity>
         ))}
       </ScrollView>
+
+      {selectedBenefit && (
+        <UsageModal
+          visible={!!selectedBenefit}
+          benefit={selectedBenefit}
+          onClose={() => setSelectedBenefit(null)}
+          onLogUsage={handleLogUsage}
+          onUpdateUsage={handleUpdateUsage}
+          onDeleteUsage={handleDeleteUsage}
+        />
+      )}
     </View>
   );
 }
@@ -118,15 +166,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4,
     backgroundColor: colors.bgTertiary, borderWidth: 1, borderColor: colors.borderSubtle,
   },
-  periodUsed: { backgroundColor: 'rgba(201,168,76,0.2)', borderColor: colors.accentGold },
+  periodPartial: { backgroundColor: 'rgba(201,168,76,0.15)', borderColor: colors.accentGoldDim },
+  periodFull: { backgroundColor: 'rgba(34,197,94,0.2)', borderColor: colors.statusSuccess },
   periodCurrent: { borderColor: colors.accentGold, borderWidth: 2 },
   periodFuture: { opacity: 0.4 },
   periodLabel: { fontSize: 10, color: colors.textMuted },
-  periodLabelUsed: { color: colors.accentGold, fontWeight: '600' },
-  usageRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  periodLabelPartial: { color: colors.accentGold, fontWeight: '600' },
+  periodLabelFull: { color: colors.statusSuccess, fontWeight: '600' },
+  usageRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   usageText: { fontSize: 12, color: colors.textSecondary },
-  remainingText: { fontSize: 12, color: colors.accentGold },
-  daysText: { fontSize: 12, color: colors.textMuted },
+  tapHint: { fontSize: 11, color: colors.accentGold },
   errorText: { color: colors.statusDanger, fontSize: 15, marginBottom: spacing.md },
   retryText: { color: colors.accentGold, fontSize: 14 },
 });

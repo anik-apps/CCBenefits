@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, SectionList, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
-import { getUserCards, getUserCard } from '../services/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getUserCards, getUserCard, logUsage, updateUsage, deleteUsage } from '../services/api';
+import UsageModal from '../components/UsageModal';
 import { colors, spacing, radius } from '../theme';
 import type { BenefitStatus } from '../types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -9,6 +10,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 type Props = NativeStackScreenProps<any, 'AllCredits'>;
 
 interface BenefitWithCard extends BenefitStatus {
+  userCardId: number;
   cardName: string;
 }
 
@@ -21,6 +23,9 @@ const PERIOD_LABELS: Record<string, string> = {
 };
 
 export default function AllCreditsScreen({ navigation }: Props) {
+  const queryClient = useQueryClient();
+  const [selectedBenefit, setSelectedBenefit] = useState<BenefitWithCard | null>(null);
+
   const { data: summaries } = useQuery({
     queryKey: ['user-cards'],
     queryFn: getUserCards,
@@ -34,13 +39,34 @@ export default function AllCreditsScreen({ navigation }: Props) {
     enabled: cardIds.length > 0,
   });
 
+  const handleLogUsage = async (amount: number, notes?: string, targetDate?: string) => {
+    if (!selectedBenefit) return;
+    await logUsage(selectedBenefit.userCardId, selectedBenefit.benefit_template_id, amount, notes, targetDate);
+    await queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
+    await queryClient.invalidateQueries({ queryKey: ['user-cards'] });
+    await queryClient.invalidateQueries({ queryKey: ['user-card'] });
+  };
+
+  const handleUpdateUsage = async (usageId: number, amount: number, notes?: string) => {
+    await updateUsage(usageId, amount, notes);
+    await queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
+    await queryClient.invalidateQueries({ queryKey: ['user-cards'] });
+    await queryClient.invalidateQueries({ queryKey: ['user-card'] });
+  };
+
+  const handleDeleteUsage = async (usageId: number) => {
+    await deleteUsage(usageId);
+    await queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
+    await queryClient.invalidateQueries({ queryKey: ['user-cards'] });
+    await queryClient.invalidateQueries({ queryKey: ['user-card'] });
+  };
+
   if (isLoading || !cardDetails) {
     return <View style={styles.center}><ActivityIndicator size="large" color={colors.accentGold} /></View>;
   }
 
-  // Group all benefits by period type
   const allBenefits: BenefitWithCard[] = cardDetails.flatMap(card =>
-    card.benefits_status.map(b => ({ ...b, cardName: card.card_name }))
+    card.benefits_status.map(b => ({ ...b, userCardId: card.id, cardName: card.card_name }))
   );
 
   const sections = PERIOD_ORDER
@@ -68,37 +94,56 @@ export default function AllCreditsScreen({ navigation }: Props) {
           <Text style={styles.sectionHeader}>{section.title}</Text>
         )}
         renderItem={({ item }) => (
-          <View style={styles.benefitCard}>
+          <TouchableOpacity
+            style={styles.benefitCard}
+            onPress={() => setSelectedBenefit(item)}
+            activeOpacity={0.7}
+          >
             <View style={styles.benefitRow}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.benefitName}>{item.name}</Text>
                 <Text style={styles.cardLabel}>{item.cardName}</Text>
               </View>
               <View style={styles.benefitRight}>
-                <Text style={[styles.benefitValue, item.is_used && styles.benefitUsed]}>
+                <Text style={[styles.benefitValue, item.is_used && styles.benefitUsedStyle]}>
                   ${item.amount_used} / ${item.max_value}
                 </Text>
-                <Text style={styles.benefitStatus}>
-                  {item.is_used ? 'Used' : `${item.days_remaining}d left`}
+                <Text style={styles.tapHint}>
+                  {item.is_used ? 'Tap to edit' : 'Tap to log'}
                 </Text>
               </View>
             </View>
-            {/* Mini period dots */}
             <View style={styles.dotsRow}>
-              {item.periods.map(p => (
-                <View
-                  key={p.label}
-                  style={[
-                    styles.dot,
-                    p.is_used && styles.dotUsed,
-                    p.is_current && styles.dotCurrent,
-                  ]}
-                />
-              ))}
+              {item.periods.map(p => {
+                const isFullyUsed = p.is_used && p.amount_used >= item.max_value;
+                const isPartial = p.is_used && !isFullyUsed;
+                return (
+                  <View
+                    key={p.label}
+                    style={[
+                      styles.dot,
+                      isPartial && styles.dotPartial,
+                      isFullyUsed && styles.dotFull,
+                      p.is_current && styles.dotCurrent,
+                    ]}
+                  />
+                );
+              })}
             </View>
-          </View>
+          </TouchableOpacity>
         )}
       />
+
+      {selectedBenefit && (
+        <UsageModal
+          visible={!!selectedBenefit}
+          benefit={selectedBenefit}
+          onClose={() => setSelectedBenefit(null)}
+          onLogUsage={handleLogUsage}
+          onUpdateUsage={handleUpdateUsage}
+          onDeleteUsage={handleDeleteUsage}
+        />
+      )}
     </View>
   );
 }
@@ -124,10 +169,11 @@ const styles = StyleSheet.create({
   cardLabel: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
   benefitRight: { alignItems: 'flex-end' },
   benefitValue: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
-  benefitUsed: { color: colors.accentGold },
-  benefitStatus: { fontSize: 11, color: colors.textMuted },
+  benefitUsedStyle: { color: colors.accentGold },
+  tapHint: { fontSize: 10, color: colors.accentGold, marginTop: 2 },
   dotsRow: { flexDirection: 'row', gap: 4 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.bgTertiary },
-  dotUsed: { backgroundColor: colors.accentGold },
+  dotPartial: { backgroundColor: colors.accentGold },
+  dotFull: { backgroundColor: colors.statusSuccess },
   dotCurrent: { borderWidth: 1.5, borderColor: colors.accentGold },
 });
