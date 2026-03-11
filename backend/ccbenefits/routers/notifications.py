@@ -1,6 +1,6 @@
-from datetime import datetime, timezone as dt_timezone
-
 import copy
+import html
+from datetime import datetime, timezone as dt_timezone
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import HTMLResponse
@@ -49,7 +49,7 @@ def unsubscribe(token: str = Query(...), db: Session = Depends(get_db)):
         record.used_at = now
         db.commit()
 
-    notif_label = record.notification_type.replace("_", " ").title()
+    notif_label = html.escape(record.notification_type.replace("_", " ").title())
     return HTMLResponse(
         f"""
     <html><body style="font-family: sans-serif; max-width: 500px; margin: 40px auto; text-align: center;">

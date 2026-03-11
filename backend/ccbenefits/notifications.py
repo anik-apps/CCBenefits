@@ -73,6 +73,9 @@ def render_notification_email(
     elif notification_type == "fee_approaching":
         title = "Annual Fee Approaching"
         intro = f"Hi {safe_name}, your annual fee renewal is coming up:"
+    elif notification_type == "unused_recap":
+        title = "Credits You Missed"
+        intro = f"Hi {safe_name}, these benefits expired unused in the last period:"
     elif notification_type == "utilization_summary":
         title = "Your Weekly Utilization Summary"
         intro = f"Hi {safe_name}, here's your benefit utilization summary:"
@@ -181,6 +184,7 @@ def send_notification_email(
         email_sent_counter.add(1, {"type": notification_type, "success": "false"})
         notifications_sent_counter.add(1, {"type": notification_type, "channel": "email", "success": "false"})
         logger.exception("Failed to send %s email to user %s", notification_type, user.id)
+        db.rollback()
         return False
 
     log_notification(db, user_id=user.id, notification_type=notification_type, channel="email", reference_key=reference_key)
@@ -243,7 +247,7 @@ def check_expiring_credits(db, users):
 
         if expiring_items:
             # Send one email with all expiring benefits
-            send_notification_email(
+            sent = send_notification_email(
                 db,
                 user,
                 "expiring_credits",
@@ -252,8 +256,9 @@ def check_expiring_credits(db, users):
                 expiring_items,
             )
             # Log all additional ref_keys to prevent re-sending
-            for item in expiring_items[1:]:
-                log_notification(db, user.id, "expiring_credits", "email", item["ref_key"])
+            if sent:
+                for item in expiring_items[1:]:
+                    log_notification(db, user.id, "expiring_credits", "email", item["ref_key"])
 
 
 def check_period_transitions(db, users):
@@ -326,7 +331,7 @@ def check_period_transitions(db, users):
                                 })
 
         if period_start_items:
-            send_notification_email(
+            sent = send_notification_email(
                 db,
                 user,
                 "period_start",
@@ -334,11 +339,12 @@ def check_period_transitions(db, users):
                 "New benefit period started",
                 period_start_items,
             )
-            for item in period_start_items[1:]:
-                log_notification(db, user.id, "period_start", "email", item["ref_key"])
+            if sent:
+                for item in period_start_items[1:]:
+                    log_notification(db, user.id, "period_start", "email", item["ref_key"])
 
         if unused_recap_items:
-            send_notification_email(
+            sent = send_notification_email(
                 db,
                 user,
                 "unused_recap",
@@ -346,8 +352,9 @@ def check_period_transitions(db, users):
                 "Credits you missed last period",
                 unused_recap_items,
             )
-            for item in unused_recap_items[1:]:
-                log_notification(db, user.id, "unused_recap", "email", item["ref_key"])
+            if sent:
+                for item in unused_recap_items[1:]:
+                    log_notification(db, user.id, "unused_recap", "email", item["ref_key"])
 
 
 def check_fee_approaching(db, users):
@@ -384,7 +391,7 @@ def check_fee_approaching(db, users):
                 })
 
         if fee_items:
-            send_notification_email(
+            sent = send_notification_email(
                 db,
                 user,
                 "fee_approaching",
@@ -392,8 +399,9 @@ def check_fee_approaching(db, users):
                 "Card renewal coming up",
                 fee_items,
             )
-            for item in fee_items[1:]:
-                log_notification(db, user.id, "fee_approaching", "email", item["ref_key"])
+            if sent:
+                for item in fee_items[1:]:
+                    log_notification(db, user.id, "fee_approaching", "email", item["ref_key"])
 
 
 def send_utilization_summary(db, users):
@@ -410,7 +418,7 @@ def send_utilization_summary(db, users):
         if not get_user_pref(user, "email", "utilization_summary"):
             continue
 
-        ref_key = f"user:{user.id}:week:{iso_week}"
+        ref_key = f"user:{user.id}:week:{today.isocalendar()[0]}-{iso_week}"
         if is_already_sent(db, user.id, "utilization_summary", ref_key):
             continue
 

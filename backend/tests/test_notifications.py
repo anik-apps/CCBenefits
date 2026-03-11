@@ -169,11 +169,11 @@ def test_check_expiring_credits_fires_3_days_before_month_end(db_session):
         card_template_id=template.id, period_type="monthly"
     ).first()
 
-    if benefit:
-        with patch("ccbenefits.notifications.send_notification_email") as mock_send:
-            check_expiring_credits(db_session, [user])
-            # March 28 is 3 days before March 31 — should fire
-            assert mock_send.called
+    assert benefit is not None, "Seed data missing monthly benefit"
+    with patch("ccbenefits.notifications.send_notification_email") as mock_send:
+        check_expiring_credits(db_session, [user])
+        # March 28 is 3 days before March 31 — should fire
+        assert mock_send.called
 
 
 @freeze_time("2026-03-15T14:00:00Z")
@@ -273,12 +273,12 @@ def test_check_period_start_fires_on_first_day(db_session):
         card_template_id=template.id, period_type="monthly"
     ).first()
 
-    if benefit:
-        with patch("ccbenefits.notifications.send_notification_email") as mock_send:
-            check_period_transitions(db_session, [user])
-            assert mock_send.called
-            call_args = mock_send.call_args
-            assert call_args[0][4] == "New benefit period started"
+    assert benefit is not None, "Seed data missing monthly benefit"
+    with patch("ccbenefits.notifications.send_notification_email") as mock_send:
+        check_period_transitions(db_session, [user])
+        assert mock_send.called
+        call_args = mock_send.call_args
+        assert call_args[0][4] == "New benefit period started"
 
 
 @freeze_time("2026-04-01T10:00:00Z")
@@ -311,13 +311,13 @@ def test_check_unused_recap_fires_day_after_period_end(db_session):
         card_template_id=template.id, period_type="monthly"
     ).first()
 
-    if benefit:
-        # No usage logged for the March period — should fire unused_recap
-        with patch("ccbenefits.notifications.send_notification_email") as mock_send:
-            check_period_transitions(db_session, [user])
-            assert mock_send.called
-            call_args = mock_send.call_args
-            assert call_args[0][4] == "Credits you missed last period"
+    assert benefit is not None, "Seed data missing monthly benefit"
+    # No usage logged for the March period — should fire unused_recap
+    with patch("ccbenefits.notifications.send_notification_email") as mock_send:
+        check_period_transitions(db_session, [user])
+        assert mock_send.called
+        call_args = mock_send.call_args
+        assert call_args[0][4] == "Credits you missed last period"
 
 
 @freeze_time("2026-04-01T10:00:00Z")
