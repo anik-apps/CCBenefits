@@ -45,7 +45,6 @@ export default function ProfileScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgPrimary, padding: spacing.lg },
   header: { paddingTop: spacing.xl, paddingBottom: spacing.lg },
   backText: { color: colors.accentGold, fontSize: 14, marginBottom: spacing.sm },
   title: { fontSize: 22, fontWeight: '700', color: colors.textPrimary },

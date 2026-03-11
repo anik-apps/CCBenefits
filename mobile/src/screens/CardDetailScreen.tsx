@@ -9,28 +9,9 @@ import PerceivedValueModal from '../components/PerceivedValueModal';
 import CardIcon from '../components/CardIcon';
 import { Alert } from 'react-native';
 import { colors, spacing, radius, getIssuerColor } from '../theme';
+import { getCategoryIcon, getCategoryColor } from '../constants/categoryTheme';
 import type { BenefitStatus } from '../types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-
-const CATEGORY_ICONS: Record<string, string> = {
-  travel: '\u2708\uFE0F',
-  dining: '\uD83C\uDF74',
-  entertainment: '\uD83C\uDFAC',
-  shopping: '\uD83D\uDECD\uFE0F',
-  wellness: '\uD83E\uDDD8',
-  lifestyle: '\u2728',
-  membership: '\uD83D\uDD11',
-};
-
-const CATEGORY_COLORS: Record<string, string> = {
-  travel: '#3b82f6',
-  dining: '#f59e0b',
-  entertainment: '#a855f7',
-  shopping: '#ec4899',
-  wellness: '#10b981',
-  lifestyle: '#6366f1',
-  membership: '#64748b',
-};
 
 type Props = NativeStackScreenProps<any, 'CardDetail'>;
 
@@ -129,8 +110,8 @@ export default function CardDetailScreen({ route, navigation }: Props) {
 
       <ScrollView contentContainerStyle={styles.scroll}>
         {card.benefits_status.map((benefit) => {
-          const catIcon = CATEGORY_ICONS[benefit.category] || '\u2022';
-          const catColor = CATEGORY_COLORS[benefit.category] || '#64748b';
+          const catIcon = getCategoryIcon(benefit.category);
+          const catColor = getCategoryColor(benefit.category);
           const issuerBorderColor = getIssuerColor(card.issuer).bg;
           return (
           <TouchableOpacity
@@ -225,7 +206,6 @@ export default function CardDetailScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgPrimary },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgPrimary },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.xxl, paddingBottom: spacing.md },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },

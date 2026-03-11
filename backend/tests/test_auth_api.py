@@ -98,7 +98,7 @@ def test_password_reset_request_nonexistent_email(client):
 
 
 def test_password_reset_end_to_end(client, db_session):
-    from ccbenefits.auth import create_password_reset_token, hash_reset_token
+    from ccbenefits.auth import create_opaque_token, hash_opaque_token
     from ccbenefits.models import User
     from datetime import datetime, timedelta, timezone as dt_timezone
 
@@ -109,8 +109,8 @@ def test_password_reset_end_to_end(client, db_session):
 
     # Simulate password reset request by setting token directly
     user = db_session.query(User).filter(User.email == "resetflow@test.com").first()
-    raw_token = create_password_reset_token()
-    user.password_reset_token = hash_reset_token(raw_token)
+    raw_token = create_opaque_token()
+    user.password_reset_token = hash_opaque_token(raw_token)
     user.password_reset_expires = datetime.now(dt_timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
     db_session.commit()
 
@@ -141,7 +141,7 @@ def test_password_reset_invalid_token(client):
 
 
 def test_password_reset_token_single_use(client, db_session):
-    from ccbenefits.auth import create_password_reset_token, hash_reset_token
+    from ccbenefits.auth import create_opaque_token, hash_opaque_token
     from ccbenefits.models import User
     from datetime import datetime, timedelta, timezone as dt_timezone
 
@@ -150,8 +150,8 @@ def test_password_reset_token_single_use(client, db_session):
     })
 
     user = db_session.query(User).filter(User.email == "singleuse@test.com").first()
-    raw_token = create_password_reset_token()
-    user.password_reset_token = hash_reset_token(raw_token)
+    raw_token = create_opaque_token()
+    user.password_reset_token = hash_opaque_token(raw_token)
     user.password_reset_expires = datetime.now(dt_timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
     db_session.commit()
 

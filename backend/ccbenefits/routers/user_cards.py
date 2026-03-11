@@ -72,7 +72,7 @@ def list_user_cards(
 ):
     user_cards = (
         db.query(UserCard)
-        .filter(UserCard.user_id == current_user.id, UserCard.is_active == True)
+        .filter(UserCard.user_id == current_user.id, UserCard.is_active.is_(True))
         .options(
             joinedload(UserCard.card_template).joinedload(CardTemplate.benefits),
             joinedload(UserCard.usages),

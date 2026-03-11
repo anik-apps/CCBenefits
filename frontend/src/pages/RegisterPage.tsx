@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { inputStyle, labelStyle, primaryButtonStyle, errorStyle, authPageStyle } from '../styles/form';
+import { extractApiError } from '../utils/apiError';
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -25,8 +26,7 @@ export default function RegisterPage() {
       await register(email, password, displayName);
       navigate('/verify-pending');
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setError(msg || 'Registration failed');
+      setError(extractApiError(err, 'Registration failed'));
     } finally {
       setLoading(false);
     }

@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUserCards, getUserCard, logUsage, updateUsage, deleteUsage } from '../services/api';
 import UsageModal from '../components/UsageModal';
 import { colors, spacing, radius, getIssuerColor } from '../theme';
+import { getCategoryIcon, getCategoryColor } from '../constants/categoryTheme';
 import type { BenefitStatus } from '../types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -16,26 +17,6 @@ interface BenefitWithCard extends BenefitStatus {
   cardName: string;
   issuer: string;
 }
-
-const CATEGORY_ICONS: Record<string, string> = {
-  travel: '\u2708\uFE0F',
-  dining: '\uD83C\uDF74',
-  entertainment: '\uD83C\uDFAC',
-  shopping: '\uD83D\uDECD\uFE0F',
-  wellness: '\uD83E\uDDD8',
-  lifestyle: '\u2728',
-  membership: '\uD83D\uDD11',
-};
-
-const CATEGORY_COLORS: Record<string, string> = {
-  travel: '#3b82f6',
-  dining: '#f59e0b',
-  entertainment: '#a855f7',
-  shopping: '#ec4899',
-  wellness: '#10b981',
-  lifestyle: '#6366f1',
-  membership: '#64748b',
-};
 
 const PERIOD_ORDER = ['monthly', 'quarterly', 'semiannual', 'annual'];
 const PERIOD_LABELS: Record<string, string> = {
@@ -117,8 +98,8 @@ export default function AllCreditsScreen({ navigation }: Props) {
           <Text style={styles.sectionHeader}>{section.title}</Text>
         )}
         renderItem={({ item }) => {
-          const catIcon = CATEGORY_ICONS[item.category] || '\u2022';
-          const catColor = CATEGORY_COLORS[item.category] || '#64748b';
+          const catIcon = getCategoryIcon(item.category);
+          const catColor = getCategoryColor(item.category);
           return (
           <TouchableOpacity
             style={[styles.benefitCard, { borderLeftWidth: 3, borderLeftColor: getIssuerColor(item.issuer).bg }]}
@@ -182,7 +163,6 @@ export default function AllCreditsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgPrimary },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgPrimary },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.xxl, paddingBottom: spacing.md },
   backText: { color: colors.accentGold, fontSize: 14, marginBottom: spacing.sm },

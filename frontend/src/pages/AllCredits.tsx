@@ -4,14 +4,8 @@ import { getUserCards, getUserCard, logUsage, updateUsage, deleteUsage, updateBe
 import type { BenefitStatus, PeriodSegment } from '../types';
 import BenefitRow from '../components/BenefitRow';
 import UsageModal from '../components/UsageModal';
-
-const PERIOD_ORDER = ['monthly', 'quarterly', 'semiannual', 'annual'];
-const PERIOD_LABELS: Record<string, string> = {
-  monthly: 'Monthly',
-  quarterly: 'Quarterly',
-  semiannual: 'Semiannual',
-  annual: 'Annual',
-};
+import LoadingSpinner from '../components/LoadingSpinner';
+import { PERIOD_ORDER, PERIOD_LABELS } from '../constants/periodLabels';
 
 interface BenefitWithCard extends BenefitStatus {
   userCardId: number;
@@ -51,13 +45,7 @@ export default function AllCredits() {
   if (isLoading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 80 }}>
-        <div style={{
-          width: 40, height: 40,
-          border: '3px solid var(--border-medium)',
-          borderTopColor: 'var(--accent-gold)',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }} />
+        <LoadingSpinner />
       </div>
     );
   }
