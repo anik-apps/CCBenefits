@@ -493,3 +493,70 @@ def test_fee_approaching_respects_preference(db_session):
     with patch("ccbenefits.notifications.send_notification_email") as mock_send:
         check_fee_approaching(db_session, [user])
         assert not mock_send.called
+
+
+# --- send_utilization_summary tests ---
+
+
+@freeze_time("2026-04-06T10:00:00Z")
+def test_utilization_summary_sends_for_opted_in(db_session):
+    """User with utilization_summary=True should receive summary."""
+    from unittest.mock import patch
+
+    from ccbenefits.models import CardTemplate, UserCard
+    from ccbenefits.notifications import send_utilization_summary
+
+    user = User(
+        email="util@test.com",
+        hashed_password=hash_password("pass"),
+        display_name="UtilUser",
+        is_verified=True,
+        notification_preferences={
+            "email": {"utilization_summary": True},
+            "push": {},
+        },
+    )
+    db_session.add(user)
+    db_session.flush()
+
+    template = db_session.query(CardTemplate).first()
+    card = UserCard(user_id=user.id, card_template_id=template.id)
+    db_session.add(card)
+    db_session.flush()
+
+    with patch("ccbenefits.notifications.send_notification_email") as mock_send:
+        send_utilization_summary(db_session, [user])
+        assert mock_send.called
+        call_args = mock_send.call_args
+        assert call_args[0][4] == "Weekly benefits summary"
+
+
+@freeze_time("2026-04-06T10:00:00Z")
+def test_utilization_summary_skips_opted_out(db_session):
+    """User with utilization_summary=False should NOT receive summary."""
+    from unittest.mock import patch
+
+    from ccbenefits.models import CardTemplate, UserCard
+    from ccbenefits.notifications import send_utilization_summary
+
+    user = User(
+        email="noutil@test.com",
+        hashed_password=hash_password("pass"),
+        display_name="NoUtilUser",
+        is_verified=True,
+        notification_preferences={
+            "email": {"utilization_summary": False},
+            "push": {},
+        },
+    )
+    db_session.add(user)
+    db_session.flush()
+
+    template = db_session.query(CardTemplate).first()
+    card = UserCard(user_id=user.id, card_template_id=template.id)
+    db_session.add(card)
+    db_session.flush()
+
+    with patch("ccbenefits.notifications.send_notification_email") as mock_send:
+        send_utilization_summary(db_session, [user])
+        assert not mock_send.called

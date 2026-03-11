@@ -373,4 +373,66 @@ def check_fee_approaching(db, users):
 
 
 def send_utilization_summary(db, users):
-    pass
+    """Send weekly utilization summary for opted-in users."""
+    from datetime import date
+
+    from .models import BenefitTemplate, BenefitUsage, CardTemplate, UserCard
+    from .utils import get_current_period
+
+    today = date.today()
+    iso_week = today.isocalendar()[1]
+
+    for user in users:
+        if not get_user_pref(user, "email", "utilization_summary"):
+            continue
+
+        ref_key = f"user:{user.id}:week:{iso_week}"
+        if is_already_sent(db, user.id, "utilization_summary", ref_key):
+            continue
+
+        cards = db.query(UserCard).filter(
+            UserCard.user_id == user.id,
+            UserCard.is_active.is_(True),
+        ).all()
+
+        summary_items = []
+        for card in cards:
+            card_template = db.get(CardTemplate, card.card_template_id)
+            benefits = db.query(BenefitTemplate).filter_by(
+                card_template_id=card.card_template_id
+            ).all()
+
+            total_available = 0.0
+            total_used = 0.0
+
+            for benefit in benefits:
+                start_date, end_date = get_current_period(benefit.period_type, today)
+                total_available += benefit.max_value
+
+                usage = db.query(BenefitUsage).filter(
+                    BenefitUsage.user_card_id == card.id,
+                    BenefitUsage.benefit_template_id == benefit.id,
+                    BenefitUsage.period_start_date == start_date,
+                ).first()
+
+                if usage:
+                    total_used += usage.amount_used
+
+            if total_available > 0:
+                pct = int(total_used / total_available * 100)
+                summary_items.append({
+                    "name": card_template.name,
+                    "card": card_template.name,
+                    "amount": f"${total_used:.0f} / ${total_available:.0f}",
+                    "expires": f"{pct}%",
+                })
+
+        if summary_items:
+            send_notification_email(
+                db,
+                user,
+                "utilization_summary",
+                ref_key,
+                "Weekly benefits summary",
+                summary_items,
+            )
