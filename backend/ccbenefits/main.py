@@ -11,7 +11,7 @@ from .config import ALLOWED_ORIGINS, RESEND_API_KEY, EMAIL_FROM
 from .database import engine
 from .email import set_email_sender, ResendEmailSender
 from .observability import setup_observability, shutdown_observability
-from .routers import auth, card_templates, feedback, usage, user_cards, users
+from .routers import auth, card_templates, feedback, notifications, usage, user_cards, users
 
 # Conditionally use Resend for emails in production
 if RESEND_API_KEY:
@@ -55,6 +55,7 @@ app.include_router(user_cards.router)
 app.include_router(feedback.router)
 app.include_router(usage.router)
 app.include_router(users.router)
+app.include_router(notifications.router)
 
 
 @app.get("/api/health")

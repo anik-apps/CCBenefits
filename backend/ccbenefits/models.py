@@ -217,3 +217,21 @@ class NotificationLog(Base):
     )
 
     user: Mapped["User"] = relationship()
+
+
+class UnsubscribeToken(Base):
+    __tablename__ = "unsubscribe_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    notification_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(dt_timezone.utc), nullable=False
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    user: Mapped["User"] = relationship()
