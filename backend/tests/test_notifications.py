@@ -238,3 +238,145 @@ def test_check_expiring_credits_respects_preference(db_session):
         with patch("ccbenefits.notifications.send_notification_email") as mock_send:
             check_expiring_credits(db_session, [user])
             assert not mock_send.called
+
+
+# --- check_period_transitions tests ---
+
+
+@freeze_time("2026-04-01T10:00:00Z")
+def test_check_period_start_fires_on_first_day(db_session):
+    """April 1 is the first day of a monthly period — should fire period_start."""
+    from unittest.mock import patch
+
+    from ccbenefits.models import BenefitTemplate, CardTemplate, UserCard
+    from ccbenefits.notifications import check_period_transitions
+
+    user = User(
+        email="pstart@test.com",
+        hashed_password=hash_password("pass"),
+        display_name="PStart",
+        is_verified=True,
+        notification_preferences={
+            "email": {"period_start": True, "unused_recap": False},
+            "push": {},
+        },
+    )
+    db_session.add(user)
+    db_session.flush()
+
+    template = db_session.query(CardTemplate).first()
+    card = UserCard(user_id=user.id, card_template_id=template.id)
+    db_session.add(card)
+    db_session.flush()
+
+    benefit = db_session.query(BenefitTemplate).filter_by(
+        card_template_id=template.id, period_type="monthly"
+    ).first()
+
+    if benefit:
+        with patch("ccbenefits.notifications.send_notification_email") as mock_send:
+            check_period_transitions(db_session, [user])
+            assert mock_send.called
+            call_args = mock_send.call_args
+            assert call_args[0][4] == "New benefit period started"
+
+
+@freeze_time("2026-04-01T10:00:00Z")
+def test_check_unused_recap_fires_day_after_period_end(db_session):
+    """April 1 — yesterday was March 31 (end of monthly period). Unused benefits should trigger recap."""
+    from unittest.mock import patch
+
+    from ccbenefits.models import BenefitTemplate, CardTemplate, UserCard
+    from ccbenefits.notifications import check_period_transitions
+
+    user = User(
+        email="recap@test.com",
+        hashed_password=hash_password("pass"),
+        display_name="Recap",
+        is_verified=True,
+        notification_preferences={
+            "email": {"period_start": False, "unused_recap": True},
+            "push": {},
+        },
+    )
+    db_session.add(user)
+    db_session.flush()
+
+    template = db_session.query(CardTemplate).first()
+    card = UserCard(user_id=user.id, card_template_id=template.id)
+    db_session.add(card)
+    db_session.flush()
+
+    benefit = db_session.query(BenefitTemplate).filter_by(
+        card_template_id=template.id, period_type="monthly"
+    ).first()
+
+    if benefit:
+        # No usage logged for the March period — should fire unused_recap
+        with patch("ccbenefits.notifications.send_notification_email") as mock_send:
+            check_period_transitions(db_session, [user])
+            assert mock_send.called
+            call_args = mock_send.call_args
+            assert call_args[0][4] == "Credits you missed last period"
+
+
+@freeze_time("2026-04-01T10:00:00Z")
+def test_check_period_start_respects_preference(db_session):
+    """User with period_start=False should NOT get period_start notification."""
+    from unittest.mock import patch
+
+    from ccbenefits.models import CardTemplate, UserCard
+    from ccbenefits.notifications import check_period_transitions
+
+    user = User(
+        email="nopstart@test.com",
+        hashed_password=hash_password("pass"),
+        display_name="NoPStart",
+        is_verified=True,
+        notification_preferences={
+            "email": {"period_start": False, "unused_recap": False},
+            "push": {},
+        },
+    )
+    db_session.add(user)
+    db_session.flush()
+
+    template = db_session.query(CardTemplate).first()
+    card = UserCard(user_id=user.id, card_template_id=template.id)
+    db_session.add(card)
+    db_session.flush()
+
+    with patch("ccbenefits.notifications.send_notification_email") as mock_send:
+        check_period_transitions(db_session, [user])
+        assert not mock_send.called
+
+
+@freeze_time("2026-04-01T10:00:00Z")
+def test_check_unused_recap_respects_preference(db_session):
+    """User with unused_recap=False should NOT get unused_recap notification."""
+    from unittest.mock import patch
+
+    from ccbenefits.models import BenefitTemplate, CardTemplate, UserCard
+    from ccbenefits.notifications import check_period_transitions
+
+    user = User(
+        email="norecap@test.com",
+        hashed_password=hash_password("pass"),
+        display_name="NoRecap",
+        is_verified=True,
+        notification_preferences={
+            "email": {"period_start": False, "unused_recap": False},
+            "push": {},
+        },
+    )
+    db_session.add(user)
+    db_session.flush()
+
+    template = db_session.query(CardTemplate).first()
+    card = UserCard(user_id=user.id, card_template_id=template.id)
+    db_session.add(card)
+    db_session.flush()
+
+    with patch("ccbenefits.notifications.send_notification_email") as mock_send:
+        check_period_transitions(db_session, [user])
+        assert not mock_send.called

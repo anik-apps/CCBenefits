@@ -233,7 +233,97 @@ def check_expiring_credits(db, users):
 
 
 def check_period_transitions(db, users):
-    pass
+    """Check for period_start and unused_recap notifications."""
+    from datetime import date, timedelta
+
+    from .models import BenefitTemplate, BenefitUsage, CardTemplate, UserCard
+    from .utils import get_current_period
+
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+
+    for user in users:
+        wants_period_start = get_user_pref(user, "email", "period_start")
+        wants_unused_recap = get_user_pref(user, "email", "unused_recap")
+
+        if not wants_period_start and not wants_unused_recap:
+            continue
+
+        cards = db.query(UserCard).filter(
+            UserCard.user_id == user.id,
+            UserCard.is_active.is_(True),
+        ).all()
+
+        period_start_items = []
+        unused_recap_items = []
+
+        for card in cards:
+            card_template = db.get(CardTemplate, card.card_template_id)
+            benefits = db.query(BenefitTemplate).filter_by(
+                card_template_id=card.card_template_id
+            ).all()
+
+            for benefit in benefits:
+                # --- period_start: check if today is the first day of a new period ---
+                if wants_period_start:
+                    start_date, end_date = get_current_period(benefit.period_type, today)
+                    if start_date == today:
+                        ref_key = f"benefit:{benefit.id}:period:{start_date}"
+                        if not is_already_sent(db, user.id, "period_start", ref_key):
+                            period_start_items.append({
+                                "name": benefit.name,
+                                "card": card_template.name,
+                                "amount": f"${benefit.max_value:.0f}",
+                                "expires": f"{benefit.period_type}",
+                                "ref_key": ref_key,
+                            })
+
+                # --- unused_recap: check if yesterday was the last day of a period ---
+                if wants_unused_recap:
+                    prev_start, prev_end = get_current_period(benefit.period_type, yesterday)
+                    if prev_end == yesterday:
+                        usage = db.query(BenefitUsage).filter(
+                            BenefitUsage.user_card_id == card.id,
+                            BenefitUsage.benefit_template_id == benefit.id,
+                            BenefitUsage.period_start_date == prev_start,
+                        ).first()
+
+                        amount_used = usage.amount_used if usage else 0
+                        if amount_used < benefit.max_value:
+                            missed = benefit.max_value - amount_used
+                            ref_key = f"benefit:{benefit.id}:period:{prev_start}"
+                            if not is_already_sent(db, user.id, "unused_recap", ref_key):
+                                unused_recap_items.append({
+                                    "name": benefit.name,
+                                    "card": card_template.name,
+                                    "amount": f"${missed:.0f}",
+                                    "expires": f"{prev_start} - {prev_end}",
+                                    "ref_key": ref_key,
+                                })
+
+        if period_start_items:
+            send_notification_email(
+                db,
+                user,
+                "period_start",
+                period_start_items[0]["ref_key"],
+                "New benefit period started",
+                period_start_items,
+            )
+            for item in period_start_items[1:]:
+                log_notification(db, user.id, "period_start", "email", item["ref_key"])
+
+        if unused_recap_items:
+            send_notification_email(
+                db,
+                user,
+                "unused_recap",
+                unused_recap_items[0]["ref_key"],
+                "Credits you missed last period",
+                unused_recap_items,
+            )
+            for item in unused_recap_items[1:]:
+                log_notification(db, user.id, "unused_recap", "email", item["ref_key"])
 
 
 def check_fee_approaching(db, users):
