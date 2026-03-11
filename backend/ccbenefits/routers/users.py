@@ -29,7 +29,7 @@ def update_profile(
     if data.timezone is not None:
         current_user.timezone = data.timezone
     if data.notification_preferences is not None:
-        current_user.notification_preferences = data.notification_preferences
+        current_user.notification_preferences = data.notification_preferences.model_dump()
     db.commit()
     db.refresh(current_user)
     return user_out(current_user)
