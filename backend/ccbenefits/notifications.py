@@ -2,12 +2,17 @@
 
 import html
 import logging
+import urllib.parse
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 
 from sqlalchemy.orm import Session
 
+from .auth import create_opaque_token, hash_opaque_token
+from .config import FRONTEND_URL
 from .email import get_email_sender
-from .metrics import email_sent_counter
-from .models import NotificationLog
+from .metrics import email_sent_counter, notifications_sent_counter
+from .models import NotificationLog, UnsubscribeToken
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +127,22 @@ def render_notification_email(
 </div>"""
 
 
+def _generate_unsubscribe_url(db: Session, user_id: int, notification_type: str) -> str:
+    """Create an opaque unsubscribe token and return the full URL."""
+    raw_token = create_opaque_token()
+    record = UnsubscribeToken(
+        user_id=user_id,
+        token_hash=hash_opaque_token(raw_token),
+        notification_type=notification_type,
+        expires_at=datetime.now(dt_timezone.utc) + timedelta(days=60),
+    )
+    db.add(record)
+    db.flush()  # persist but let caller commit
+
+    base_url = FRONTEND_URL.rstrip("/")
+    return f"{base_url}/api/notifications/unsubscribe?token={urllib.parse.quote(raw_token)}"
+
+
 def send_notification_email(
     db: Session,
     user,
@@ -129,7 +150,6 @@ def send_notification_email(
     reference_key: str,
     subject: str,
     items: list[dict],
-    unsubscribe_url: str | None = None,
 ) -> bool:
     """Orchestrate: check dedup -> check preference -> render -> send -> log.
 
@@ -143,6 +163,8 @@ def send_notification_email(
         logger.debug("User %s opted out of %s emails", user.id, notification_type)
         return False
 
+    unsubscribe_url = _generate_unsubscribe_url(db, user.id, notification_type)
+
     body = render_notification_email(
         notification_type=notification_type,
         user_name=user.display_name,
@@ -154,8 +176,10 @@ def send_notification_email(
     try:
         sender.send(to=user.email, subject=subject, html_body=body)
         email_sent_counter.add(1, {"type": notification_type, "success": "true"})
+        notifications_sent_counter.add(1, {"type": notification_type, "channel": "email", "success": "true"})
     except Exception:
         email_sent_counter.add(1, {"type": notification_type, "success": "false"})
+        notifications_sent_counter.add(1, {"type": notification_type, "channel": "email", "success": "false"})
         logger.exception("Failed to send %s email to user %s", notification_type, user.id)
         return False
 

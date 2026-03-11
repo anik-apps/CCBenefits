@@ -6,6 +6,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from . import config
+from .metrics import notification_jobs_counter
 from .database import SessionLocal
 from .models import User
 
@@ -59,6 +60,7 @@ def hourly_notification_check():
         check_expiring_credits(db, users)
         check_period_transitions(db, users)
         check_fee_approaching(db, users)
+        notification_jobs_counter.add(1, {"job": "hourly", "users": str(len(users))})
     except Exception:
         logger.exception("Error in hourly notification check")
         db.rollback()
@@ -78,6 +80,7 @@ def weekly_utilization_check():
         users = get_users_for_notification_hour(db, utc_hour)
         if users:
             send_utilization_summary(db, users)
+        notification_jobs_counter.add(1, {"job": "weekly", "users": str(len(users))})
     except Exception:
         logger.exception("Error in weekly utilization check")
         db.rollback()

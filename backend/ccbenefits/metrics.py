@@ -16,3 +16,11 @@ cards_added_counter = meter.create_counter("cards.added", description="Cards add
 feedback_submitted_counter = meter.create_counter("feedback.submitted", description="Feedback submitted")
 email_sent_counter = meter.create_counter("email.sent", description="Emails sent")
 password_reset_counter = meter.create_counter("password_reset.requested", description="Password resets requested")
+notifications_sent_counter = meter.create_counter(
+    "notifications.sent",
+    description="Notification emails sent",
+)
+notification_jobs_counter = meter.create_counter(
+    "notifications.jobs_run",
+    description="Notification job invocations",
+)
