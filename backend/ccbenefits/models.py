@@ -183,3 +183,36 @@ class Feedback(Base):
     )
 
     user: Mapped["User"] = relationship()
+
+
+class PushToken(Base):
+    __tablename__ = "push_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    token: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    device_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(dt_timezone.utc), nullable=False
+    )
+
+    user: Mapped["User"] = relationship()
+
+
+class NotificationLog(Base):
+    __tablename__ = "notification_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    notification_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    channel: Mapped[str] = mapped_column(String(10), nullable=False)
+    reference_key: Mapped[str] = mapped_column(String(200), nullable=False)
+    sent_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(dt_timezone.utc), nullable=False
+    )
+
+    user: Mapped["User"] = relationship()
