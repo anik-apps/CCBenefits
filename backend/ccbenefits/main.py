@@ -25,7 +25,11 @@ FRONTEND_DIR = Path(os.environ.get(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from .scheduler import start_scheduler, stop_scheduler
+
+    start_scheduler()
     yield
+    stop_scheduler()
     shutdown_observability()
 
 
