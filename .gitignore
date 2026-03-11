@@ -40,5 +40,8 @@ frontend/coverage/
 .env.*
 !.env.example
 
+# Firebase
+google-services.json
+
 # Claude
 .claude/
