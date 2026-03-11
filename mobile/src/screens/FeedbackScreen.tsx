@@ -102,7 +102,6 @@ export default function FeedbackScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgPrimary },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.xxl, paddingBottom: spacing.md },
   backText: { color: colors.accentGold, fontSize: 14, marginBottom: spacing.sm },
   title: { fontSize: 22, fontWeight: '700', color: colors.textPrimary },

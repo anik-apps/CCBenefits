@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { useAuth } from '../hooks/useAuth';
+import { extractApiError } from '../utils/apiError';
 import { colors, spacing, radius } from '../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -27,8 +28,7 @@ export default function RegisterScreen({ navigation }: Props) {
       await register(email, password, displayName);
       // AuthContext sets user, navigation handled by root navigator
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setError(msg || 'Registration failed');
+      setError(extractApiError(err, 'Registration failed'));
     } finally {
       setLoading(false);
     }
@@ -66,7 +66,6 @@ export default function RegisterScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgPrimary },
   inner: { flexGrow: 1, justifyContent: 'center', padding: spacing.xxl },
   title: { fontSize: 24, fontWeight: '700', color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.xxl },
   label: { fontSize: 13, color: colors.textMuted, marginBottom: spacing.xs },

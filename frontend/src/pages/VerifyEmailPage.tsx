@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { verifyEmail } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
+import { extractApiError } from '../utils/apiError';
 
 type Status = 'loading' | 'success' | 'error' | 'already';
 
@@ -35,7 +36,7 @@ export default function VerifyEmailPage() {
       } catch (err: unknown) {
         if (!cancelled) {
           setStatus('error');
-          setError((err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Verification failed');
+          setError(extractApiError(err, 'Verification failed'));
         }
       }
     };

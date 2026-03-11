@@ -113,7 +113,6 @@ export default function DashboardScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgPrimary, padding: spacing.lg },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgPrimary },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl, marginTop: spacing.xl },
   greeting: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Switch, ScrollView } from 'react-native';
 import { colors, spacing, radius } from '../theme';
+import { extractApiError } from '../utils/apiError';
 import type { BenefitStatus, PeriodSegment } from '../types';
 
 interface Props {
@@ -63,8 +64,7 @@ export default function UsageModal({ visible, benefit, onClose, onLogUsage, onUp
       }
       onClose();
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setError(msg || 'Failed to save');
+      setError(extractApiError(err, 'Failed to save'));
     } finally {
       setLoading(false);
     }

@@ -6,14 +6,8 @@ import type { BenefitStatus, PeriodSegment } from '../types';
 import BenefitRow from '../components/BenefitRow';
 import UsageModal from '../components/UsageModal';
 import UtilizationBar from '../components/UtilizationBar';
-
-const PERIOD_ORDER = ['monthly', 'quarterly', 'semiannual', 'annual'];
-const PERIOD_LABELS: Record<string, string> = {
-  monthly: 'Monthly',
-  quarterly: 'Quarterly',
-  semiannual: 'Semiannual',
-  annual: 'Annual',
-};
+import LoadingSpinner from '../components/LoadingSpinner';
+import { PERIOD_ORDER, PERIOD_LABELS } from '../constants/periodLabels';
 
 export default function CardDetail() {
   const { id } = useParams<{ id: string }>();
@@ -156,14 +150,7 @@ export default function CardDetail() {
   if (isLoading || !card) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 80 }}>
-        <div style={{
-          width: 40, height: 40,
-          border: '3px solid var(--border-medium)',
-          borderTopColor: 'var(--accent-gold)',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <LoadingSpinner />
       </div>
     );
   }

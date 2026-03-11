@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../hooks/useAuth';
 import { resendVerification } from '../services/api';
 import { primaryButtonStyle } from '../styles/form';
@@ -30,7 +31,7 @@ export default function VerifyPendingPage() {
       await resendVerification();
       setMessage('Verification email sent!');
     } catch (err: unknown) {
-      const status = (err as { response?: { status?: number } })?.response?.status;
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
       setMessage(status === 429 ? 'Please wait before resending' : 'Failed to send');
     } finally {
       setSending(false);

@@ -15,7 +15,6 @@ from ..auth import (
     verify_password,
 )
 from ..config import (
-    ADMIN_EMAILS,
     FRONTEND_URL,
     RESET_TOKEN_EXPIRE_HOURS,
     VERIFICATION_TOKEN_EXPIRE_HOURS,
@@ -31,6 +30,7 @@ from ..metrics import (
     verification_completed_counter,
     verification_sent_counter,
 )
+from ..helpers import user_out
 from ..models import User
 from ..schemas import (
     AuthResponse,
@@ -39,7 +39,6 @@ from ..schemas import (
     RefreshRequest,
     TokenResponse,
     UserLogin,
-    UserOut,
     UserRegister,
     VerifyEmailRequest,
 )
@@ -47,12 +46,6 @@ from ..schemas import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
-
-
-def _user_out(user: User) -> UserOut:
-    out = UserOut.model_validate(user)
-    out.is_admin = user.email.lower() in ADMIN_EMAILS
-    return out
 
 
 def _now_naive() -> datetime:
@@ -94,7 +87,7 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
         logger.warning(f"Failed to send verification email to {user.email}", exc_info=True)
 
     return AuthResponse(
-        user=_user_out(user),
+        user=user_out(user),
         access_token=create_access_token(subject=str(user.id), email=user.email),
         refresh_token=create_refresh_token(subject=str(user.id), email=user.email),
     )

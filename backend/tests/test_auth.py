@@ -38,11 +38,11 @@ def test_expired_token():
         decode_token(token)
 
 
-def test_create_password_reset_token():
-    from ccbenefits.auth import create_password_reset_token, hash_reset_token
+def test_create_opaque_token():
+    from ccbenefits.auth import create_opaque_token, hash_opaque_token
 
-    token = create_password_reset_token()
+    token = create_opaque_token()
     assert len(token) == 64  # 32 bytes hex-encoded
-    hashed = hash_reset_token(token)
+    hashed = hash_opaque_token(token)
     assert hashed != token
-    assert hash_reset_token(token) == hashed  # deterministic
+    assert hash_opaque_token(token) == hashed  # deterministic

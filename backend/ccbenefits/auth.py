@@ -59,11 +59,6 @@ def hash_opaque_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-# Backward-compatible aliases
-create_password_reset_token = create_opaque_token
-hash_reset_token = hash_opaque_token
-
-
 def decode_token(token: str) -> dict:
     try:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
