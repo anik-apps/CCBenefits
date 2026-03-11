@@ -1,9 +1,9 @@
 import ScreenWrapper from '../components/ScreenWrapper';
 import LoadingScreen from '../components/LoadingScreen';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getUserCard, logUsage, updateUsage, deleteUsage, deleteUserCard, updateBenefitSetting } from '../services/api';
+import { getUserCard, logUsage, updateUsage, deleteUsage, deleteUserCard, updateBenefitSetting, updateUserCard } from '../services/api';
 import UsageModal from '../components/UsageModal';
 import PerceivedValueModal from '../components/PerceivedValueModal';
 import CardIcon from '../components/CardIcon';
@@ -21,6 +21,8 @@ export default function CardDetailScreen({ route, navigation }: Props) {
   const queryClient = useQueryClient();
   const [selectedBenefit, setSelectedBenefit] = useState<BenefitStatus | null>(null);
   const [perceivedBenefit, setPerceivedBenefit] = useState<BenefitStatus | null>(null);
+  const [editingRenewal, setEditingRenewal] = useState(false);
+  const [renewalInput, setRenewalInput] = useState('');
 
   const { data: card, isLoading, isError, refetch } = useQuery({
     queryKey: ['user-card', id],
@@ -97,6 +99,65 @@ export default function CardDetailScreen({ route, navigation }: Props) {
             <Text style={styles.cardName}>{card.card_name}</Text>
             <Text style={styles.issuer}>{card.issuer} · ${card.annual_fee}/yr</Text>
           </View>
+        </View>
+
+        {/* Renewal date */}
+        <View style={styles.renewalRow}>
+          {card.renewal_date && !editingRenewal ? (
+            <View style={styles.renewalDisplay}>
+              <Text style={styles.renewalLabel}>Renews: </Text>
+              <Text style={styles.renewalDate}>
+                {new Date(card.renewal_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+              </Text>
+              <TouchableOpacity onPress={() => { setRenewalInput(card.renewal_date ?? ''); setEditingRenewal(true); }}>
+                <Text style={styles.renewalAction}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={async () => {
+                await updateUserCard(id, { renewal_date: null });
+                await refreshAllCardData(queryClient);
+              }}>
+                <Text style={styles.renewalClear}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.renewalEdit}>
+              <Text style={styles.renewalPrompt}>
+                {editingRenewal ? 'Renewal date:' : 'Add renewal date for fee reminders'}
+              </Text>
+              <View style={styles.renewalInputRow}>
+                <TextInput
+                  style={styles.renewalInput}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor={colors.textMuted}
+                  value={renewalInput}
+                  onChangeText={setRenewalInput}
+                  maxLength={10}
+                  keyboardType="numbers-and-punctuation"
+                />
+                <TouchableOpacity onPress={async () => {
+                  if (!/^\d{4}-\d{2}-\d{2}$/.test(renewalInput) || isNaN(new Date(renewalInput).getTime())) {
+                    Alert.alert('Invalid Date', 'Please enter a valid date in YYYY-MM-DD format.');
+                    return;
+                  }
+                  try {
+                    await updateUserCard(id, { renewal_date: renewalInput });
+                    setEditingRenewal(false);
+                    setRenewalInput('');
+                    await refreshAllCardData(queryClient);
+                  } catch {
+                    Alert.alert('Error', 'Failed to update renewal date. Please try again.');
+                  }
+                }}>
+                  <Text style={styles.renewalAction}>Save</Text>
+                </TouchableOpacity>
+                {editingRenewal && (
+                  <TouchableOpacity onPress={() => { setEditingRenewal(false); setRenewalInput(''); }}>
+                    <Text style={styles.renewalClear}>Cancel</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          )}
         </View>
       </View>
 
@@ -243,4 +304,19 @@ const styles = StyleSheet.create({
   tapHint: { fontSize: 11, color: colors.accentGold },
   errorText: { color: colors.statusDanger, fontSize: 15, marginBottom: spacing.md },
   retryText: { color: colors.accentGold, fontSize: 14 },
+  renewalRow: { marginTop: spacing.sm },
+  renewalDisplay: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  renewalLabel: { fontSize: 13, color: colors.textMuted },
+  renewalDate: { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
+  renewalAction: { fontSize: 12, color: colors.accentGold, marginLeft: 8 },
+  renewalClear: { fontSize: 12, color: colors.textMuted, marginLeft: 8 },
+  renewalEdit: {},
+  renewalPrompt: { fontSize: 12, color: colors.textMuted, marginBottom: 6 },
+  renewalInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  renewalInput: {
+    backgroundColor: colors.bgTertiary, borderRadius: radius.sm,
+    borderWidth: 1, borderColor: colors.borderSubtle,
+    paddingHorizontal: 10, paddingVertical: 6,
+    fontSize: 13, color: colors.textPrimary, minWidth: 120,
+  },
 });

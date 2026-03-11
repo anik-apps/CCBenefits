@@ -81,6 +81,7 @@ export interface UserCardDetail {
   member_since_date: string | null;
   is_active: boolean;
   benefits_status: BenefitStatus[];
+  renewal_date: string | null;
 }
 
 export interface UserCardSummary {
@@ -100,13 +101,27 @@ export interface UserCardSummary {
   benefits_used_count: number;
 }
 
+export interface ChannelPreferences {
+  expiring_credits: boolean;
+  period_start: boolean;
+  utilization_summary: boolean;
+  unused_recap: boolean;
+  fee_approaching: boolean;
+}
+
+export interface NotificationPreferences {
+  email: ChannelPreferences;
+  push: ChannelPreferences;
+  notification_hour: number;
+}
+
 export interface User {
   id: number;
   email: string;
   display_name: string;
   preferred_currency: string;
   timezone: string;
-  notification_preferences: Record<string, unknown> | null;
+  notification_preferences: NotificationPreferences | null;
   is_active: boolean;
   is_admin: boolean;
   is_verified: boolean;

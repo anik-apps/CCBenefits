@@ -72,5 +72,6 @@ export const mockCardDetail = (overrides: Partial<UserCardDetail> = {}): UserCar
   member_since_date: null,
   is_active: true,
   benefits_status: [mockBenefit(), mockBinaryBenefit()],
+  renewal_date: null,
   ...overrides,
 });

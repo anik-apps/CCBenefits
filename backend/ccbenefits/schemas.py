@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 # --- Card Template schemas ---
@@ -61,8 +61,13 @@ class UserCardOut(BaseModel):
     annual_fee: float
     nickname: str | None
     member_since_date: date | None
+    renewal_date: date | None = None
     is_active: bool
     created_at: datetime
+
+
+class UserCardUpdate(BaseModel):
+    renewal_date: date | None = None
 
 
 # --- Benefit Usage schemas ---
@@ -144,6 +149,7 @@ class UserCardDetailOut(BaseModel):
     annual_fee: float
     nickname: str | None
     member_since_date: date | None
+    renewal_date: date | None = None
     is_active: bool
     benefits_status: list[BenefitStatusOut]
 
@@ -206,6 +212,27 @@ class PasswordChange(BaseModel):
     new_password: str = Field(min_length=8, max_length=72)
 
 
+class ChannelPreferences(BaseModel):
+    expiring_credits: bool = True
+    period_start: bool = True
+    utilization_summary: bool = False
+    unused_recap: bool = True
+    fee_approaching: bool = False
+
+
+class NotificationPreferences(BaseModel):
+    email: ChannelPreferences = ChannelPreferences()
+    push: ChannelPreferences = ChannelPreferences()
+    notification_hour: int = 9
+
+    @field_validator("notification_hour")
+    @classmethod
+    def validate_hour(cls, v):
+        if not 0 <= v <= 23:
+            raise ValueError("notification_hour must be 0-23")
+        return v
+
+
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -214,7 +241,7 @@ class UserOut(BaseModel):
     display_name: str
     preferred_currency: str
     timezone: str
-    notification_preferences: dict | None
+    notification_preferences: NotificationPreferences | None
     is_active: bool
     is_admin: bool = False
     is_verified: bool = False
@@ -229,7 +256,7 @@ class UserUpdate(BaseModel):
     display_name: str | None = None
     preferred_currency: str | None = None
     timezone: str | None = None
-    notification_preferences: dict | None = None
+    notification_preferences: NotificationPreferences | None = None
 
 
 class AuthResponse(TokenResponse):

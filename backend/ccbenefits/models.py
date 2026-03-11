@@ -105,6 +105,7 @@ class UserCard(Base):
     )
     nickname: Mapped[str | None] = mapped_column(String, nullable=True)
     member_since_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    renewal_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(dt_timezone.utc), nullable=False
@@ -179,6 +180,39 @@ class Feedback(Base):
     category: Mapped[str] = mapped_column(String, nullable=False)
     message: Mapped[str] = mapped_column(String(1000), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(dt_timezone.utc), nullable=False
+    )
+
+    user: Mapped["User"] = relationship()
+
+
+class PushToken(Base):
+    __tablename__ = "push_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    token: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    device_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(dt_timezone.utc), nullable=False
+    )
+
+    user: Mapped["User"] = relationship()
+
+
+class NotificationLog(Base):
+    __tablename__ = "notification_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    notification_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    channel: Mapped[str] = mapped_column(String(10), nullable=False)
+    reference_key: Mapped[str] = mapped_column(String(200), nullable=False)
+    sent_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(dt_timezone.utc), nullable=False
     )
 

@@ -189,6 +189,11 @@ export async function deleteUserCard(id: number): Promise<void> {
   await api.delete(`/api/user-cards/${id}`);
 }
 
+export async function updateUserCard(id: number, data: { renewal_date: string | null }) {
+  const resp = await api.patch(`/api/user-cards/${id}`, data);
+  return resp.data;
+}
+
 export async function logUsage(
   userCardId: number, benefitTemplateId: number, amountUsed: number,
   notes?: string, targetDate?: string,
