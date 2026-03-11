@@ -135,13 +135,17 @@ export default function CardDetailScreen({ route, navigation }: Props) {
                   keyboardType="numbers-and-punctuation"
                 />
                 <TouchableOpacity onPress={async () => {
-                  if (/^\d{4}-\d{2}-\d{2}$/.test(renewalInput)) {
+                  if (!/^\d{4}-\d{2}-\d{2}$/.test(renewalInput) || isNaN(new Date(renewalInput).getTime())) {
+                    Alert.alert('Invalid Date', 'Please enter a valid date in YYYY-MM-DD format.');
+                    return;
+                  }
+                  try {
                     await updateUserCard(id, { renewal_date: renewalInput });
                     setEditingRenewal(false);
                     setRenewalInput('');
                     await refreshAllCardData(queryClient);
-                  } else {
-                    Alert.alert('Invalid Date', 'Please enter a date in YYYY-MM-DD format.');
+                  } catch {
+                    Alert.alert('Error', 'Failed to update renewal date. Please try again.');
                   }
                 }}>
                   <Text style={styles.renewalAction}>Save</Text>

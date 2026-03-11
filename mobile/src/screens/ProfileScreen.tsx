@@ -1,6 +1,6 @@
 import ScreenWrapper from '../components/ScreenWrapper';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, Alert } from 'react-native';
 import Constants from 'expo-constants';
 import { useAuth } from '../hooks/useAuth';
 import { updateProfile } from '../services/api';
@@ -49,14 +49,23 @@ function formatHour(h: number): string {
 
 export default function ProfileScreen({ navigation }: Props) {
   const { user, logout, refreshUser } = useAuth();
-  const prefs = user?.notification_preferences ?? DEFAULT_PREFS;
 
+  const [prefs, setPrefs] = useState<NotificationPreferences>(
+    user?.notification_preferences ?? DEFAULT_PREFS
+  );
   const [showPushInfo, setShowPushInfo] = useState(false);
   const [saving, setSaving] = useState(false);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Track whether any push toggle was ever turned on this session
   const pushInfoShown = useRef(false);
+
+  // Sync local prefs when user data changes (e.g. after refreshUser)
+  useEffect(() => {
+    if (user?.notification_preferences) {
+      setPrefs(user.notification_preferences);
+    }
+  }, [user?.notification_preferences]);
 
   useEffect(() => {
     return () => {
@@ -69,6 +78,8 @@ export default function ProfileScreen({ navigation }: Props) {
     try {
       await updateProfile({ notification_preferences: updated });
       await refreshUser();
+    } catch (err) {
+      Alert.alert('Error', 'Failed to save notification preferences. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -84,6 +95,7 @@ export default function ProfileScreen({ navigation }: Props) {
       ...prefs,
       [channel]: { ...prefs[channel], [key]: value },
     };
+    setPrefs(updated);
     if (channel === 'push' && value && !pushInfoShown.current) {
       pushInfoShown.current = true;
       setShowPushInfo(true);
@@ -95,6 +107,7 @@ export default function ProfileScreen({ navigation }: Props) {
     const current = prefs.notification_hour;
     const next = (current + delta + 24) % 24;
     const updated: NotificationPreferences = { ...prefs, notification_hour: next };
+    setPrefs(updated);
     debouncedSave(updated);
   }, [prefs, debouncedSave]);
 

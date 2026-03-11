@@ -266,9 +266,14 @@ export default function CardDetail() {
                 onChange={async (e) => {
                   const val = e.target.value;
                   if (val) {
-                    await updateUserCard(card.id, { renewal_date: val });
-                    setEditingRenewal(false);
-                    refresh();
+                    try {
+                      await updateUserCard(card.id, { renewal_date: val });
+                      setEditingRenewal(false);
+                      refresh();
+                    } catch (err) {
+                      console.error('Failed to update renewal date:', err);
+                      alert('Failed to update renewal date. Please try again.');
+                    }
                   }
                 }}
                 style={{
