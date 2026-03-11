@@ -47,3 +47,36 @@ def test_notification_log_creation(db_session):
 
     assert log.id is not None
     assert log.sent_at is not None
+
+
+def test_user_card_renewal_date(db_session):
+    from ccbenefits.models import User, UserCard, CardTemplate
+    from ccbenefits.auth import hash_password
+    from datetime import date
+
+    user = User(email="renewal@test.com", hashed_password=hash_password("pass123"), display_name="Renew")
+    db_session.add(user)
+    db_session.flush()
+
+    template = db_session.query(CardTemplate).first()
+    card = UserCard(user_id=user.id, card_template_id=template.id, renewal_date=date(2026, 12, 15))
+    db_session.add(card)
+    db_session.commit()
+
+    assert card.renewal_date == date(2026, 12, 15)
+
+
+def test_user_card_renewal_date_nullable(db_session):
+    from ccbenefits.models import User, UserCard, CardTemplate
+    from ccbenefits.auth import hash_password
+
+    user = User(email="norenewal@test.com", hashed_password=hash_password("pass123"), display_name="NoRenew")
+    db_session.add(user)
+    db_session.flush()
+
+    template = db_session.query(CardTemplate).first()
+    card = UserCard(user_id=user.id, card_template_id=template.id)
+    db_session.add(card)
+    db_session.commit()
+
+    assert card.renewal_date is None

@@ -61,8 +61,13 @@ class UserCardOut(BaseModel):
     annual_fee: float
     nickname: str | None
     member_since_date: date | None
+    renewal_date: date | None = None
     is_active: bool
     created_at: datetime
+
+
+class UserCardUpdate(BaseModel):
+    renewal_date: date | None = None
 
 
 # --- Benefit Usage schemas ---
@@ -144,6 +149,7 @@ class UserCardDetailOut(BaseModel):
     annual_fee: float
     nickname: str | None
     member_since_date: date | None
+    renewal_date: date | None = None
     is_active: bool
     benefits_status: list[BenefitStatusOut]
 

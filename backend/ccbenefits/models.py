@@ -105,6 +105,7 @@ class UserCard(Base):
     )
     nickname: Mapped[str | None] = mapped_column(String, nullable=True)
     member_since_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    renewal_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(dt_timezone.utc), nullable=False

@@ -60,6 +60,7 @@ def create_user_card(
         annual_fee=card_template.annual_fee,
         nickname=user_card.nickname,
         member_since_date=user_card.member_since_date,
+        renewal_date=user_card.renewal_date,
         is_active=user_card.is_active,
         created_at=user_card.created_at,
     )
@@ -117,6 +118,7 @@ def get_user_card_detail(
         annual_fee=uc.card_template.annual_fee,
         nickname=uc.nickname,
         member_since_date=uc.member_since_date,
+        renewal_date=uc.renewal_date,
         is_active=uc.is_active,
         benefits_status=benefits_status,
     )
