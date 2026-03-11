@@ -34,7 +34,7 @@ ADMIN_EMAILS = [
 ]
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
-EMAIL_FROM = os.environ.get("CCB_EMAIL_FROM", "noreply@kumaranik.com")
+EMAIL_FROM = os.environ.get("CCB_EMAIL_FROM", "CCBenefits <notifications@ccb.kumaranik.com>")
 FRONTEND_URL = os.environ.get("CCB_FRONTEND_URL", "http://localhost:5173")
 VERIFICATION_TOKEN_EXPIRE_HOURS = 24
 
