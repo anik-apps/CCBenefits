@@ -93,6 +93,14 @@ jobs:
     outputs:
       frontend-coverage: ${{ steps.coverage.outputs.total }}
 
+  shared-code-drift:
+    name: Shared Code Drift Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check types.ts is in sync
+        run: diff frontend/src/types.ts mobile/src/types.ts || { echo "::error::frontend/src/types.ts and mobile/src/types.ts have drifted apart. Update both files to match."; exit 1; }
+
   update-badges:
     name: Update Coverage Badges
     needs: [backend-tests, frontend-build]
