@@ -107,6 +107,7 @@ npm test -- --run
 | `GRAFANA_OTLP_ENDPOINT` | _(empty)_ | Grafana Cloud OTLP endpoint (leave empty to disable). |
 | `GRAFANA_INSTANCE_ID` | _(empty)_ | Grafana Cloud instance ID. |
 | `GRAFANA_OTLP_TOKEN` | _(empty)_ | Grafana Cloud API token. |
+| `CCB_SCHEDULER_ENABLED` | `false` | Enable APScheduler for notification jobs. Set `true` in production. |
 
 ## Project Structure
 
@@ -258,6 +259,12 @@ Metrics and logs are exported to Grafana Cloud via OpenTelemetry:
 - **Business metrics**: logins, registrations, verifications, cards added, feedback, email delivery
 - **Structured logs**: JSON format with action names, user context (masked email), request bodies (PII masked)
 - **Dashboard**: [Grafana Cloud](https://anikapps.grafana.net) with request rate, error rate, latency percentiles, auth events, and live logs
+
+## Scaling Notes
+
+The app runs with a single uvicorn worker to avoid duplicate APScheduler job execution.
+If scaling to multiple workers, switch to PostgreSQL advisory locks for scheduler
+job dedup (see `backend/ccbenefits/scheduler.py`).
 
 ## Mobile App
 

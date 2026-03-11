@@ -38,4 +38,4 @@ RUN poetry install --no-interaction --only main
 ENV FRONTEND_DIST_DIR=/app/frontend/dist
 EXPOSE 80
 
-CMD ["bash", "-c", "./prestart.sh && exec uvicorn ccbenefits.main:app --host 0.0.0.0 --port 80 --workers 2"]
+CMD ["bash", "-c", "./prestart.sh && exec uvicorn ccbenefits.main:app --host 0.0.0.0 --port 80 --workers 1"]
