@@ -130,3 +130,111 @@ def test_get_user_pref_defaults(db_session):
     db_session.flush()
     assert get_user_pref(u_out, "email", "expiring_credits") is False
     assert get_user_pref(u_out, "email", "fee_approaching") is True  # not set = default True
+
+
+# --- check_expiring_credits tests ---
+
+from freezegun import freeze_time
+
+
+@freeze_time("2026-03-28T14:00:00Z")
+def test_check_expiring_credits_fires_3_days_before_month_end(db_session):
+    """Pin date to March 28 — 3 days before March 31 period end."""
+    from unittest.mock import patch
+
+    from ccbenefits.models import BenefitTemplate, CardTemplate, UserCard
+    from ccbenefits.notifications import check_expiring_credits
+
+    user = User(
+        email="expiry@test.com",
+        hashed_password=hash_password("pass"),
+        display_name="Expiry",
+        is_verified=True,
+        notification_preferences={
+            "email": {"expiring_credits": True},
+            "push": {},
+            "notification_hour": 9,
+        },
+    )
+    db_session.add(user)
+    db_session.flush()
+
+    template = db_session.query(CardTemplate).first()
+    card = UserCard(user_id=user.id, card_template_id=template.id)
+    db_session.add(card)
+    db_session.flush()
+
+    # Get a monthly benefit
+    benefit = db_session.query(BenefitTemplate).filter_by(
+        card_template_id=template.id, period_type="monthly"
+    ).first()
+
+    if benefit:
+        with patch("ccbenefits.notifications.send_notification_email") as mock_send:
+            check_expiring_credits(db_session, [user])
+            # March 28 is 3 days before March 31 — should fire
+            assert mock_send.called
+
+
+@freeze_time("2026-03-15T14:00:00Z")
+def test_check_expiring_credits_does_not_fire_far_from_end(db_session):
+    """March 15 is 16 days before March 31 — should NOT fire."""
+    from unittest.mock import patch
+
+    from ccbenefits.models import CardTemplate, UserCard
+    from ccbenefits.notifications import check_expiring_credits
+
+    user = User(
+        email="noexpiry@test.com",
+        hashed_password=hash_password("pass"),
+        display_name="NoExpiry",
+        is_verified=True,
+        notification_preferences={
+            "email": {"expiring_credits": True},
+            "push": {},
+            "notification_hour": 9,
+        },
+    )
+    db_session.add(user)
+    db_session.flush()
+
+    template = db_session.query(CardTemplate).first()
+    card = UserCard(user_id=user.id, card_template_id=template.id)
+    db_session.add(card)
+    db_session.flush()
+
+    with patch("ccbenefits.notifications.send_notification_email") as mock_send:
+        check_expiring_credits(db_session, [user])
+        assert not mock_send.called
+
+
+def test_check_expiring_credits_respects_preference(db_session):
+    """User with expiring_credits=False should NOT receive notification."""
+    from unittest.mock import patch
+
+    from ccbenefits.models import CardTemplate, UserCard
+    from ccbenefits.notifications import check_expiring_credits
+
+    user = User(
+        email="nonotif@test.com",
+        hashed_password=hash_password("pass"),
+        display_name="NoNotif",
+        is_verified=True,
+        notification_preferences={
+            "email": {"expiring_credits": False},
+            "push": {},
+            "notification_hour": 9,
+        },
+    )
+    db_session.add(user)
+    db_session.flush()
+
+    template = db_session.query(CardTemplate).first()
+    card = UserCard(user_id=user.id, card_template_id=template.id)
+    db_session.add(card)
+    db_session.flush()
+
+    with freeze_time("2026-03-28T14:00:00Z"):
+        with patch("ccbenefits.notifications.send_notification_email") as mock_send:
+            check_expiring_credits(db_session, [user])
+            assert not mock_send.called

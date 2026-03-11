@@ -167,7 +167,69 @@ def send_notification_email(
 
 
 def check_expiring_credits(db, users):
-    pass
+    """Check for benefits with periods ending within 3 days and no usage logged."""
+    from datetime import date
+
+    from .models import BenefitTemplate, BenefitUsage, CardTemplate, UserCard
+    from .utils import get_current_period
+
+    today = date.today()
+
+    for user in users:
+        if not get_user_pref(user, "email", "expiring_credits"):
+            continue
+
+        # Get user's active cards with their benefits
+        cards = db.query(UserCard).filter(
+            UserCard.user_id == user.id,
+            UserCard.is_active.is_(True),
+        ).all()
+
+        expiring_items = []
+        for card in cards:
+            card_template = db.get(CardTemplate, card.card_template_id)
+            benefits = db.query(BenefitTemplate).filter_by(
+                card_template_id=card.card_template_id
+            ).all()
+
+            for benefit in benefits:
+                start_date, end_date = get_current_period(benefit.period_type, today)
+                delta = (end_date - today).days
+
+                if not (0 < delta <= 3):
+                    continue
+
+                # Check if usage exists for this period
+                usage = db.query(BenefitUsage).filter(
+                    BenefitUsage.user_card_id == card.id,
+                    BenefitUsage.benefit_template_id == benefit.id,
+                    BenefitUsage.period_start_date == start_date,
+                ).first()
+
+                if usage is None or usage.amount_used == 0:
+                    ref_key = f"benefit:{benefit.id}:period:{start_date}"
+                    if not is_already_sent(db, user.id, "expiring_credits", ref_key):
+                        expiring_items.append({
+                            "name": benefit.name,
+                            "card": card_template.name,
+                            "amount": f"${benefit.max_value:.0f}",
+                            "expires": end_date.strftime("%b %d"),
+                            "ref_key": ref_key,
+                        })
+
+        if expiring_items:
+            # Send one email with all expiring benefits
+            send_notification_email(
+                db,
+                user,
+                "expiring_credits",
+                expiring_items[0]["ref_key"],  # use first item's ref_key
+                "Credits expiring soon",
+                expiring_items,
+            )
+            # Log all additional ref_keys to prevent re-sending
+            for item in expiring_items[1:]:
+                log_notification(db, user.id, "expiring_credits", "email", item["ref_key"])
 
 
 def check_period_transitions(db, users):
