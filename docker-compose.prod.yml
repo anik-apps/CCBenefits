@@ -4,6 +4,8 @@ services:
     ports:
       - "80:80"
     env_file: .env
+    environment:
+      - CCB_SCHEDULER_ENABLED=true
     depends_on:
       postgres:
         condition: service_healthy
