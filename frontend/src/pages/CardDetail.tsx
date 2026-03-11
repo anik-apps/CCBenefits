@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getUserCard, getUserCardSummary, logUsage, updateUsage, deleteUsage, deleteUserCard, updateBenefitSetting } from '../services/api';
+import { getUserCard, getUserCardSummary, logUsage, updateUsage, deleteUsage, deleteUserCard, updateBenefitSetting, updateUserCard } from '../services/api';
 import type { BenefitStatus, PeriodSegment } from '../types';
 import BenefitRow from '../components/BenefitRow';
 import UsageModal from '../components/UsageModal';
@@ -15,6 +15,7 @@ export default function CardDetail() {
   const queryClient = useQueryClient();
   const [modal, setModal] = useState<{ benefit: BenefitStatus; mode: 'usage' | 'perceived' } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [editingRenewal, setEditingRenewal] = useState(false);
 
   const { data: card, isLoading, isError } = useQuery({
     queryKey: ['user-card', id],
@@ -222,6 +223,73 @@ export default function CardDetail() {
           >
             Delete
           </button>
+        </div>
+
+        {/* Renewal date */}
+        <div style={{
+          marginTop: 12,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          fontSize: '0.8rem',
+        }}>
+          {card.renewal_date && !editingRenewal ? (
+            <>
+              <span style={{ color: 'var(--text-muted)' }}>Renews:</span>
+              <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
+                {new Date(card.renewal_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
+              <button
+                onClick={() => setEditingRenewal(true)}
+                style={{ color: 'var(--accent-gold)', fontSize: '0.75rem' }}
+              >
+                Edit
+              </button>
+              <button
+                onClick={async () => {
+                  await updateUserCard(card.id, { renewal_date: null });
+                  refresh();
+                }}
+                style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}
+              >
+                Clear
+              </button>
+            </>
+          ) : editingRenewal || !card.renewal_date ? (
+            <>
+              <span style={{ color: 'var(--text-muted)' }}>
+                {card.renewal_date ? 'Renewal date:' : 'Add renewal date for fee reminders'}
+              </span>
+              <input
+                type="date"
+                defaultValue={card.renewal_date ?? ''}
+                onChange={async (e) => {
+                  const val = e.target.value;
+                  if (val) {
+                    await updateUserCard(card.id, { renewal_date: val });
+                    setEditingRenewal(false);
+                    refresh();
+                  }
+                }}
+                style={{
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text-primary)',
+                  padding: '3px 8px',
+                  fontSize: '0.8rem',
+                }}
+              />
+              {editingRenewal && (
+                <button
+                  onClick={() => setEditingRenewal(false)}
+                  style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}
+                >
+                  Cancel
+                </button>
+              )}
+            </>
+          ) : null}
         </div>
 
         {/* Stats bar */}
