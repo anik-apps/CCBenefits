@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from .auth import create_opaque_token, hash_opaque_token
 from .config import FRONTEND_URL
-from .email import get_email_sender
+from .email import get_email_sender, NOTIFICATIONS_FROM, EMAIL_FOOTER
 from .metrics import email_sent_counter, notifications_sent_counter
 from .models import NotificationLog, UnsubscribeToken
 
@@ -126,7 +126,7 @@ def render_notification_email(
     <a href="https://ccb.kumaranik.com" style="display:inline-block;padding:12px 24px;background:#c9a84c;color:#0a0a0f;text-decoration:none;border-radius:6px;font-weight:600;">View in CCBenefits</a>
   </p>
   {unsubscribe_section}
-  <p style="margin-top:24px;font-size:0.75em;color:#555;">CCBenefits — Track your credit card benefits</p>
+  {EMAIL_FOOTER}
 </div>"""
 
 
@@ -177,7 +177,7 @@ def send_notification_email(
 
     sender = get_email_sender()
     try:
-        sender.send(to=user.email, subject=subject, html_body=body)
+        sender.send(to=user.email, subject=subject, html_body=body, from_address=NOTIFICATIONS_FROM)
         email_sent_counter.add(1, {"type": notification_type, "success": "true"})
         notifications_sent_counter.add(1, {"type": notification_type, "channel": "email", "success": "true"})
     except Exception:
