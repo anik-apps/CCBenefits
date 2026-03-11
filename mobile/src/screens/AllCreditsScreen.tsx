@@ -7,6 +7,8 @@ import { getUserCards, getUserCard, logUsage, updateUsage, deleteUsage } from '.
 import UsageModal from '../components/UsageModal';
 import { colors, spacing, radius, getIssuerColor } from '../theme';
 import { getCategoryIcon, getCategoryColor } from '../constants/categoryTheme';
+import { PERIOD_ORDER, PERIOD_LABELS } from '../constants/periodLabels';
+import { refreshAllCardData } from '../utils/queryHelpers';
 import type { BenefitStatus } from '../types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -17,14 +19,6 @@ interface BenefitWithCard extends BenefitStatus {
   cardName: string;
   issuer: string;
 }
-
-const PERIOD_ORDER = ['monthly', 'quarterly', 'semiannual', 'annual'];
-const PERIOD_LABELS: Record<string, string> = {
-  monthly: 'Monthly',
-  quarterly: 'Quarterly',
-  semiannual: 'Semi-annual',
-  annual: 'Annual',
-};
 
 export default function AllCreditsScreen({ navigation }: Props) {
   const queryClient = useQueryClient();
@@ -46,23 +40,17 @@ export default function AllCreditsScreen({ navigation }: Props) {
   const handleLogUsage = async (amount: number, notes?: string, targetDate?: string) => {
     if (!selectedBenefit) return;
     await logUsage(selectedBenefit.userCardId, selectedBenefit.benefit_template_id, amount, notes, targetDate);
-    await queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
-    await queryClient.invalidateQueries({ queryKey: ['user-cards'] });
-    await queryClient.invalidateQueries({ queryKey: ['user-card'] });
+    await refreshAllCardData(queryClient);
   };
 
   const handleUpdateUsage = async (usageId: number, amount: number, notes?: string) => {
     await updateUsage(usageId, amount, notes);
-    await queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
-    await queryClient.invalidateQueries({ queryKey: ['user-cards'] });
-    await queryClient.invalidateQueries({ queryKey: ['user-card'] });
+    await refreshAllCardData(queryClient);
   };
 
   const handleDeleteUsage = async (usageId: number) => {
     await deleteUsage(usageId);
-    await queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
-    await queryClient.invalidateQueries({ queryKey: ['user-cards'] });
-    await queryClient.invalidateQueries({ queryKey: ['user-card'] });
+    await refreshAllCardData(queryClient);
   };
 
   if (isLoading || !cardDetails) {
@@ -163,7 +151,6 @@ export default function AllCreditsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgPrimary },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.xxl, paddingBottom: spacing.md },
   backText: { color: colors.accentGold, fontSize: 14, marginBottom: spacing.sm },
   title: { fontSize: 22, fontWeight: '700', color: colors.textPrimary },

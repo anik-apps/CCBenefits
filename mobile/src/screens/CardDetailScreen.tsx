@@ -10,6 +10,7 @@ import CardIcon from '../components/CardIcon';
 import { Alert } from 'react-native';
 import { colors, spacing, radius, getIssuerColor } from '../theme';
 import { getCategoryIcon, getCategoryColor } from '../constants/categoryTheme';
+import { refreshAllCardData } from '../utils/queryHelpers';
 import type { BenefitStatus } from '../types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -29,30 +30,22 @@ export default function CardDetailScreen({ route, navigation }: Props) {
   const handleLogUsage = async (amount: number, notes?: string, targetDate?: string) => {
     if (!selectedBenefit) return;
     await logUsage(id, selectedBenefit.benefit_template_id, amount, notes, targetDate);
-    await queryClient.invalidateQueries({ queryKey: ['user-card', id] });
-    await queryClient.invalidateQueries({ queryKey: ['user-cards'] });
-    await queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
+    await refreshAllCardData(queryClient);
   };
 
   const handleUpdateUsage = async (usageId: number, amount: number, notes?: string) => {
     await updateUsage(usageId, amount, notes);
-    await queryClient.invalidateQueries({ queryKey: ['user-card', id] });
-    await queryClient.invalidateQueries({ queryKey: ['user-cards'] });
-    await queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
+    await refreshAllCardData(queryClient);
   };
 
   const handleDeleteUsage = async (usageId: number) => {
     await deleteUsage(usageId);
-    await queryClient.invalidateQueries({ queryKey: ['user-card', id] });
-    await queryClient.invalidateQueries({ queryKey: ['user-cards'] });
-    await queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
+    await refreshAllCardData(queryClient);
   };
 
   const handleUpdatePerceivedValue = async (benefitTemplateId: number, value: number) => {
     await updateBenefitSetting(id, benefitTemplateId, value);
-    await queryClient.invalidateQueries({ queryKey: ['user-card', id] });
-    await queryClient.invalidateQueries({ queryKey: ['user-cards'] });
-    await queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
+    await refreshAllCardData(queryClient);
   };
 
   const handleDeleteCard = () => {
@@ -62,8 +55,7 @@ export default function CardDetailScreen({ route, navigation }: Props) {
         text: 'Delete', style: 'destructive', onPress: async () => {
           try {
             await deleteUserCard(id);
-            await queryClient.invalidateQueries({ queryKey: ['user-cards'] });
-            await queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
+            await refreshAllCardData(queryClient);
             navigation.goBack();
           } catch {
             Alert.alert('Error', 'Failed to delete card. Please try again.');

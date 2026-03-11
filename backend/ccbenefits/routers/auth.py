@@ -30,7 +30,7 @@ from ..metrics import (
     verification_completed_counter,
     verification_sent_counter,
 )
-from ..helpers import _user_out
+from ..helpers import user_out
 from ..models import User
 from ..schemas import (
     AuthResponse,
@@ -87,7 +87,7 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
         logger.warning(f"Failed to send verification email to {user.email}", exc_info=True)
 
     return AuthResponse(
-        user=_user_out(user),
+        user=user_out(user),
         access_token=create_access_token(subject=str(user.id), email=user.email),
         refresh_token=create_refresh_token(subject=str(user.id), email=user.email),
     )
