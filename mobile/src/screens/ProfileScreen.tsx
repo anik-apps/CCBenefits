@@ -189,7 +189,7 @@ export default function ProfileScreen({ navigation }: Props) {
       {/* Notification Hour Picker */}
       <View style={styles.hourCard}>
         <Text style={styles.notifLabel}>Notification Hour</Text>
-        <Text style={styles.notifDesc}>When to send daily notifications</Text>
+        <Text style={styles.notifDesc}>When to send daily notifications ({user?.timezone?.replace(/_/g, ' ') || 'UTC'})</Text>
         <View style={styles.hourPicker}>
           <TouchableOpacity style={styles.hourBtn} onPress={() => handleHourChange(-1)}>
             <Text style={styles.hourBtnText}>−</Text>

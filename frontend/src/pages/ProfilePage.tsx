@@ -4,6 +4,29 @@ import { updateProfile, changePassword } from '../services/api';
 import { inputStyle, labelStyle, primaryButtonStyle } from '../styles/form';
 import type { NotificationPreferences, ChannelPreferences } from '../types';
 
+const COMMON_TIMEZONES = [
+  'UTC',
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Anchorage',
+  'Pacific/Honolulu',
+  'America/Toronto',
+  'America/Vancouver',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Europe/Moscow',
+  'Asia/Dubai',
+  'Asia/Kolkata',
+  'Asia/Shanghai',
+  'Asia/Tokyo',
+  'Asia/Singapore',
+  'Australia/Sydney',
+  'Pacific/Auckland',
+];
+
 const DEFAULT_CHANNEL: ChannelPreferences = {
   expiring_credits: true,
   period_start: true,
@@ -182,7 +205,10 @@ export default function ProfilePage() {
         </label>
         <label style={{ display: 'block', marginBottom: 16 }}>
           <span style={labelStyle}>Timezone</span>
-          <input type="text" value={tz} onChange={(e) => setTz(e.target.value)} style={inputStyle} />
+          <select value={tz} onChange={(e) => setTz(e.target.value)} style={inputStyle}>
+            {COMMON_TIMEZONES.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
+            {!COMMON_TIMEZONES.includes(tz) && <option value={tz}>{tz.replace(/_/g, ' ')}</option>}
+          </select>
         </label>
         <button type="submit" style={primaryButtonStyle}>Save</button>
         {profileMsg && <span style={{ marginLeft: 12, fontSize: '0.85rem' }}>{profileMsg}</span>}
@@ -235,7 +261,7 @@ export default function ProfilePage() {
           </div>
         ))}
 
-        <label style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
           <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-primary)' }}>Notification Time</span>
           <select
             value={notifPrefs.notification_hour}
@@ -251,7 +277,8 @@ export default function ProfilePage() {
               <option key={i} value={i}>{formatHour(i)}</option>
             ))}
           </select>
-        </label>
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{tz.replace(/_/g, ' ')}</span>
+        </div>
       </div>
 
       <form onSubmit={handlePasswordChange} style={{ marginBottom: 32 }}>
