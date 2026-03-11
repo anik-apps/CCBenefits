@@ -1,6 +1,6 @@
 import ScreenWrapper from '../components/ScreenWrapper';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, Alert, Modal, FlatList } from 'react-native';
 import Constants from 'expo-constants';
 import { useAuth } from '../hooks/useAuth';
 import { updateProfile } from '../services/api';
@@ -40,6 +40,29 @@ const NOTIFICATION_TYPES: NotifRow[] = [
   { key: 'fee_approaching', label: 'Fee Approaching', description: 'Alert 30 days before card renewal' },
 ];
 
+const COMMON_TIMEZONES = [
+  'UTC',
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Anchorage',
+  'Pacific/Honolulu',
+  'America/Toronto',
+  'America/Vancouver',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Europe/Moscow',
+  'Asia/Dubai',
+  'Asia/Kolkata',
+  'Asia/Shanghai',
+  'Asia/Tokyo',
+  'Asia/Singapore',
+  'Australia/Sydney',
+  'Pacific/Auckland',
+];
+
 function formatHour(h: number): string {
   if (h === 0) return '12 AM';
   if (h < 12) return `${h} AM`;
@@ -64,6 +87,8 @@ export default function ProfileScreen({ navigation }: Props) {
   );
   const [showPushInfo, setShowPushInfo] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showTzPicker, setShowTzPicker] = useState(false);
+  const [selectedTz, setSelectedTz] = useState(user?.timezone || 'UTC');
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Track whether any push toggle was ever turned on this session
@@ -142,6 +167,51 @@ export default function ProfileScreen({ navigation }: Props) {
         <Text style={styles.label}>Currency</Text>
         <Text style={styles.value}>{user?.preferred_currency}</Text>
       </View>
+
+      <TouchableOpacity style={styles.card} onPress={() => setShowTzPicker(true)} activeOpacity={0.7}>
+        <Text style={styles.label}>Timezone</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={styles.value}>{selectedTz.replace(/_/g, ' ')}</Text>
+          <Text style={{ color: colors.accentGold, fontSize: 13 }}>Change</Text>
+        </View>
+      </TouchableOpacity>
+
+      <Modal visible={showTzPicker} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Timezone</Text>
+              <TouchableOpacity onPress={() => setShowTzPicker(false)}>
+                <Text style={{ color: colors.accentGold, fontSize: 15, fontWeight: '600' }}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={COMMON_TIMEZONES}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.tzRow, item === selectedTz && styles.tzRowSelected]}
+                  onPress={async () => {
+                    setSelectedTz(item);
+                    setShowTzPicker(false);
+                    try {
+                      await updateProfile({ timezone: item });
+                      await refreshUser();
+                    } catch {
+                      Alert.alert('Error', 'Failed to update timezone');
+                    }
+                  }}
+                >
+                  <Text style={[styles.tzText, item === selectedTz && styles.tzTextSelected]}>
+                    {item.replace(/_/g, ' ')}
+                  </Text>
+                  {item === selectedTz && <Text style={{ color: colors.accentGold }}>✓</Text>}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
 
       {/* Notifications Section */}
       <View style={styles.sectionHeader}>
@@ -256,6 +326,26 @@ const styles = StyleSheet.create({
   },
   hourBtnText: { fontSize: 18, color: colors.textPrimary, fontWeight: '600' },
   hourValue: { fontSize: 16, color: colors.textPrimary, fontWeight: '600', minWidth: 60, textAlign: 'center' },
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.bgCard, borderTopLeftRadius: 16, borderTopRightRadius: 16,
+    maxHeight: '60%', paddingBottom: spacing.xxl,
+  },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.borderSubtle,
+  },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: colors.textPrimary },
+  tzRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 14, paddingHorizontal: spacing.lg,
+    borderBottomWidth: 1, borderBottomColor: colors.borderSubtle,
+  },
+  tzRowSelected: { backgroundColor: 'rgba(201,168,76,0.1)' },
+  tzText: { fontSize: 15, color: colors.textPrimary },
+  tzTextSelected: { color: colors.accentGold, fontWeight: '600' },
   logoutBtn: {
     marginTop: spacing.xl, padding: spacing.lg, borderRadius: radius.sm,
     borderWidth: 1, borderColor: colors.statusDanger, alignItems: 'center',
