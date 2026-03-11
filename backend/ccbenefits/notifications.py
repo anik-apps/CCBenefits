@@ -327,7 +327,49 @@ def check_period_transitions(db, users):
 
 
 def check_fee_approaching(db, users):
-    pass
+    """Check for cards with annual fee renewal approaching in 30 days."""
+    from datetime import date, timedelta
+
+    from .models import CardTemplate, UserCard
+
+    today = date.today()
+    target_date = today + timedelta(days=30)
+
+    for user in users:
+        if not get_user_pref(user, "email", "fee_approaching"):
+            continue
+
+        cards = db.query(UserCard).filter(
+            UserCard.user_id == user.id,
+            UserCard.is_active.is_(True),
+            UserCard.renewal_date.isnot(None),
+            UserCard.renewal_date == target_date,
+        ).all()
+
+        fee_items = []
+        for card in cards:
+            card_template = db.get(CardTemplate, card.card_template_id)
+            ref_key = f"card:{card.id}:renewal:{card.renewal_date.year}"
+            if not is_already_sent(db, user.id, "fee_approaching", ref_key):
+                fee_items.append({
+                    "name": card_template.name,
+                    "card": card_template.name,
+                    "amount": f"${card_template.annual_fee:.0f}",
+                    "expires": card.renewal_date.strftime("%b %d, %Y"),
+                    "ref_key": ref_key,
+                })
+
+        if fee_items:
+            send_notification_email(
+                db,
+                user,
+                "fee_approaching",
+                fee_items[0]["ref_key"],
+                "Card renewal coming up",
+                fee_items,
+            )
+            for item in fee_items[1:]:
+                log_notification(db, user.id, "fee_approaching", "email", item["ref_key"])
 
 
 def send_utilization_summary(db, users):

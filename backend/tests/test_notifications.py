@@ -380,3 +380,116 @@ def test_check_unused_recap_respects_preference(db_session):
     with patch("ccbenefits.notifications.send_notification_email") as mock_send:
         check_period_transitions(db_session, [user])
         assert not mock_send.called
+
+
+# --- check_fee_approaching tests ---
+
+
+@freeze_time("2026-04-01T10:00:00Z")
+def test_fee_approaching_fires_30_days_before(db_session):
+    """Card with renewal_date 30 days from today should trigger notification."""
+    from datetime import date, timedelta
+    from unittest.mock import patch
+
+    from ccbenefits.models import CardTemplate, UserCard
+    from ccbenefits.notifications import check_fee_approaching
+
+    user = User(
+        email="fee@test.com",
+        hashed_password=hash_password("pass"),
+        display_name="FeeUser",
+        is_verified=True,
+        notification_preferences={
+            "email": {"fee_approaching": True},
+            "push": {},
+        },
+    )
+    db_session.add(user)
+    db_session.flush()
+
+    template = db_session.query(CardTemplate).first()
+    renewal = date(2026, 5, 1)  # 30 days from April 1
+    card = UserCard(
+        user_id=user.id,
+        card_template_id=template.id,
+        renewal_date=renewal,
+    )
+    db_session.add(card)
+    db_session.flush()
+
+    with patch("ccbenefits.notifications.send_notification_email") as mock_send:
+        check_fee_approaching(db_session, [user])
+        assert mock_send.called
+        call_args = mock_send.call_args
+        assert call_args[0][4] == "Card renewal coming up"
+
+
+@freeze_time("2026-04-01T10:00:00Z")
+def test_fee_approaching_skips_no_renewal_date(db_session):
+    """Card without renewal_date should NOT trigger fee_approaching."""
+    from unittest.mock import patch
+
+    from ccbenefits.models import CardTemplate, UserCard
+    from ccbenefits.notifications import check_fee_approaching
+
+    user = User(
+        email="nofee@test.com",
+        hashed_password=hash_password("pass"),
+        display_name="NoFee",
+        is_verified=True,
+        notification_preferences={
+            "email": {"fee_approaching": True},
+            "push": {},
+        },
+    )
+    db_session.add(user)
+    db_session.flush()
+
+    template = db_session.query(CardTemplate).first()
+    card = UserCard(
+        user_id=user.id,
+        card_template_id=template.id,
+        renewal_date=None,
+    )
+    db_session.add(card)
+    db_session.flush()
+
+    with patch("ccbenefits.notifications.send_notification_email") as mock_send:
+        check_fee_approaching(db_session, [user])
+        assert not mock_send.called
+
+
+@freeze_time("2026-04-01T10:00:00Z")
+def test_fee_approaching_respects_preference(db_session):
+    """User with fee_approaching=False should NOT get notification."""
+    from datetime import date
+    from unittest.mock import patch
+
+    from ccbenefits.models import CardTemplate, UserCard
+    from ccbenefits.notifications import check_fee_approaching
+
+    user = User(
+        email="nofeenotif@test.com",
+        hashed_password=hash_password("pass"),
+        display_name="NoFeeNotif",
+        is_verified=True,
+        notification_preferences={
+            "email": {"fee_approaching": False},
+            "push": {},
+        },
+    )
+    db_session.add(user)
+    db_session.flush()
+
+    template = db_session.query(CardTemplate).first()
+    card = UserCard(
+        user_id=user.id,
+        card_template_id=template.id,
+        renewal_date=date(2026, 5, 1),
+    )
+    db_session.add(card)
+    db_session.flush()
+
+    with patch("ccbenefits.notifications.send_notification_email") as mock_send:
+        check_fee_approaching(db_session, [user])
+        assert not mock_send.called
