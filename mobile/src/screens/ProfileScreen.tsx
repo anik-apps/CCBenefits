@@ -251,7 +251,7 @@ export default function ProfileScreen({ navigation }: Props) {
       {showPushInfo && (
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
-            Push notifications will be enabled in a future update.
+            Push notifications are active on this device.
           </Text>
         </View>
       )}
