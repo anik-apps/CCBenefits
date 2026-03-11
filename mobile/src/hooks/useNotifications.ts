@@ -5,10 +5,13 @@ import type { NavigationContainerRefWithCurrent } from '@react-navigation/native
 
 export function useNotificationListener(
   navigationRef: NavigationContainerRefWithCurrent<ReactNavigation.RootParamList>,
+  enabled: boolean = true,
 ) {
   const responseListener = useRef<EventSubscription | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
+
     // Cold-start: app launched by tapping a notification
     const lastResponse = Notifications.getLastNotificationResponse();
     if (lastResponse) {
@@ -25,7 +28,7 @@ export function useNotificationListener(
         responseListener.current.remove();
       }
     };
-  }, [navigationRef]);
+  }, [navigationRef, enabled]);
 }
 
 function handleNotificationResponse(
@@ -33,8 +36,10 @@ function handleNotificationResponse(
   navigationRef: NavigationContainerRefWithCurrent<ReactNavigation.RootParamList>,
 ) {
   const data = response.notification.request.content.data;
+  let attempts = 0;
   const tryNavigate = () => {
     if (!navigationRef.current?.isReady()) {
+      if (++attempts > 50) return; // Give up after 5 seconds
       setTimeout(tryNavigate, 100);
       return;
     }

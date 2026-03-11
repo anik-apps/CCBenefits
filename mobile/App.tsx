@@ -23,6 +23,8 @@ const queryClient = new QueryClient({
 function RootNavigator() {
   const { user, loading } = useAuth();
 
+  useNotificationListener(navigationRef, !!user);
+
   useEffect(() => {
     if (user && user.is_verified) {
       registerForPushNotifications();
@@ -44,7 +46,6 @@ function RootNavigator() {
 
 export default function App() {
   useEffect(() => { setupQueryClient(); }, []);
-  useNotificationListener(navigationRef);
 
   return (
     <SafeAreaProvider>

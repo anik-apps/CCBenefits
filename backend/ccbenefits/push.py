@@ -32,6 +32,7 @@ def send_push_notifications(
     try:
         with httpx.Client(timeout=10) as client:
             resp = client.post(EXPO_PUSH_URL, json=messages)
+            resp.raise_for_status()
             tickets = resp.json().get("data", [])
 
             stale_tokens = []
