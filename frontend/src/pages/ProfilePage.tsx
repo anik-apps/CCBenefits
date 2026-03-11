@@ -26,6 +26,15 @@ const NOTIFICATION_TYPES: { key: keyof ChannelPreferences; label: string; descri
   { key: 'fee_approaching', label: 'Fee Approaching', description: 'Alert 30 days before your card\'s annual fee renewal' },
 ];
 
+function mergePrefs(raw: NotificationPreferences | null | undefined): NotificationPreferences {
+  if (!raw || typeof raw !== 'object') return { ...DEFAULT_PREFS, email: { ...DEFAULT_CHANNEL }, push: { ...DEFAULT_CHANNEL } };
+  return {
+    email: { ...DEFAULT_CHANNEL, ...(raw.email || {}) },
+    push: { ...DEFAULT_CHANNEL, ...(raw.push || {}) },
+    notification_hour: raw.notification_hour ?? 9,
+  };
+}
+
 function formatHour(hour: number): string {
   if (hour === 0) return '12:00 AM';
   if (hour === 12) return '12:00 PM';
@@ -45,7 +54,7 @@ export default function ProfilePage() {
   const [pwMsg, setPwMsg] = useState('');
 
   const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences>(
-    user?.notification_preferences ?? { ...DEFAULT_PREFS, email: { ...DEFAULT_CHANNEL }, push: { ...DEFAULT_CHANNEL } }
+    mergePrefs(user?.notification_preferences)
   );
   const [notifMsg, setNotifMsg] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);

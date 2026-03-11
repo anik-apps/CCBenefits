@@ -47,11 +47,20 @@ function formatHour(h: number): string {
   return `${h - 12} PM`;
 }
 
+function mergePrefs(raw: NotificationPreferences | null | undefined): NotificationPreferences {
+  if (!raw || typeof raw !== 'object') return { ...DEFAULT_PREFS };
+  return {
+    email: { ...DEFAULT_CHANNEL, ...(raw.email || {}) },
+    push: { ...DEFAULT_CHANNEL, ...(raw.push || {}) },
+    notification_hour: raw.notification_hour ?? 9,
+  };
+}
+
 export default function ProfileScreen({ navigation }: Props) {
   const { user, logout, refreshUser } = useAuth();
 
   const [prefs, setPrefs] = useState<NotificationPreferences>(
-    user?.notification_preferences ?? DEFAULT_PREFS
+    mergePrefs(user?.notification_preferences)
   );
   const [showPushInfo, setShowPushInfo] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -62,9 +71,7 @@ export default function ProfileScreen({ navigation }: Props) {
 
   // Sync local prefs when user data changes (e.g. after refreshUser)
   useEffect(() => {
-    if (user?.notification_preferences) {
-      setPrefs(user.notification_preferences);
-    }
+    setPrefs(mergePrefs(user?.notification_preferences));
   }, [user?.notification_preferences]);
 
   useEffect(() => {
