@@ -25,6 +25,7 @@ from ..schemas import (
     UserCardDetailOut,
     UserCardOut,
     UserCardSummaryOut,
+    UserCardUpdate,
 )
 from ..utils import compute_annual_max, get_all_periods_in_year, get_current_period
 
@@ -63,6 +64,41 @@ def create_user_card(
         renewal_date=user_card.renewal_date,
         is_active=user_card.is_active,
         created_at=user_card.created_at,
+    )
+
+
+@router.patch("/{user_card_id}", response_model=UserCardOut)
+def update_user_card(
+    user_card_id: int,
+    data: UserCardUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    uc = (
+        db.query(UserCard)
+        .options(joinedload(UserCard.card_template))
+        .filter(UserCard.id == user_card_id, UserCard.user_id == current_user.id)
+        .first()
+    )
+    if not uc:
+        raise HTTPException(status_code=404, detail="User card not found")
+    if data.renewal_date is not None:
+        uc.renewal_date = data.renewal_date
+    elif "renewal_date" in data.model_fields_set:
+        uc.renewal_date = None
+    db.commit()
+    db.refresh(uc)
+    return UserCardOut(
+        id=uc.id,
+        card_template_id=uc.card_template_id,
+        card_name=uc.card_template.name,
+        issuer=uc.card_template.issuer,
+        annual_fee=uc.card_template.annual_fee,
+        nickname=uc.nickname,
+        member_since_date=uc.member_since_date,
+        is_active=uc.is_active,
+        created_at=uc.created_at,
+        renewal_date=uc.renewal_date,
     )
 
 
