@@ -26,6 +26,8 @@ RUN poetry config virtualenvs.create false && \
 
 # Copy backend code
 COPY backend/ccbenefits ./ccbenefits
+COPY backend/alembic.ini ./alembic.ini
+COPY backend/alembic ./alembic
 COPY backend/prestart.sh ./prestart.sh
 RUN chmod +x prestart.sh
 
