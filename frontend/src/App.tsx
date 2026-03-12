@@ -33,7 +33,7 @@ function App() {
           style={{
             position: 'fixed', inset: 0, zIndex: 1000,
             background: 'var(--bg-primary)',
-            animation: 'splashOverlayFade 3.2s ease-out forwards',
+            animation: 'splashOverlayFade 6s ease-out forwards',
           }}
           onAnimationEnd={() => {
             setShowSplash(false);
@@ -42,43 +42,43 @@ function App() {
         >
           <img
             src={appIcon}
-            width={120}
-            height={120}
+            width={200}
+            height={200}
             style={{
               position: 'fixed', top: 0, left: 0,
               transformOrigin: 'top left',
-              animation: 'splashToHeader 3.2s ease-out forwards',
-              borderRadius: 16,
+              animation: 'splashToHeader 6s ease-out forwards',
+              borderRadius: 24,
             }}
             alt=""
           />
         </div>
       )}
-      {!isAuthPage && (
-        <header style={{
-          padding: '14px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: '1px solid var(--border-subtle)',
-          background: 'var(--bg-secondary)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 100,
-          backdropFilter: 'blur(20px)',
-        }}>
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img src={appIcon} width={32} height={32} style={{ borderRadius: 6 }} alt="CCBenefits" />
-            <span style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              letterSpacing: '-0.02em',
-            }}>
-              CCBenefits
-            </span>
-          </Link>
+      <header style={{
+        padding: '14px 24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottom: '1px solid var(--border-subtle)',
+        background: 'var(--bg-secondary)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        backdropFilter: 'blur(20px)',
+      }}>
+        <Link to={user ? '/' : '/login'} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <img src={appIcon} width={32} height={32} style={{ borderRadius: 6 }} alt="CCBenefits" />
+          <span style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            letterSpacing: '-0.02em',
+          }}>
+            CCBenefits
+          </span>
+        </Link>
 
+        {!isAuthPage && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {isTabPage && (
               <div className="desktop-tabs" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -90,9 +90,9 @@ function App() {
             {user && <NotificationPanel />}
             {user && <UserMenu displayName={user.display_name} isAdmin={user.is_admin} />}
           </div>
-        </header>
-      )}
-      <main style={{ flex: 1, padding: isAuthPage ? '0' : '20px', maxWidth: isAuthPage ? 'none' : 960, width: '100%', margin: '0 auto' }}>
+        )}
+      </header>
+      <main style={{ flex: 1, padding: '20px', maxWidth: isAuthPage ? 480 : 960, width: '100%', margin: '0 auto' }}>
         <Routes>
           <Route path="/login" element={user && user.is_verified ? <Navigate to="/" replace /> : <LoginPage />} />
           <Route path="/register" element={user && user.is_verified ? <Navigate to="/" replace /> : <RegisterPage />} />

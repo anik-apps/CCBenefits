@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { colors, spacing, radius } from '../theme';
@@ -34,9 +34,7 @@ export default function LoginScreen({ navigation }: Props) {
   return (
     <ScreenWrapper keyboard>
       <View style={styles.inner}>
-        <View style={styles.logo}>
-          <Text style={styles.logoText}>CC</Text>
-        </View>
+        <Image source={require('../../assets/icon.png')} style={styles.logo} />
         <Text style={styles.title}>Sign In</Text>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -86,11 +84,9 @@ export default function LoginScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   inner: { flex: 1, justifyContent: 'center', padding: spacing.xxl },
   logo: {
-    width: 48, height: 48, borderRadius: radius.md,
-    backgroundColor: colors.accentGold, alignItems: 'center', justifyContent: 'center',
+    width: 64, height: 64, borderRadius: 12,
     alignSelf: 'center', marginBottom: spacing.xxl,
   },
-  logoText: { fontSize: 20, fontWeight: '700', color: colors.bgPrimary },
   title: { fontSize: 24, fontWeight: '700', color: colors.textPrimary, textAlign: 'center', marginBottom: spacing.xxl },
   label: { fontSize: 13, color: colors.textMuted, marginBottom: spacing.xs },
   input: {

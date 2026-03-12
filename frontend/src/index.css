@@ -104,27 +104,42 @@ input:focus, select:focus, textarea:focus {
 
 @keyframes splashToHeader {
   0% {
-    transform: translate(calc(50vw - 60px), calc(50vh - 60px)) scale(1);
+    transform: translate(calc(50vw - 100px), calc(50vh - 100px)) scale(1);
+    filter: drop-shadow(0 0 0px rgba(201, 168, 76, 0));
     opacity: 1;
   }
-  /* Hold in center for ~2s (65% of 3.2s = 2.08s) */
-  65% {
-    transform: translate(calc(50vw - 60px), calc(50vh - 60px)) scale(1);
+  /* Glow builds up */
+  20% {
+    transform: translate(calc(50vw - 100px), calc(50vh - 100px)) scale(1);
+    filter: drop-shadow(0 0 40px rgba(201, 168, 76, 0.6));
     opacity: 1;
   }
-  /* Move to header over remaining 35% (~1.1s) */
+  /* Glow pulses down */
+  38% {
+    transform: translate(calc(50vw - 100px), calc(50vh - 100px)) scale(1);
+    filter: drop-shadow(0 0 20px rgba(201, 168, 76, 0.3));
+    opacity: 1;
+  }
+  /* Glow peaks before moving (hold ends at 58%) */
+  58% {
+    transform: translate(calc(50vw - 100px), calc(50vh - 100px)) scale(1);
+    filter: drop-shadow(0 0 50px rgba(201, 168, 76, 0.8));
+    opacity: 1;
+  }
+  /* Move to header over remaining 42% (~2.5s), glow fades */
   100% {
-    transform: translate(24px, 14px) scale(0.267);
+    transform: translate(24px, 14px) scale(0.16);
+    filter: drop-shadow(0 0 0px rgba(201, 168, 76, 0));
     opacity: 1;
   }
 }
 
 @keyframes splashOverlayFade {
   0% { opacity: 1; }
-  /* Hold opaque while icon is centered */
-  60% { opacity: 1; }
+  /* Hold opaque while icon glows */
+  50% { opacity: 1; }
   /* Start fading as icon moves */
-  85% { opacity: 0.3; }
+  80% { opacity: 0.2; }
   100% { opacity: 0; }
 }
 
