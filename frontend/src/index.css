@@ -105,4 +105,5 @@ input:focus, select:focus, textarea:focus {
 /* Responsive adjustments for mobile */
 @media (max-width: 600px) {
   html { font-size: 15px; }
+  .desktop-tabs { display: none !important; }
 }
