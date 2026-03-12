@@ -80,16 +80,27 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div style={{ marginBottom: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <h1 style={{
           fontFamily: 'var(--font-display)',
           fontSize: '1.6rem',
           fontWeight: 600,
-          marginBottom: 20,
           animation: 'fadeInUp 0.4s ease-out both',
         }}>
           Your Cards
         </h1>
+        <Link to="/credits" className="mobile-credits-btn" style={{
+          padding: '8px 16px',
+          borderRadius: 'var(--radius-sm)',
+          background: 'var(--bg-elevated)',
+          border: '1px solid var(--border-medium)',
+          color: 'var(--accent-gold)',
+          fontSize: '0.85rem',
+          fontWeight: 600,
+          textDecoration: 'none',
+        }}>
+          All Credits →
+        </Link>
       </div>
 
       <ROISummary cards={cards} />
