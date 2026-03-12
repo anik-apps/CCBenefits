@@ -66,29 +66,34 @@
 
 ### High Priority
 - [ ] **Alert rules**: Define Grafana alert rules as code (error rate spike, latency degradation, zero requests)
+- [ ] **Automated database backups**: `pg_dump` cron to OCI Object Storage (protects against highest-impact failure)
+- [ ] **Uptime monitoring**: External health check (UptimeRobot or similar) — lower effort than Grafana alerts, immediate value
 - [ ] **Expo receipt checking**: Poll Expo Push API for delivery receipts after 15 min (catches DeviceNotRegistered at receipt stage)
-- [ ] **Scheduler advisory locks**: Switch from single-worker to PostgreSQL advisory locks for multi-worker APScheduler safety
-- [ ] **iOS app**: Build and distribute via TestFlight / App Store
+- [ ] **In-app notification inbox**: Bell icon with notification history in the app (most visible gap in notification UX)
 
 ### Medium Priority
-- [ ] **Plaid integration**: Connect real bank/card accounts for automatic benefit detection
-- [ ] **Card recommendation engine**: Suggest cards based on spending patterns and benefit utilization
+- [ ] **iOS app**: Build and distribute via TestFlight / App Store (requires Apple Developer account $99/yr)
 - [ ] **Shared/family cards**: Allow multiple users to track the same card's benefits
 - [ ] **Benefit usage reminders**: Configurable reminder frequency (not just 3 days before expiry)
-- [ ] **In-app notification inbox**: Bell icon with notification history (currently backend-only logs)
-- [ ] **Dashboard Jsonnet templates**: Replace raw YAML with grafonnet-lib for templated dashboards
+- [ ] **Web push notifications**: Service worker for browser push (depends on in-app inbox being built first)
+- [ ] **Rate limiting audit**: Verify coverage on registration, login, password reset, and verification endpoints
 
 ### Low Priority
-- [ ] **Web push notifications**: Service worker for browser push (currently email-only for web users)
-- [ ] **Monorepo shared package**: Extract shared types/utils between frontend and mobile (currently using CI drift check)
-- [ ] **Dark/light theme toggle**: Currently dark theme only on both web and mobile
 - [ ] **Export/import benefit data**: CSV/JSON export for personal record keeping
-- [ ] **Multi-currency support**: Display benefit values in user's preferred currency
-- [ ] **Scheduled drift detection**: Periodic `grafanactl diff` to detect manual Grafana UI changes
+- [ ] **Dark/light theme toggle**: Currently dark theme only on both web and mobile
+- [ ] **Monorepo shared package**: Extract shared types/utils between frontend and mobile (currently using CI drift check — only if drift check starts failing regularly)
+
+### Research / Exploration
+- [ ] **Plaid integration**: Connect real bank/card accounts for automatic benefit detection (significant cost, compliance, and mapping complexity)
+- [ ] **Card recommendation engine**: Suggest cards based on spending patterns (depends on Plaid data — without it, recommendations are generic)
 
 ### Technical Debt
 - [ ] Fix `notifications.jobs_run` cardinality issue (`users` label should be a gauge, not a counter label)
 - [ ] Add composite index on `notification_logs` for `(user_id, notification_type, reference_key, channel)` — migration exists but verify in production
 - [ ] Migrate from deprecated OTel semantic conventions (old HTTP metric names) when updating `opentelemetry-instrumentation-fastapi`
 - [ ] Add Alembic `render_as_batch=True` test to CI to prevent SQLite migration failures
-- [ ] Clean up expired `UnsubscribeToken` records (no cleanup job exists yet)
+- [ ] Generalize expired token cleanup: UnsubscribeToken + verification tokens + password reset tokens (scheduled job)
+- [ ] Add mobile test runner (React Native has zero tests, only TypeScript compilation checks)
+- [ ] Migrate from raw bcrypt to a maintained password hashing library (passlib incompatible with bcrypt 5.x)
+- [ ] Periodic dependency audit (Expo SDK, Python, Node version upgrades)
+- [ ] Investigate SQLite vs PostgreSQL test parity (type coercion, constraint behavior differences)
