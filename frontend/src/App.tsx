@@ -66,11 +66,11 @@ function App() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {isTabPage && (
-              <>
+              <div className="desktop-tabs" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <TabLink to="/" label="Cards" active={location.pathname === '/'} />
                 <TabLink to="/credits" label="All Credits" active={location.pathname === '/credits'} />
                 <div style={{ width: 1, height: 20, background: 'var(--border-medium)', margin: '0 6px' }} />
-              </>
+              </div>
             )}
             {user && <UserMenu displayName={user.display_name} isAdmin={user.is_admin} />}
           </div>
