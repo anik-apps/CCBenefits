@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session
 from ..auth import hash_opaque_token
 from ..database import get_db
 from ..dependencies import get_current_user
-from ..models import PushToken, UnsubscribeToken, User
-from ..schemas import PushTokenCreate, PushTokenUnregister
+from ..models import Notification, PushToken, UnsubscribeToken, User
+from ..schemas import NotificationOut, PushTokenCreate, PushTokenUnregister
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 
@@ -61,6 +61,63 @@ def unsubscribe(token: str = Query(...), db: Session = Depends(get_db)):
     </body></html>
     """
     )
+
+
+@router.get("/inbox")
+def get_inbox(
+    limit: int = 20,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    total = db.query(Notification).filter_by(user_id=current_user.id).count()
+    unread = db.query(Notification).filter_by(user_id=current_user.id, is_read=False).count()
+    items = (
+        db.query(Notification)
+        .filter_by(user_id=current_user.id)
+        .order_by(Notification.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    return {
+        "items": [NotificationOut.model_validate(n) for n in items],
+        "total": total,
+        "unread_count": unread,
+    }
+
+
+@router.get("/inbox/unread-count")
+def get_unread_count(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    count = db.query(Notification).filter_by(user_id=current_user.id, is_read=False).count()
+    return {"unread_count": count}
+
+
+@router.patch("/inbox/{notification_id}")
+def mark_notification_read(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    notif = db.query(Notification).filter_by(id=notification_id, user_id=current_user.id).first()
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    notif.is_read = True
+    db.commit()
+    return {"status": "ok"}
+
+
+@router.post("/inbox/mark-all-read")
+def mark_all_read(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    db.query(Notification).filter_by(user_id=current_user.id, is_read=False).update({"is_read": True})
+    db.commit()
+    return {"status": "ok"}
 
 
 MAX_TOKENS_PER_USER = 10
