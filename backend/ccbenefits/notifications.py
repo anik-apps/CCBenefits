@@ -275,12 +275,19 @@ def check_expiring_credits(db, users):
                     expiring_items.append({
                         "name": benefit.name,
                         "card": card_template.name,
+                        "card_id": card.id,
                         "amount": f"${benefit.max_value:.0f}",
                         "expires": end_date.strftime("%b %d"),
                         "ref_key": ref_key,
                     })
 
         if expiring_items:
+            # Build rich push body
+            details = ", ".join(f"{i['name']} (${i['amount']})" for i in expiring_items[:3])
+            if len(expiring_items) > 3:
+                details += f" +{len(expiring_items) - 3} more"
+            first_card_id = expiring_items[0]["card_id"]
+
             # Email
             email_sent = send_notification_email(
                 db,
@@ -301,8 +308,8 @@ def check_expiring_credits(db, users):
                 "expiring_credits",
                 expiring_items[0]["ref_key"],
                 "Credits expiring soon",
-                f"You have {len(expiring_items)} credit(s) expiring in 3 days",
-                data={"screen": "Dashboard"},
+                f"{details} — expiring {expiring_items[0]['expires']}. Tap to view.",
+                data={"screen": "CardDetail", "cardId": first_card_id},
             )
             if push_sent:
                 for item in expiring_items[1:]:
@@ -342,6 +349,7 @@ def check_period_transitions(db, users):
                     period_start_items.append({
                         "name": benefit.name,
                         "card": card_template.name,
+                        "card_id": card.id,
                         "amount": f"${benefit.max_value:.0f}",
                         "expires": f"{benefit.period_type}",
                         "ref_key": ref_key,
@@ -363,12 +371,18 @@ def check_period_transitions(db, users):
                         unused_recap_items.append({
                             "name": benefit.name,
                             "card": card_template.name,
+                            "card_id": card.id,
                             "amount": f"${missed:.0f}",
                             "expires": f"{prev_start} - {prev_end}",
                             "ref_key": ref_key,
                         })
 
         if period_start_items:
+            details = ", ".join(f"{i['name']} ({i['amount']})" for i in period_start_items[:3])
+            if len(period_start_items) > 3:
+                details += f" +{len(period_start_items) - 3} more"
+            first_card_id = period_start_items[0]["card_id"]
+
             # Email
             email_sent = send_notification_email(
                 db,
@@ -389,14 +403,19 @@ def check_period_transitions(db, users):
                 "period_start",
                 period_start_items[0]["ref_key"],
                 "New benefit period started",
-                f"You have {len(period_start_items)} new benefit period(s) started",
-                data={"screen": "Dashboard"},
+                f"{details} — now available. Tap to view.",
+                data={"screen": "CardDetail", "cardId": first_card_id},
             )
             if push_sent:
                 for item in period_start_items[1:]:
                     log_notification(db, user.id, "period_start", "push", item["ref_key"])
 
         if unused_recap_items:
+            details = ", ".join(f"{i['name']} ({i['amount']} missed)" for i in unused_recap_items[:3])
+            if len(unused_recap_items) > 3:
+                details += f" +{len(unused_recap_items) - 3} more"
+            first_card_id = unused_recap_items[0]["card_id"]
+
             # Email
             email_sent = send_notification_email(
                 db,
@@ -417,8 +436,8 @@ def check_period_transitions(db, users):
                 "unused_recap",
                 unused_recap_items[0]["ref_key"],
                 "Credits you missed",
-                f"You missed {len(unused_recap_items)} credit(s) last period",
-                data={"screen": "Dashboard"},
+                f"{details}. Tap to view.",
+                data={"screen": "CardDetail", "cardId": first_card_id},
             )
             if push_sent:
                 for item in unused_recap_items[1:]:
@@ -449,12 +468,16 @@ def check_fee_approaching(db, users):
             fee_items.append({
                 "name": card_template.name,
                 "card": card_template.name,
+                "card_id": card.id,
                 "amount": f"${card_template.annual_fee:.0f}",
                 "expires": card.renewal_date.strftime("%b %d, %Y"),
                 "ref_key": ref_key,
             })
 
         if fee_items:
+            details = ", ".join(f"{i['name']} ({i['amount']}/yr)" for i in fee_items)
+            first_card_id = fee_items[0]["card_id"]
+
             # Email
             email_sent = send_notification_email(
                 db,
@@ -475,8 +498,8 @@ def check_fee_approaching(db, users):
                 "fee_approaching",
                 fee_items[0]["ref_key"],
                 "Card renewal coming up",
-                "Card renewal in 30 days",
-                data={"screen": "Dashboard"},
+                f"{details} — renews {fee_items[0]['expires']}. Tap to review.",
+                data={"screen": "CardDetail", "cardId": first_card_id},
             )
             if push_sent:
                 for item in fee_items[1:]:
