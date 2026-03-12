@@ -14,7 +14,9 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import VerifyPendingPage from './pages/VerifyPendingPage';
 import TabLink from './components/TabLink';
 import UserMenu from './components/UserMenu';
+import NotificationPanel from './components/NotificationPanel';
 import { useState } from 'react';
+import appIcon from './assets/app-icon.png';
 
 function App() {
   const location = useLocation();
@@ -22,9 +24,36 @@ function App() {
   const isTabPage = location.pathname === '/' || location.pathname === '/credits';
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/verify-pending';
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [showSplash, setShowSplash] = useState(() => !sessionStorage.getItem('ccb-splash-shown'));
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {showSplash && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'var(--bg-primary)',
+            animation: 'splashOverlayFade 1.2s ease-out forwards',
+          }}
+          onAnimationEnd={() => {
+            setShowSplash(false);
+            sessionStorage.setItem('ccb-splash-shown', 'true');
+          }}
+        >
+          <img
+            src={appIcon}
+            width={120}
+            height={120}
+            style={{
+              position: 'fixed', top: 0, left: 0,
+              transformOrigin: 'top left',
+              animation: 'splashToHeader 1.2s ease-out forwards',
+              borderRadius: 16,
+            }}
+            alt=""
+          />
+        </div>
+      )}
       {!isAuthPage && (
         <header style={{
           padding: '14px 24px',
@@ -39,21 +68,7 @@ function App() {
           backdropFilter: 'blur(20px)',
         }}>
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-gold-dim))',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 15,
-              fontWeight: 700,
-              color: '#0a0a0f',
-              fontFamily: 'var(--font-display)',
-            }}>
-              CC
-            </div>
+            <img src={appIcon} width={32} height={32} style={{ borderRadius: 6 }} alt="CCBenefits" />
             <span style={{
               fontFamily: 'var(--font-display)',
               fontSize: '1.1rem',
@@ -72,6 +87,7 @@ function App() {
                 <div style={{ width: 1, height: 20, background: 'var(--border-medium)', margin: '0 6px' }} />
               </div>
             )}
+            {user && <NotificationPanel />}
             {user && <UserMenu displayName={user.display_name} isAdmin={user.is_admin} />}
           </div>
         </header>

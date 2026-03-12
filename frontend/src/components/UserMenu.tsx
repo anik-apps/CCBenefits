@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useClickOutside } from '../hooks/useClickOutside';
 
 export default function UserMenu({ displayName, isAdmin }: { displayName: string; isAdmin: boolean }) {
   const { logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const menuRef = useClickOutside<HTMLDivElement>(useCallback(() => setOpen(false), []));
 
   return (
-    <div style={{ position: 'relative', marginLeft: 8 }}>
+    <div ref={menuRef} style={{ position: 'relative', marginLeft: 8 }}>
       <button
         onClick={() => setOpen(!open)}
         style={{
