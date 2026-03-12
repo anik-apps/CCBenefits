@@ -55,12 +55,17 @@ export default function NotificationPanel() {
     },
   });
 
-  const unreadCount = unreadData?.count ?? 0;
+  const unreadCount = unreadData?.unread_count ?? 0;
+  const items = notifications?.items ?? [];
 
   const handleNotificationClick = (n: NotificationItem) => {
     if (!n.is_read) markReadMutation.mutate(n.id);
     setOpen(false);
-    if (n.link) navigate(n.link);
+    if (n.data?.screen === 'CardDetail' && n.data?.cardId) {
+      navigate(`/card/${n.data.cardId}`);
+    } else if (n.data?.screen === 'Dashboard') {
+      navigate('/');
+    }
   };
 
   return (
@@ -153,7 +158,7 @@ export default function NotificationPanel() {
 
           {/* List */}
           <div style={{ overflowY: 'auto', flex: 1 }}>
-            {(!notifications || notifications.length === 0) ? (
+            {items.length === 0 ? (
               <div style={{
                 padding: 32,
                 textAlign: 'center',
@@ -163,7 +168,7 @@ export default function NotificationPanel() {
                 No notifications yet
               </div>
             ) : (
-              notifications.map((n) => (
+              items.map((n) => (
                 <button
                   key={n.id}
                   onClick={() => handleNotificationClick(n)}

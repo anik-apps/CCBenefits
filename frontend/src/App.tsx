@@ -33,7 +33,7 @@ function App() {
           style={{
             position: 'fixed', inset: 0, zIndex: 1000,
             background: 'var(--bg-primary)',
-            animation: 'splashOverlayFade 1.2s ease-out forwards',
+            animation: 'splashOverlayFade 3.2s ease-out forwards',
           }}
           onAnimationEnd={() => {
             setShowSplash(false);
@@ -47,7 +47,7 @@ function App() {
             style={{
               position: 'fixed', top: 0, left: 0,
               transformOrigin: 'top left',
-              animation: 'splashToHeader 1.2s ease-out forwards',
+              animation: 'splashToHeader 3.2s ease-out forwards',
               borderRadius: 16,
             }}
             alt=""

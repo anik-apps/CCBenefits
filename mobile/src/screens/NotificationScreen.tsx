@@ -49,8 +49,8 @@ export default function NotificationScreen({ navigation }: Props) {
     if (!item.is_read) {
       markReadMutation.mutate(item.id);
     }
-    if (item.data?.screen === 'CardDetail' && item.data?.card_id) {
-      navigation.navigate('CardDetail', { id: item.data.card_id });
+    if (item.data?.screen === 'CardDetail' && item.data?.cardId) {
+      navigation.navigate('CardDetail', { id: item.data.cardId });
     } else {
       navigation.navigate('Dashboard');
     }
