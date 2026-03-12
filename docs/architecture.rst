@@ -1,6 +1,18 @@
 Architecture
 ============
 
+Interactive Diagram
+-------------------
+
+.. raw:: html
+
+   <p><a href="_static/architecture.html" target="_blank"
+      style="display:inline-block;padding:10px 20px;background:#c9a84c;color:#0a0a0f;
+      text-decoration:none;border-radius:6px;font-weight:600;">
+      Open Interactive Architecture Diagram →</a></p>
+   <p style="color:#888;font-size:0.9em;">Click any system in the diagram to view details,
+   commands, and configuration.</p>
+
 Overview
 --------
 
