@@ -1,0 +1,25 @@
+name: Validate Grafana Dashboards
+
+on:
+  pull_request:
+    paths: ['grafana/**']
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  validate:
+    name: Validate Dashboard Definitions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install grafanactl
+        run: go install github.com/grafana/grafanactl/cmd/grafanactl@v0.1.9
+
+      - name: Validate dashboards
+        run: grafanactl resources validate -p grafana/dashboards/

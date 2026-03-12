@@ -1,0 +1,305 @@
+apiVersion: dashboard.grafana.app/v0alpha1
+kind: Dashboard
+metadata:
+  annotations: {}
+  labels: {}
+  name: ccb-service-health
+  namespace: stacks-1552999
+spec:
+  title: "CCBenefits: Service Health"
+  refresh: "30s"
+  time:
+    from: "now-1h"
+    to: "now"
+  panels:
+    # ===== Section 1: Overview =====
+    - type: row
+      title: Overview
+      gridPos:
+        h: 1
+        w: 24
+        x: 0
+        y: 0
+      collapsed: false
+
+    - title: Request Rate
+      type: timeseries
+      gridPos:
+        h: 8
+        w: 8
+        x: 0
+        y: 1
+      datasource:
+        type: prometheus
+        uid: grafanacloud-prom
+      targets:
+        - expr: sum(rate(http_server_duration_milliseconds_count{service_name="ccbenefits"}[$__rate_interval]))
+          legendFormat: "req/sec"
+      fieldConfig:
+        defaults:
+          unit: reqps
+
+    - title: Error Rate
+      type: timeseries
+      gridPos:
+        h: 8
+        w: 8
+        x: 8
+        y: 1
+      datasource:
+        type: prometheus
+        uid: grafanacloud-prom
+      targets:
+        - expr: sum(rate(http_server_duration_milliseconds_count{service_name="ccbenefits",http_status_code=~"4.."}[$__rate_interval]))
+          legendFormat: "4xx/sec"
+        - expr: sum(rate(http_server_duration_milliseconds_count{service_name="ccbenefits",http_status_code=~"5.."}[$__rate_interval]))
+          legendFormat: "5xx/sec"
+      fieldConfig:
+        defaults:
+          unit: reqps
+
+    - title: Active Requests
+      type: gauge
+      gridPos:
+        h: 8
+        w: 4
+        x: 16
+        y: 1
+      datasource:
+        type: prometheus
+        uid: grafanacloud-prom
+      targets:
+        - expr: sum(http_server_active_requests{service_name="ccbenefits"})
+
+    - title: Success Rate
+      type: gauge
+      gridPos:
+        h: 8
+        w: 4
+        x: 20
+        y: 1
+      datasource:
+        type: prometheus
+        uid: grafanacloud-prom
+      targets:
+        - expr: >-
+            sum(rate(http_server_duration_milliseconds_count{service_name="ccbenefits",http_status_code=~"2.."}[$__rate_interval]))
+            / sum(rate(http_server_duration_milliseconds_count{service_name="ccbenefits"}[$__rate_interval]))
+            * 100
+      fieldConfig:
+        defaults:
+          unit: percent
+          thresholds:
+            mode: absolute
+            steps:
+              - color: red
+                value: null
+              - color: red
+                value: 0
+              - color: yellow
+                value: 90
+              - color: green
+                value: 99
+
+    # ===== Section 2: Endpoints =====
+    - type: row
+      title: Endpoints
+      gridPos:
+        h: 1
+        w: 24
+        x: 0
+        y: 9
+      collapsed: true
+      panels:
+        - title: Request Rate by Endpoint
+          type: timeseries
+          gridPos:
+            h: 8
+            w: 12
+            x: 0
+            y: 10
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: sum by (http_target)(rate(http_server_duration_milliseconds_count{service_name="ccbenefits"}[$__rate_interval]))
+              legendFormat: "{{http_target}}"
+          fieldConfig:
+            defaults:
+              unit: reqps
+
+        - title: Latency by Endpoint p95
+          type: timeseries
+          gridPos:
+            h: 8
+            w: 12
+            x: 12
+            y: 10
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: histogram_quantile(0.95, sum by (le, http_target)(rate(http_server_duration_milliseconds_bucket{service_name="ccbenefits"}[$__rate_interval])))
+              legendFormat: "{{http_target}}"
+          fieldConfig:
+            defaults:
+              unit: ms
+
+    # ===== Section 3: Response Times =====
+    - type: row
+      title: Response Times
+      gridPos:
+        h: 1
+        w: 24
+        x: 0
+        y: 19
+      collapsed: true
+      panels:
+        - title: Response Time p50/p95/p99
+          type: timeseries
+          gridPos:
+            h: 8
+            w: 12
+            x: 0
+            y: 20
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: histogram_quantile(0.50, sum by (le)(rate(http_server_duration_milliseconds_bucket{service_name="ccbenefits"}[$__rate_interval])))
+              legendFormat: "p50"
+            - expr: histogram_quantile(0.95, sum by (le)(rate(http_server_duration_milliseconds_bucket{service_name="ccbenefits"}[$__rate_interval])))
+              legendFormat: "p95"
+            - expr: histogram_quantile(0.99, sum by (le)(rate(http_server_duration_milliseconds_bucket{service_name="ccbenefits"}[$__rate_interval])))
+              legendFormat: "p99"
+          fieldConfig:
+            defaults:
+              unit: ms
+
+        - title: Slowest Endpoints p99
+          type: table
+          gridPos:
+            h: 8
+            w: 12
+            x: 12
+            y: 20
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: topk(10, histogram_quantile(0.99, sum by (le, http_target)(rate(http_server_duration_milliseconds_bucket{service_name="ccbenefits"}[$__rate_interval]))))
+
+    # ===== Section 4: Status Codes =====
+    - type: row
+      title: Status Codes
+      gridPos:
+        h: 1
+        w: 24
+        x: 0
+        y: 29
+      collapsed: true
+      panels:
+        - title: Status Code Distribution
+          type: timeseries
+          gridPos:
+            h: 8
+            w: 12
+            x: 0
+            y: 30
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: sum by (http_status_code)(increase(http_server_duration_milliseconds_count{service_name="ccbenefits"}[1h]))
+              legendFormat: "{{http_status_code}}"
+          options:
+            stacking:
+              mode: normal
+
+        - title: 4xx by Endpoint
+          type: table
+          gridPos:
+            h: 8
+            w: 12
+            x: 12
+            y: 30
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: sum by (http_status_code, http_target)(increase(http_server_duration_milliseconds_count{service_name="ccbenefits",http_status_code=~"4.."}[1h]))
+
+    # ===== Section 5: Downstream Dependencies =====
+    - type: row
+      title: Downstream Dependencies
+      gridPos:
+        h: 1
+        w: 24
+        x: 0
+        y: 39
+      collapsed: true
+      panels:
+        - title: DB Connection Pool
+          type: timeseries
+          gridPos:
+            h: 8
+            w: 8
+            x: 0
+            y: 40
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: sum by (state)(db_client_connections_usage{service_name="ccbenefits"})
+              legendFormat: "{{state}}"
+
+        - title: Email Delivery
+          type: timeseries
+          gridPos:
+            h: 8
+            w: 8
+            x: 8
+            y: 40
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: sum by (success)(increase(email_sent_total{service_name="ccbenefits"}[1h]))
+              legendFormat: "success={{success}}"
+
+        - title: Scheduler Jobs
+          type: timeseries
+          gridPos:
+            h: 8
+            w: 8
+            x: 16
+            y: 40
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: sum by (job)(increase(notifications_jobs_run_total{service_name="ccbenefits"}[1h]))
+              legendFormat: "{{job}}"
+
+    # ===== Section 6: Logs =====
+    - type: row
+      title: Logs
+      gridPos:
+        h: 1
+        w: 24
+        x: 0
+        y: 49
+      collapsed: true
+      panels:
+        - title: Application Logs
+          type: logs
+          gridPos:
+            h: 10
+            w: 24
+            x: 0
+            y: 50
+          datasource:
+            type: loki
+            uid: grafanacloud-logs
+          targets:
+            - expr: '{service_name="ccbenefits"}'
