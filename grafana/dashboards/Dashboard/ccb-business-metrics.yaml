@@ -1,0 +1,232 @@
+apiVersion: dashboard.grafana.app/v0alpha1
+kind: Dashboard
+metadata:
+  annotations: {}
+  labels: {}
+  name: ccb-business-metrics
+  namespace: stacks-1552999
+spec:
+  title: "CCBenefits: Business Metrics"
+  refresh: "30s"
+  time:
+    from: "now-24h"
+    to: "now"
+  panels:
+    # ===== Section 1: User Acquisition =====
+    - type: row
+      title: User Acquisition
+      gridPos:
+        h: 1
+        w: 24
+        x: 0
+        y: 0
+      collapsed: false
+
+    - title: Registrations 24h
+      type: stat
+      gridPos:
+        h: 8
+        w: 6
+        x: 0
+        y: 1
+      datasource:
+        type: prometheus
+        uid: grafanacloud-prom
+      targets:
+        - expr: sum(increase(auth_register_total{service_name="ccbenefits"}[24h]))
+      fieldConfig:
+        defaults:
+          color:
+            mode: fixed
+            fixedColor: purple
+
+    - title: Verifications 24h
+      type: stat
+      gridPos:
+        h: 8
+        w: 6
+        x: 6
+        y: 1
+      datasource:
+        type: prometheus
+        uid: grafanacloud-prom
+      targets:
+        - expr: sum(increase(verification_completed_total{service_name="ccbenefits"}[24h]))
+      fieldConfig:
+        defaults:
+          color:
+            mode: fixed
+            fixedColor: green
+
+    - title: Logins
+      type: timeseries
+      gridPos:
+        h: 8
+        w: 12
+        x: 12
+        y: 1
+      datasource:
+        type: prometheus
+        uid: grafanacloud-prom
+      targets:
+        - expr: sum(rate(auth_login_total{service_name="ccbenefits",success="true"}[$__rate_interval]))
+          legendFormat: "successful"
+        - expr: sum(rate(auth_login_total{service_name="ccbenefits",success="false"}[$__rate_interval]))
+          legendFormat: "failed"
+
+    # ===== Section 2: Auth & Security =====
+    - type: row
+      title: Auth & Security
+      gridPos:
+        h: 1
+        w: 24
+        x: 0
+        y: 10
+      collapsed: true
+      panels:
+        - title: Auth Failures by Reason
+          type: timeseries
+          gridPos:
+            h: 8
+            w: 12
+            x: 0
+            y: 11
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: sum by (reason)(increase(auth_failure_total{service_name="ccbenefits"}[1h]))
+              legendFormat: "{{reason}}"
+
+        - title: Password Resets 24h
+          type: stat
+          gridPos:
+            h: 8
+            w: 6
+            x: 12
+            y: 11
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: sum(increase(password_reset_requested_total{service_name="ccbenefits"}[24h]))
+
+        - title: Verification Funnel
+          type: bargauge
+          gridPos:
+            h: 8
+            w: 6
+            x: 18
+            y: 11
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: sum(increase(verification_email_sent_total{service_name="ccbenefits"}[24h]))
+              legendFormat: "Sent"
+            - expr: sum(increase(verification_completed_total{service_name="ccbenefits"}[24h]))
+              legendFormat: "Completed"
+          options:
+            orientation: horizontal
+
+    # ===== Section 3: Card & Benefit Activity =====
+    - type: row
+      title: Card & Benefit Activity
+      gridPos:
+        h: 1
+        w: 24
+        x: 0
+        y: 20
+      collapsed: true
+      panels:
+        - title: Cards Added 24h
+          type: stat
+          gridPos:
+            h: 8
+            w: 8
+            x: 0
+            y: 21
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: sum(increase(cards_added_total{service_name="ccbenefits"}[24h]))
+
+        - title: Feedback by Category
+          type: piechart
+          gridPos:
+            h: 8
+            w: 8
+            x: 8
+            y: 21
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: sum by (category)(increase(feedback_submitted_total{service_name="ccbenefits"}[24h]))
+              legendFormat: "{{category}}"
+
+        - title: Total Requests 1h
+          type: stat
+          gridPos:
+            h: 8
+            w: 8
+            x: 16
+            y: 21
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: sum(increase(http_server_duration_milliseconds_count{service_name="ccbenefits"}[1h]))
+
+    # ===== Section 4: Notifications =====
+    - type: row
+      title: Notifications
+      gridPos:
+        h: 1
+        w: 24
+        x: 0
+        y: 30
+      collapsed: true
+      panels:
+        - title: Notifications by Channel
+          type: timeseries
+          gridPos:
+            h: 8
+            w: 8
+            x: 0
+            y: 31
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: sum by (channel)(increase(notifications_sent_total{service_name="ccbenefits"}[1h]))
+              legendFormat: "{{channel}}"
+
+        - title: Notifications by Type
+          type: timeseries
+          gridPos:
+            h: 8
+            w: 8
+            x: 8
+            y: 31
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: sum by (type)(increase(notifications_sent_total{service_name="ccbenefits"}[1h]))
+              legendFormat: "{{type}}"
+
+        - title: Scheduler Job Runs
+          type: timeseries
+          gridPos:
+            h: 8
+            w: 8
+            x: 16
+            y: 31
+          datasource:
+            type: prometheus
+            uid: grafanacloud-prom
+          targets:
+            - expr: sum by (job)(increase(notifications_jobs_run_total{service_name="ccbenefits"}[1h]))
+              legendFormat: "{{job}}"
