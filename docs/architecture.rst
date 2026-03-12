@@ -91,18 +91,39 @@ authentication and filter data by the authenticated user. Card templates remain 
 Password reset and email verification use opaque random tokens (SHA-256 hashed in DB)
 with the pluggable email sender interface (Resend in production, console in development).
 
+Notifications
+-------------
+
+Users receive notifications about expiring credits, new periods, unused recaps,
+upcoming card renewals, and weekly utilization summaries.
+
+- **Email**: via Resend API. Transactional emails from ``noreply@``, notifications from ``notifications@``
+- **Push**: via Expo Push API → Firebase FCM → Android devices
+- **Scheduling**: APScheduler (BackgroundScheduler) runs hourly, timezone-aware user matching
+- **Dedup**: ``NotificationLog`` table with channel-based dedup (email and push independent)
+- **Unsubscribe**: One-click opaque token endpoint (CAN-SPAM compliant, 60-day expiry)
+- **Preferences**: Per-user toggles for each notification type × channel, stored as JSON
+
 Observability
 -------------
 
 Metrics and structured logs are exported to Grafana Cloud via OpenTelemetry OTLP:
 
-- **Auto-instrumented**: HTTP request duration/count (FastAPI), DB query timing (SQLAlchemy)
-- **Business counters**: auth events, verifications, cards added, feedback, emails
+- **Auto-instrumented**: HTTP request duration/count (FastAPI), DB connections (SQLAlchemy)
+- **Business counters**: auth events, verifications, cards added, feedback, emails, notifications, scheduler jobs
 - **Structured logging**: JSON to stdout + OTel bridge to Grafana Loki
 - **Request middleware**: logs method, path, status, duration, action name, user context (masked)
 - **PII masking**: emails and sensitive fields masked before cloud export
 
 Disabled when ``GRAFANA_OTLP_ENDPOINT`` is not set (development mode).
+
+**Dashboards** (managed as code via ``grafanactl``):
+
+- `Service Health <https://anikapps.grafana.net/d/ccb-service-health>`_: request rate, latency, error rate, endpoints, status codes, downstream deps, logs
+- `Business Metrics <https://anikapps.grafana.net/d/ccb-business-metrics>`_: registrations, logins, auth failures, cards, feedback, notifications
+
+Dashboard YAML files live in ``grafana/dashboards/`` and are synced to Grafana Cloud
+on push to master via the ``grafana-sync.yml`` workflow.
 
 Deployment
 ----------
@@ -111,10 +132,13 @@ Production runs on Oracle Cloud Always Free tier (E2.1.Micro VM, 1 OCPU, 1GB RAM
 
 .. code-block:: text
 
-   Caddy (HTTPS, Let's Encrypt) → FastAPI app → PostgreSQL
+   Cloudflare (DNS + SSL) → FastAPI app (1 worker) → PostgreSQL
 
    GitHub Actions CI/CD:
    Push to master → build Docker image → push to GHCR → SSH deploy to VM
+
+   Grafana dashboards:
+   Push to master (grafana/**) → grafanactl push → Grafana Cloud
 
 Mobile App
 ----------
@@ -123,6 +147,8 @@ React Native (Expo SDK 54) Android app with full feature parity to the web front
 
 - **9 screens**: Login, Register, Verify Pending, Dashboard, Card Detail, Add Card,
   All Credits, Feedback, Profile
+- **Push notifications**: expo-notifications + Firebase FCM, token registration on startup
+- **Notification preferences**: per-type email/push toggles with timezone selector
 - **Shared API client**: adapted from the web frontend's ``api.ts`` with async
   ``expo-secure-store`` for token persistence and in-memory cache for fast access
 - **Usage logging**: tap any benefit to log/update/delete with period selector,
@@ -131,8 +157,6 @@ React Native (Expo SDK 54) Android app with full feature parity to the web front
   or App stack based on user state and verification status
 - **TanStack Query**: same server-state management as web, with React Native-specific
   ``netinfo`` (online/offline) and ``AppState`` (focus/refetch) listeners
-- **Safe area handling**: ``ScreenWrapper`` component ensures content does not sit
-  under notch/status bar on all devices
 
 Key Concepts
 ------------
