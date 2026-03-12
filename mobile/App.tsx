@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
-import { StatusBar, ActivityIndicator, View } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { StatusBar, ActivityIndicator, View, Animated, Image } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { useAuth } from './src/hooks/useAuth';
 import { navigationRef } from './src/navigation/rootNavigation';
@@ -14,6 +15,8 @@ import AppStack from './src/navigation/AppStack';
 import VerifyPendingScreen from './src/screens/VerifyPendingScreen';
 import { colors } from './src/theme';
 
+SplashScreen.preventAutoHideAsync();
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { staleTime: 30_000 },
@@ -22,6 +25,8 @@ const queryClient = new QueryClient({
 
 function RootNavigator() {
   const { user, loading } = useAuth();
+  const [appReady, setAppReady] = useState(false);
+  const splashOpacity = useRef(new Animated.Value(1)).current;
 
   useNotificationListener(navigationRef, !!user);
 
@@ -31,17 +36,34 @@ function RootNavigator() {
     }
   }, [user]);
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgPrimary }}>
-        <ActivityIndicator size="large" color={colors.accentGold} />
-      </View>
-    );
-  }
+  useEffect(() => {
+    if (!loading) {
+      SplashScreen.hideAsync();
+      Animated.timing(splashOpacity, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }).start(() => setAppReady(true));
+    }
+  }, [loading]);
 
-  if (!user) return <AuthStack />;
-  if (!user.is_verified) return <VerifyPendingScreen />;
-  return <AppStack />;
+  const content = loading ? null : !user ? <AuthStack /> : !user.is_verified ? <VerifyPendingScreen /> : <AppStack />;
+
+  return (
+    <View style={{ flex: 1 }}>
+      {content}
+      {!appReady && (
+        <Animated.View style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: colors.bgPrimary, zIndex: 9999,
+          justifyContent: 'center', alignItems: 'center',
+          opacity: splashOpacity,
+        }}>
+          <Image source={require('./assets/icon.png')} style={{ width: 120, height: 120, borderRadius: 20 }} />
+        </Animated.View>
+      )}
+    </View>
+  );
 }
 
 export default function App() {

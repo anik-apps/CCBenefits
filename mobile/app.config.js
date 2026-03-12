@@ -38,6 +38,7 @@ export default {
           color: "#c9a84c",
         },
       ],
+      "expo-splash-screen",
     ],
     scheme: "ccbenefits",
     extra: {
