@@ -12,6 +12,7 @@ import {
   clearTokens,
   setAuthFailureHandler,
 } from '../services/api';
+import { getCurrentPushToken, unregisterPushNotifications } from '../services/notifications';
 // Note: no resetToAuth needed — clearing user state triggers RootNavigator to show AuthStack
 
 export interface AuthContextValue {
@@ -77,6 +78,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    const pushToken = getCurrentPushToken();
+    if (pushToken) {
+      await unregisterPushNotifications(pushToken);
+    }
     setUser(null);
     queryClient.clear();
     await apiLogout();

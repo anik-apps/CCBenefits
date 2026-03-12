@@ -266,6 +266,31 @@ class AuthResponse(TokenResponse):
 # --- Feedback schemas ---
 
 
+# --- Push Token schemas ---
+
+
+class PushTokenBase(BaseModel):
+    token: str
+
+    @field_validator("token")
+    @classmethod
+    def validate_token_format(cls, v):
+        if not v.startswith("ExponentPushToken[") or not v.endswith("]"):
+            raise ValueError("Invalid Expo push token format")
+        return v
+
+
+class PushTokenCreate(PushTokenBase):
+    device_name: str | None = None
+
+
+class PushTokenUnregister(PushTokenBase):
+    pass
+
+
+# --- Feedback schemas ---
+
+
 class FeedbackCreate(BaseModel):
     category: str = Field(pattern=r"^(bug_report|feature_request|general)$")
     message: str = Field(min_length=1, max_length=1000)

@@ -31,11 +31,18 @@ def get_user_pref(user, channel: str, notif_type: str) -> bool:
     return bool(value)
 
 
-def is_already_sent(db: Session, user_id: int, notification_type: str, reference_key: str) -> bool:
-    """Check NotificationLog for an existing entry (dedup)."""
+def is_already_sent(
+    db: Session, user_id: int, notification_type: str, reference_key: str, channel: str = "email"
+) -> bool:
+    """Check NotificationLog for an existing entry (dedup), scoped by channel."""
     return (
         db.query(NotificationLog)
-        .filter_by(user_id=user_id, notification_type=notification_type, reference_key=reference_key)
+        .filter_by(
+            user_id=user_id,
+            notification_type=notification_type,
+            reference_key=reference_key,
+            channel=channel,
+        )
         .first()
         is not None
     )
@@ -191,6 +198,38 @@ def send_notification_email(
     return True
 
 
+def send_notification_push(
+    db: Session,
+    user,
+    notification_type: str,
+    reference_key: str,
+    title: str,
+    body: str,
+    data: dict = None,
+) -> bool:
+    """Send push notification to user's devices. Returns True if sent."""
+    if not get_user_pref(user, "push", notification_type):
+        return False
+    if is_already_sent(db, user.id, notification_type, reference_key, channel="push"):
+        return False
+
+    from .models import PushToken
+    from .push import send_push_notifications
+
+    tokens = db.query(PushToken).filter_by(user_id=user.id).all()
+    if not tokens:
+        return False
+
+    token_strings = [t.token for t in tokens]
+    sent = send_push_notifications(
+        token_strings, title, body, data=data, db=db, notification_type=notification_type
+    )
+    if sent > 0:
+        log_notification(db, user.id, notification_type, "push", reference_key)
+        return True
+    return False
+
+
 # --- Scheduler stubs (implemented in subsequent tasks) ---
 
 
@@ -204,9 +243,6 @@ def check_expiring_credits(db, users):
     today = date.today()
 
     for user in users:
-        if not get_user_pref(user, "email", "expiring_credits"):
-            continue
-
         # Get user's active cards with their benefits
         cards = db.query(UserCard).filter(
             UserCard.user_id == user.id,
@@ -236,29 +272,41 @@ def check_expiring_credits(db, users):
 
                 if usage is None or usage.amount_used == 0:
                     ref_key = f"benefit:{benefit.id}:period:{start_date}"
-                    if not is_already_sent(db, user.id, "expiring_credits", ref_key):
-                        expiring_items.append({
-                            "name": benefit.name,
-                            "card": card_template.name,
-                            "amount": f"${benefit.max_value:.0f}",
-                            "expires": end_date.strftime("%b %d"),
-                            "ref_key": ref_key,
-                        })
+                    expiring_items.append({
+                        "name": benefit.name,
+                        "card": card_template.name,
+                        "amount": f"${benefit.max_value:.0f}",
+                        "expires": end_date.strftime("%b %d"),
+                        "ref_key": ref_key,
+                    })
 
         if expiring_items:
-            # Send one email with all expiring benefits
-            sent = send_notification_email(
+            # Email
+            email_sent = send_notification_email(
                 db,
                 user,
                 "expiring_credits",
-                expiring_items[0]["ref_key"],  # use first item's ref_key
+                expiring_items[0]["ref_key"],
                 "Credits expiring soon",
                 expiring_items,
             )
-            # Log all additional ref_keys to prevent re-sending
-            if sent:
+            if email_sent:
                 for item in expiring_items[1:]:
                     log_notification(db, user.id, "expiring_credits", "email", item["ref_key"])
+
+            # Push
+            push_sent = send_notification_push(
+                db,
+                user,
+                "expiring_credits",
+                expiring_items[0]["ref_key"],
+                "Credits expiring soon",
+                f"You have {len(expiring_items)} credit(s) expiring in 3 days",
+                data={"screen": "Dashboard"},
+            )
+            if push_sent:
+                for item in expiring_items[1:]:
+                    log_notification(db, user.id, "expiring_credits", "push", item["ref_key"])
 
 
 def check_period_transitions(db, users):
@@ -272,12 +320,6 @@ def check_period_transitions(db, users):
     yesterday = today - timedelta(days=1)
 
     for user in users:
-        wants_period_start = get_user_pref(user, "email", "period_start")
-        wants_unused_recap = get_user_pref(user, "email", "unused_recap")
-
-        if not wants_period_start and not wants_unused_recap:
-            continue
-
         cards = db.query(UserCard).filter(
             UserCard.user_id == user.id,
             UserCard.is_active.is_(True),
@@ -294,44 +336,41 @@ def check_period_transitions(db, users):
 
             for benefit in benefits:
                 # --- period_start: check if today is the first day of a new period ---
-                if wants_period_start:
-                    start_date, end_date = get_current_period(benefit.period_type, today)
-                    if start_date == today:
-                        ref_key = f"benefit:{benefit.id}:period:{start_date}"
-                        if not is_already_sent(db, user.id, "period_start", ref_key):
-                            period_start_items.append({
-                                "name": benefit.name,
-                                "card": card_template.name,
-                                "amount": f"${benefit.max_value:.0f}",
-                                "expires": f"{benefit.period_type}",
-                                "ref_key": ref_key,
-                            })
+                start_date, end_date = get_current_period(benefit.period_type, today)
+                if start_date == today:
+                    ref_key = f"benefit:{benefit.id}:period:{start_date}"
+                    period_start_items.append({
+                        "name": benefit.name,
+                        "card": card_template.name,
+                        "amount": f"${benefit.max_value:.0f}",
+                        "expires": f"{benefit.period_type}",
+                        "ref_key": ref_key,
+                    })
 
                 # --- unused_recap: check if yesterday was the last day of a period ---
-                if wants_unused_recap:
-                    prev_start, prev_end = get_current_period(benefit.period_type, yesterday)
-                    if prev_end == yesterday:
-                        usage = db.query(BenefitUsage).filter(
-                            BenefitUsage.user_card_id == card.id,
-                            BenefitUsage.benefit_template_id == benefit.id,
-                            BenefitUsage.period_start_date == prev_start,
-                        ).first()
+                prev_start, prev_end = get_current_period(benefit.period_type, yesterday)
+                if prev_end == yesterday:
+                    usage = db.query(BenefitUsage).filter(
+                        BenefitUsage.user_card_id == card.id,
+                        BenefitUsage.benefit_template_id == benefit.id,
+                        BenefitUsage.period_start_date == prev_start,
+                    ).first()
 
-                        amount_used = usage.amount_used if usage else 0
-                        if amount_used < benefit.max_value:
-                            missed = benefit.max_value - amount_used
-                            ref_key = f"benefit:{benefit.id}:period:{prev_start}"
-                            if not is_already_sent(db, user.id, "unused_recap", ref_key):
-                                unused_recap_items.append({
-                                    "name": benefit.name,
-                                    "card": card_template.name,
-                                    "amount": f"${missed:.0f}",
-                                    "expires": f"{prev_start} - {prev_end}",
-                                    "ref_key": ref_key,
-                                })
+                    amount_used = usage.amount_used if usage else 0
+                    if amount_used < benefit.max_value:
+                        missed = benefit.max_value - amount_used
+                        ref_key = f"benefit:{benefit.id}:period:{prev_start}"
+                        unused_recap_items.append({
+                            "name": benefit.name,
+                            "card": card_template.name,
+                            "amount": f"${missed:.0f}",
+                            "expires": f"{prev_start} - {prev_end}",
+                            "ref_key": ref_key,
+                        })
 
         if period_start_items:
-            sent = send_notification_email(
+            # Email
+            email_sent = send_notification_email(
                 db,
                 user,
                 "period_start",
@@ -339,12 +378,27 @@ def check_period_transitions(db, users):
                 "New benefit period started",
                 period_start_items,
             )
-            if sent:
+            if email_sent:
                 for item in period_start_items[1:]:
                     log_notification(db, user.id, "period_start", "email", item["ref_key"])
 
+            # Push
+            push_sent = send_notification_push(
+                db,
+                user,
+                "period_start",
+                period_start_items[0]["ref_key"],
+                "New benefit period started",
+                f"You have {len(period_start_items)} new benefit period(s) started",
+                data={"screen": "Dashboard"},
+            )
+            if push_sent:
+                for item in period_start_items[1:]:
+                    log_notification(db, user.id, "period_start", "push", item["ref_key"])
+
         if unused_recap_items:
-            sent = send_notification_email(
+            # Email
+            email_sent = send_notification_email(
                 db,
                 user,
                 "unused_recap",
@@ -352,9 +406,23 @@ def check_period_transitions(db, users):
                 "Credits you missed last period",
                 unused_recap_items,
             )
-            if sent:
+            if email_sent:
                 for item in unused_recap_items[1:]:
                     log_notification(db, user.id, "unused_recap", "email", item["ref_key"])
+
+            # Push
+            push_sent = send_notification_push(
+                db,
+                user,
+                "unused_recap",
+                unused_recap_items[0]["ref_key"],
+                "Credits you missed",
+                f"You missed {len(unused_recap_items)} credit(s) last period",
+                data={"screen": "Dashboard"},
+            )
+            if push_sent:
+                for item in unused_recap_items[1:]:
+                    log_notification(db, user.id, "unused_recap", "push", item["ref_key"])
 
 
 def check_fee_approaching(db, users):
@@ -367,9 +435,6 @@ def check_fee_approaching(db, users):
     target_date = today + timedelta(days=30)
 
     for user in users:
-        if not get_user_pref(user, "email", "fee_approaching"):
-            continue
-
         cards = db.query(UserCard).filter(
             UserCard.user_id == user.id,
             UserCard.is_active.is_(True),
@@ -381,17 +446,17 @@ def check_fee_approaching(db, users):
         for card in cards:
             card_template = db.get(CardTemplate, card.card_template_id)
             ref_key = f"card:{card.id}:renewal:{card.renewal_date.year}"
-            if not is_already_sent(db, user.id, "fee_approaching", ref_key):
-                fee_items.append({
-                    "name": card_template.name,
-                    "card": card_template.name,
-                    "amount": f"${card_template.annual_fee:.0f}",
-                    "expires": card.renewal_date.strftime("%b %d, %Y"),
-                    "ref_key": ref_key,
-                })
+            fee_items.append({
+                "name": card_template.name,
+                "card": card_template.name,
+                "amount": f"${card_template.annual_fee:.0f}",
+                "expires": card.renewal_date.strftime("%b %d, %Y"),
+                "ref_key": ref_key,
+            })
 
         if fee_items:
-            sent = send_notification_email(
+            # Email
+            email_sent = send_notification_email(
                 db,
                 user,
                 "fee_approaching",
@@ -399,9 +464,23 @@ def check_fee_approaching(db, users):
                 "Card renewal coming up",
                 fee_items,
             )
-            if sent:
+            if email_sent:
                 for item in fee_items[1:]:
                     log_notification(db, user.id, "fee_approaching", "email", item["ref_key"])
+
+            # Push
+            push_sent = send_notification_push(
+                db,
+                user,
+                "fee_approaching",
+                fee_items[0]["ref_key"],
+                "Card renewal coming up",
+                "Card renewal in 30 days",
+                data={"screen": "Dashboard"},
+            )
+            if push_sent:
+                for item in fee_items[1:]:
+                    log_notification(db, user.id, "fee_approaching", "push", item["ref_key"])
 
 
 def send_utilization_summary(db, users):
@@ -415,12 +494,7 @@ def send_utilization_summary(db, users):
     iso_week = today.isocalendar()[1]
 
     for user in users:
-        if not get_user_pref(user, "email", "utilization_summary"):
-            continue
-
         ref_key = f"user:{user.id}:week:{today.isocalendar()[0]}-{iso_week}"
-        if is_already_sent(db, user.id, "utilization_summary", ref_key):
-            continue
 
         cards = db.query(UserCard).filter(
             UserCard.user_id == user.id,
@@ -460,6 +534,7 @@ def send_utilization_summary(db, users):
                 })
 
         if summary_items:
+            # Email
             send_notification_email(
                 db,
                 user,
@@ -467,4 +542,15 @@ def send_utilization_summary(db, users):
                 ref_key,
                 "Weekly benefits summary",
                 summary_items,
+            )
+
+            # Push
+            send_notification_push(
+                db,
+                user,
+                "utilization_summary",
+                ref_key,
+                "Weekly benefits summary",
+                "Weekly benefits summary ready",
+                data={"screen": "Dashboard"},
             )

@@ -226,6 +226,14 @@ export async function submitFeedback(category: string, message: string): Promise
   await api.post('/api/feedback/', { category, message });
 }
 
+export async function registerPushToken(token: string, deviceName?: string) {
+  return api.post('/api/notifications/push-token', { token, device_name: deviceName });
+}
+
+export async function unregisterPushToken(token: string) {
+  return api.post('/api/notifications/push-token/unregister', { token });
+}
+
 export async function logout() {
   await clearTokens();
 }

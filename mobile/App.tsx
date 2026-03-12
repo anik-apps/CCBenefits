@@ -6,6 +6,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { useAuth } from './src/hooks/useAuth';
 import { navigationRef } from './src/navigation/rootNavigation';
+import { registerForPushNotifications } from './src/services/notifications';
+import { useNotificationListener } from './src/hooks/useNotifications';
 import { setupQueryClient } from './src/setup';
 import AuthStack from './src/navigation/AuthStack';
 import AppStack from './src/navigation/AppStack';
@@ -20,6 +22,14 @@ const queryClient = new QueryClient({
 
 function RootNavigator() {
   const { user, loading } = useAuth();
+
+  useNotificationListener(navigationRef, !!user);
+
+  useEffect(() => {
+    if (user && user.is_verified) {
+      registerForPushNotifications();
+    }
+  }, [user]);
 
   if (loading) {
     return (

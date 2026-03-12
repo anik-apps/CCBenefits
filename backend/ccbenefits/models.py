@@ -9,6 +9,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     UniqueConstraint,
@@ -217,6 +218,16 @@ class NotificationLog(Base):
     )
 
     user: Mapped["User"] = relationship()
+
+    __table_args__ = (
+        Index(
+            "ix_notification_logs_dedup",
+            "user_id",
+            "notification_type",
+            "reference_key",
+            "channel",
+        ),
+    )
 
 
 class UnsubscribeToken(Base):

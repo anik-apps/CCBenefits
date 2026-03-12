@@ -2,13 +2,15 @@ import copy
 import html
 from datetime import datetime, timezone as dt_timezone
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
 from ..auth import hash_opaque_token
 from ..database import get_db
-from ..models import UnsubscribeToken, User
+from ..dependencies import get_current_user
+from ..models import PushToken, UnsubscribeToken, User
+from ..schemas import PushTokenCreate, PushTokenUnregister
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 
@@ -59,3 +61,54 @@ def unsubscribe(token: str = Query(...), db: Session = Depends(get_db)):
     </body></html>
     """
     )
+
+
+MAX_TOKENS_PER_USER = 10
+
+
+@router.post("/push-token", status_code=201)
+def register_push_token(
+    data: PushTokenCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    existing = db.query(PushToken).filter_by(token=data.token).first()
+    if existing:
+        if existing.user_id == current_user.id:
+            existing.device_name = data.device_name
+        else:
+            db.delete(existing)
+            db.flush()
+            existing = None
+
+    if not existing:
+        count = db.query(PushToken).filter_by(user_id=current_user.id).count()
+        if count >= MAX_TOKENS_PER_USER:
+            raise HTTPException(
+                status_code=400, detail="Maximum push tokens reached (10)"
+            )
+        token = PushToken(
+            user_id=current_user.id, token=data.token, device_name=data.device_name
+        )
+        db.add(token)
+
+    db.commit()
+    return {"token": data.token, "device_name": data.device_name}
+
+
+@router.post("/push-token/unregister")
+def unregister_push_token(
+    data: PushTokenUnregister,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    token = (
+        db.query(PushToken)
+        .filter_by(token=data.token, user_id=current_user.id)
+        .first()
+    )
+    if not token:
+        raise HTTPException(status_code=404, detail="Push token not found")
+    db.delete(token)
+    db.commit()
+    return {"status": "deleted"}
