@@ -21,5 +21,10 @@ jobs:
       - name: Install grafanactl
         run: go install github.com/grafana/grafanactl/cmd/grafanactl@v0.1.9
 
+      - name: Configure grafanactl
+        run: |
+          grafanactl config set contexts.default.grafana.server https://anikapps.grafana.net
+          grafanactl config set contexts.default.grafana.token ${{ secrets.GRAFANA_SA_TOKEN }}
+
       - name: Validate dashboards
         run: grafanactl resources validate -p grafana/dashboards/
