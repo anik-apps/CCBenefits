@@ -20,7 +20,7 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build"]
 
 html_theme = "furo"
-html_static_path = []
+html_static_path = ["_static"]
 
 autodoc_member_order = "bysource"
 autodoc_typehints = "description"
