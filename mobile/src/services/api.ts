@@ -234,6 +234,27 @@ export async function unregisterPushToken(token: string) {
   return api.post('/api/notifications/push-token/unregister', { token });
 }
 
+// Notification inbox
+export async function getInbox(limit = 20, offset = 0) {
+  const { data } = await api.get(`/api/notifications/inbox?limit=${limit}&offset=${offset}`);
+  return data;
+}
+
+export async function getUnreadCount() {
+  const { data } = await api.get('/api/notifications/inbox/unread-count');
+  return data;
+}
+
+export async function markNotificationRead(id: number) {
+  const { data } = await api.patch(`/api/notifications/inbox/${id}`, { is_read: true });
+  return data;
+}
+
+export async function markAllRead() {
+  const { data } = await api.post('/api/notifications/inbox/mark-all-read');
+  return data;
+}
+
 export async function logout() {
   await clearTokens();
 }

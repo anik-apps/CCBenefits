@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone as dt_timezone
+from datetime import datetime, timedelta, timezone as dt_timezone
 from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -88,6 +88,22 @@ def weekly_utilization_check():
         db.close()
 
 
+def cleanup_old_notifications():
+    db = SessionLocal()
+    try:
+        from .models import Notification
+
+        cutoff = datetime.now(dt_timezone.utc) - timedelta(days=90)
+        deleted = db.query(Notification).filter(Notification.created_at < cutoff).delete()
+        db.commit()
+        logger.info(f"Cleaned up {deleted} old notifications")
+    except Exception:
+        logger.exception("Error cleaning up old notifications")
+        db.rollback()
+    finally:
+        db.close()
+
+
 def start_scheduler():
     if not config.SCHEDULER_ENABLED:
         logger.info("Notification scheduler disabled (CCB_SCHEDULER_ENABLED=false)")
@@ -102,6 +118,12 @@ def start_scheduler():
         weekly_utilization_check,
         CronTrigger(day_of_week="mon", minute=0),
         id="weekly_utilization",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        cleanup_old_notifications,
+        CronTrigger(day_of_week="sun", hour=3),
+        id="cleanup_notifications",
         replace_existing=True,
     )
     scheduler.start()

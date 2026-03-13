@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, Image, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme';
+
+const { width: screenW, height: screenH } = Dimensions.get('window');
 
 interface Props {
   children: React.ReactNode;
@@ -19,6 +21,12 @@ export default function ScreenWrapper({ children, keyboard = false, padBottom = 
       paddingLeft: Math.max(insets.left, 8),
       paddingRight: Math.max(insets.right, 8),
     }]}>
+      {/* Watermark */}
+      <Image
+        source={require('../../assets/icon.png')}
+        style={styles.watermark}
+        resizeMode="contain"
+      />
       {children}
     </View>
   );
@@ -37,4 +45,12 @@ export default function ScreenWrapper({ children, keyboard = false, padBottom = 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bgPrimary },
   container: { flex: 1, backgroundColor: colors.bgPrimary },
+  watermark: {
+    position: 'absolute',
+    width: screenW * 0.6,
+    height: screenW * 0.6,
+    top: (screenH - screenW * 0.6) / 2,
+    left: (screenW - screenW * 0.6) / 2,
+    opacity: 0.10,
+  },
 });

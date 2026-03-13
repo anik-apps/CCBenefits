@@ -230,6 +230,25 @@ class NotificationLog(Base):
     )
 
 
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    notification_type: Mapped[str] = mapped_column(String(50))
+    title: Mapped[str] = mapped_column(String(200))
+    body: Mapped[str] = mapped_column(String(500))
+    data: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    is_read: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(dt_timezone.utc))
+
+    user: Mapped["User"] = relationship()
+
+    __table_args__ = (
+        Index('ix_notifications_user_created', 'user_id', 'created_at'),
+    )
+
+
 class UnsubscribeToken(Base):
     __tablename__ = "unsubscribe_tokens"
 

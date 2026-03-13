@@ -6,6 +6,7 @@ import AddCardScreen from '../screens/AddCardScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import AllCreditsScreen from '../screens/AllCreditsScreen';
 import FeedbackScreen from '../screens/FeedbackScreen';
+import NotificationScreen from '../screens/NotificationScreen';
 import { colors } from '../theme';
 
 const Stack = createNativeStackNavigator();
@@ -22,6 +23,7 @@ export default function AppStack() {
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="AllCredits" component={AllCreditsScreen} />
       <Stack.Screen name="Feedback" component={FeedbackScreen} />
+      <Stack.Screen name="Notifications" component={NotificationScreen} />
     </Stack.Navigator>
   );
 }

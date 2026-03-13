@@ -3,7 +3,7 @@ export const colors = {
   bgPrimary: '#0a0a0f',
   bgSecondary: '#12121a',
   bgTertiary: '#1a1a25',
-  bgCard: '#14141e',
+  bgCard: 'rgba(20, 20, 30, 0.80)',  // 80% opacity to show watermark through
   textPrimary: '#e8e8ed',
   textSecondary: '#a0a0b0',
   textMuted: '#6b6b80',

@@ -1,5 +1,5 @@
 import { screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import App from '../App';
 import { renderWithProviders } from '../test/helpers';
 
@@ -15,12 +15,21 @@ vi.mock('../services/api', () => ({
   storeTokens: vi.fn(),
   getCardTemplates: () => Promise.resolve([]),
   getUserCards: () => Promise.resolve([]),
-  getUserCard: () => Promise.resolve({ id: 1, card_template_id: 1, card_name: 'Test', issuer: 'Test', annual_fee: 0, nickname: null, member_since_date: null, is_active: true, benefits_status: [] }),
+  getUserCard: () => Promise.resolve({ id: 1, card_template_id: 1, card_name: 'Test', issuer: 'Test', annual_fee: 0, nickname: null, member_since_date: null, is_active: true, benefits_status: [], renewal_date: null }),
   getUserCardSummary: () => Promise.resolve({}),
   login: vi.fn(),
   register: vi.fn(),
   logout: vi.fn(),
+  getInbox: () => Promise.resolve({ items: [], total: 0, unread_count: 0 }),
+  getUnreadCount: () => Promise.resolve({ unread_count: 0 }),
+  markNotificationRead: vi.fn(),
+  markAllRead: vi.fn(),
 }));
+
+// Disable splash animation in tests
+beforeEach(() => {
+  sessionStorage.setItem('ccb-splash-shown', 'true');
+});
 
 describe('App', () => {
   it('renders header with logo text', async () => {

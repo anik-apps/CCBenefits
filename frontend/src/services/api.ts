@@ -231,6 +231,41 @@ export async function resendVerification(): Promise<void> {
   await api.post('/api/auth/resend-verification');
 }
 
+// Notification inbox API functions
+export interface NotificationItem {
+  id: number;
+  notification_type: string;
+  title: string;
+  body: string;
+  data: { screen?: string; cardId?: number } | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface InboxResponse {
+  items: NotificationItem[];
+  total: number;
+  unread_count: number;
+}
+
+export async function getInbox(limit = 20, offset = 0): Promise<InboxResponse> {
+  const { data } = await api.get('/api/notifications/inbox', { params: { limit, offset } });
+  return data;
+}
+
+export async function getUnreadCount(): Promise<{ unread_count: number }> {
+  const { data } = await api.get('/api/notifications/inbox/unread-count');
+  return data;
+}
+
+export async function markNotificationRead(id: number): Promise<void> {
+  await api.patch(`/api/notifications/inbox/${id}`, { is_read: true });
+}
+
+export async function markAllRead(): Promise<void> {
+  await api.post('/api/notifications/inbox/mark-all-read');
+}
+
 export function logout() {
   clearTokens();
   window.location.href = '/login';

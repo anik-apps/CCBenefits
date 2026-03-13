@@ -291,6 +291,17 @@ class PushTokenUnregister(PushTokenBase):
 # --- Feedback schemas ---
 
 
+class NotificationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    notification_type: str
+    title: str
+    body: str
+    data: dict | None = None
+    is_read: bool
+    created_at: datetime
+
+
 class FeedbackCreate(BaseModel):
     category: str = Field(pattern=r"^(bug_report|feature_request|general)$")
     message: str = Field(min_length=1, max_length=1000)

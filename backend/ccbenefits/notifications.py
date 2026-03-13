@@ -230,6 +230,20 @@ def send_notification_push(
     return False
 
 
+def _create_inbox_notification(db, user, notification_type, title, body, data=None):
+    from .models import Notification
+
+    notif = Notification(
+        user_id=user.id,
+        notification_type=notification_type,
+        title=title,
+        body=body,
+        data=data,
+    )
+    db.add(notif)
+    db.commit()
+
+
 # --- Scheduler stubs (implemented in subsequent tasks) ---
 
 
@@ -287,6 +301,16 @@ def check_expiring_credits(db, users):
             if len(expiring_items) > 3:
                 details += f" +{len(expiring_items) - 3} more"
             first_card_id = expiring_items[0]["card_id"]
+
+            # Inbox
+            _create_inbox_notification(
+                db,
+                user,
+                "expiring_credits",
+                "Credits expiring soon",
+                f"{details} — expiring {expiring_items[0]['expires']}. Tap to view.",
+                data={"screen": "CardDetail", "cardId": first_card_id},
+            )
 
             # Email
             email_sent = send_notification_email(
@@ -383,6 +407,16 @@ def check_period_transitions(db, users):
                 details += f" +{len(period_start_items) - 3} more"
             first_card_id = period_start_items[0]["card_id"]
 
+            # Inbox
+            _create_inbox_notification(
+                db,
+                user,
+                "period_start",
+                "New benefit period started",
+                f"{details} — now available. Tap to view.",
+                data={"screen": "CardDetail", "cardId": first_card_id},
+            )
+
             # Email
             email_sent = send_notification_email(
                 db,
@@ -415,6 +449,16 @@ def check_period_transitions(db, users):
             if len(unused_recap_items) > 3:
                 details += f" +{len(unused_recap_items) - 3} more"
             first_card_id = unused_recap_items[0]["card_id"]
+
+            # Inbox
+            _create_inbox_notification(
+                db,
+                user,
+                "unused_recap",
+                "Credits you missed",
+                f"{details}. Tap to view.",
+                data={"screen": "CardDetail", "cardId": first_card_id},
+            )
 
             # Email
             email_sent = send_notification_email(
@@ -477,6 +521,16 @@ def check_fee_approaching(db, users):
         if fee_items:
             details = ", ".join(f"{i['name']} ({i['amount']}/yr)" for i in fee_items)
             first_card_id = fee_items[0]["card_id"]
+
+            # Inbox
+            _create_inbox_notification(
+                db,
+                user,
+                "fee_approaching",
+                "Card renewal coming up",
+                f"{details} — renews {fee_items[0]['expires']}. Tap to review.",
+                data={"screen": "CardDetail", "cardId": first_card_id},
+            )
 
             # Email
             email_sent = send_notification_email(
@@ -557,6 +611,16 @@ def send_utilization_summary(db, users):
                 })
 
         if summary_items:
+            # Inbox
+            _create_inbox_notification(
+                db,
+                user,
+                "utilization_summary",
+                "Weekly benefits summary",
+                "Weekly benefits summary ready",
+                data={"screen": "Dashboard"},
+            )
+
             # Email
             send_notification_email(
                 db,
