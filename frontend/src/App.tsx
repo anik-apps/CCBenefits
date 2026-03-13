@@ -27,7 +27,19 @@ function App() {
   const [showSplash, setShowSplash] = useState(() => !sessionStorage.getItem('ccb-splash-shown'));
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{
+      minHeight: '100vh', display: 'flex', flexDirection: 'column',
+      backgroundImage: `url(${appIcon})`,
+      backgroundRepeat: 'no-repeat',
+      backgroundPosition: 'center center',
+      backgroundSize: '40%',
+      backgroundAttachment: 'fixed',
+    }}>
+      {/* Overlay to dim the watermark */}
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
+        background: 'rgba(10, 10, 15, 0.92)',
+      }} />
       {showSplash && (
         <div
           style={{
@@ -55,16 +67,16 @@ function App() {
         </div>
       )}
       <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
         padding: '14px 24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         borderBottom: '1px solid var(--border-subtle)',
         background: 'var(--bg-secondary)',
-        position: 'sticky',
         ...(showSplash ? { opacity: 0, animation: 'contentFadeIn 1.5s ease-out 4.5s forwards' } : {}),
-        top: 0,
-        zIndex: 100,
         backdropFilter: 'blur(20px)',
       }}>
         <Link to={user ? '/' : '/login'} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -75,7 +87,8 @@ function App() {
             fontWeight: 600,
             letterSpacing: '-0.02em',
           }}>
-            CCBenefits
+            <span style={{ color: 'var(--accent-gold)' }}>CCB</span>
+            <span style={{ color: '#c0c0d0' }}>enefits</span>
           </span>
         </Link>
 
@@ -95,6 +108,7 @@ function App() {
       </header>
       <main style={{
         flex: 1, padding: '20px', maxWidth: isAuthPage ? 480 : 960, width: '100%', margin: '0 auto',
+        position: 'relative', zIndex: 1,
         ...(showSplash ? { opacity: 0, animation: 'contentFadeIn 1.5s ease-out 4.5s forwards' } : {}),
       }}>
         <Routes>

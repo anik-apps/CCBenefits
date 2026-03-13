@@ -3,8 +3,8 @@
 :root {
   --bg-primary: #0a0a0f;
   --bg-secondary: #12121a;
-  --bg-card: #181824;
-  --bg-elevated: #1e1e2e;
+  --bg-card: rgba(24, 24, 36, 0.80);
+  --bg-elevated: rgba(30, 30, 46, 0.80);
   --bg-input: #252538;
 
   --text-primary: #e8e6f0;
