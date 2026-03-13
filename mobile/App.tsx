@@ -14,6 +14,7 @@ import AuthStack from './src/navigation/AuthStack';
 import AppStack from './src/navigation/AppStack';
 import VerifyPendingScreen from './src/screens/VerifyPendingScreen';
 import { colors } from './src/theme';
+import { AppReadyProvider } from './src/contexts/AppReadyContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -95,7 +96,10 @@ function RootNavigator() {
               easing: Easing.out(Easing.quad), useNativeDriver: true,
             }),
           ]),
-        ]).start(() => setAppReady(true));
+        ]).start();
+
+        // Trigger card stagger shortly after overlay fades
+        setTimeout(() => setAppReady(true), 1500);
       }, 3500);
     }
   }, [loading]);
@@ -103,6 +107,7 @@ function RootNavigator() {
   const content = loading ? null : !user ? <AuthStack /> : !user.is_verified ? <VerifyPendingScreen /> : <AppStack />;
 
   return (
+    <AppReadyProvider value={appReady}>
     <View style={{ flex: 1 }}>
       {content}
       {!appReady && (
@@ -138,6 +143,7 @@ function RootNavigator() {
         </Animated.View>
       )}
     </View>
+    </AppReadyProvider>
   );
 }
 

@@ -7,23 +7,26 @@ import { useQuery } from '@tanstack/react-query';
 import { getUserCards, getUnreadCount } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { colors, spacing, radius, getIssuerColor } from '../theme';
+import { useAppReady } from '../contexts/AppReadyContext';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type Props = NativeStackScreenProps<any, 'Dashboard'>;
 
-function AnimatedCard({ item, index, isFirstRender, navigation }: { item: any; index: number; isFirstRender: React.MutableRefObject<boolean>; navigation: any }) {
-  const delay = isFirstRender.current ? index * 80 : 0;
-  const opacity = useRef(new Animated.Value(isFirstRender.current ? 0 : 1)).current;
-  const translateY = useRef(new Animated.Value(isFirstRender.current ? 20 : 0)).current;
+function AnimatedCard({ item, index, appReady, navigation }: { item: any; index: number; appReady: boolean; navigation: any }) {
+  const hasAnimated = useRef(false);
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
-    if (isFirstRender.current) {
+    if (appReady && !hasAnimated.current) {
+      hasAnimated.current = true;
+      const delay = index * 250;
       Animated.parallel([
-        Animated.timing(opacity, { toValue: 1, duration: 300, delay, useNativeDriver: true }),
-        Animated.timing(translateY, { toValue: 0, duration: 300, delay, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: 500, delay, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: 0, duration: 500, delay, useNativeDriver: true }),
       ]).start();
     }
-  }, []);
+  }, [appReady]);
 
   const { bg: issuerBg } = getIssuerColor(item.issuer);
   return (
@@ -73,15 +76,7 @@ export default function DashboardScreen({ navigation }: Props) {
     refetchInterval: 30_000,
   });
   const unreadCount = unreadData?.unread_count ?? 0;
-  const isFirstRender = useRef(true);
-
-  useEffect(() => {
-    if (cards) {
-      // Flip after first render of cards
-      const timer = setTimeout(() => { isFirstRender.current = false; }, (cards.length || 0) * 80 + 400);
-      return () => clearTimeout(timer);
-    }
-  }, []);
+  const appReady = useAppReady();
 
   if (isLoading) {
     return (
@@ -141,7 +136,7 @@ export default function DashboardScreen({ navigation }: Props) {
           refreshing={isLoading}
           contentContainerStyle={{ paddingBottom: spacing.xxl }}
           renderItem={({ item, index }) => (
-            <AnimatedCard item={item} index={index} isFirstRender={isFirstRender} navigation={navigation} />
+            <AnimatedCard item={item} index={index} appReady={appReady} navigation={navigation} />
           )}
         />
       )}
