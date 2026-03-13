@@ -62,6 +62,7 @@ function App() {
         borderBottom: '1px solid var(--border-subtle)',
         background: 'var(--bg-secondary)',
         position: 'sticky',
+        ...(showSplash ? { opacity: 0, animation: 'contentFadeIn 1.5s ease-out 4.5s forwards' } : {}),
         top: 0,
         zIndex: 100,
         backdropFilter: 'blur(20px)',
@@ -92,7 +93,10 @@ function App() {
           </div>
         )}
       </header>
-      <main style={{ flex: 1, padding: '20px', maxWidth: isAuthPage ? 480 : 960, width: '100%', margin: '0 auto' }}>
+      <main style={{
+        flex: 1, padding: '20px', maxWidth: isAuthPage ? 480 : 960, width: '100%', margin: '0 auto',
+        ...(showSplash ? { opacity: 0, animation: 'contentFadeIn 1.5s ease-out 4.5s forwards' } : {}),
+      }}>
         <Routes>
           <Route path="/login" element={user && user.is_verified ? <Navigate to="/" replace /> : <LoginPage />} />
           <Route path="/register" element={user && user.is_verified ? <Navigate to="/" replace /> : <RegisterPage />} />
