@@ -1,6 +1,6 @@
 import ScreenWrapper from '../components/ScreenWrapper';
 import LoadingScreen from '../components/LoadingScreen';
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, SectionList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUserCardDetails, logUsage, updateUsage, deleteUsage } from '../services/api';
@@ -28,7 +28,7 @@ export default function AllCreditsScreen({ navigation }: Props) {
   const [activeTab, setActiveTab] = useState<TabMode>('period');
 
   const { data: cardDetails, isLoading } = useQuery({
-    queryKey: ['all-card-details-batch'],
+    queryKey: ['all-card-details'],
     queryFn: getUserCardDetails,
   });
 
@@ -136,7 +136,6 @@ export default function AllCreditsScreen({ navigation }: Props) {
           const catColor = getCategoryColor(item.category);
 
           if (activeTab === 'card') {
-            const remainingPct = item.max_value > 0 ? (item.remaining / item.max_value) : 0;
             const statusColor = item.is_used
               ? (item.remaining <= 0 ? colors.statusSuccess : colors.accentGold)
               : colors.textMuted;

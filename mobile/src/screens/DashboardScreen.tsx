@@ -80,9 +80,9 @@ export default function DashboardScreen({ navigation }: Props) {
 
   const stats = useMemo(() => {
     if (!cards || cards.length === 0) return null;
-    const totalFees = cards.reduce((sum: number, c: any) => sum + (c.annual_fee ?? 0), 0);
-    const totalUsed = cards.reduce((sum: number, c: any) => sum + (c.ytd_actual_used ?? 0), 0);
-    const avgUtilization = cards.reduce((sum: number, c: any) => sum + (c.utilization_pct ?? 0), 0) / cards.length;
+    const totalFees = cards.reduce((sum, c) => sum + (c.annual_fee ?? 0), 0);
+    const totalUsed = cards.reduce((sum, c) => sum + (c.ytd_actual_used ?? 0), 0);
+    const avgUtilization = cards.reduce((sum, c) => sum + (c.utilization_pct ?? 0), 0) / cards.length;
     return { totalFees, totalUsed, avgUtilization };
   }, [cards]);
 

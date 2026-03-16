@@ -20,7 +20,6 @@ export default function BarChart({ data }: BarChartProps) {
 
   const barHeight = 28;
   const gap = 12;
-  const height = data.length * (barHeight + gap) - gap;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: gap }}>
