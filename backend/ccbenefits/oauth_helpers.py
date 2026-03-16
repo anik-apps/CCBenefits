@@ -2,6 +2,7 @@
 import logging
 
 from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .auth import create_access_token, create_refresh_token
@@ -72,7 +73,23 @@ def resolve_or_create_oauth_user(
             provider_user_id=provider_user_id,
             provider_email=email,
         ))
-        db.commit()
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            # Concurrent request created the same record — retry lookup
+            oauth_account = (
+                db.query(UserOAuthAccount)
+                .filter(
+                    UserOAuthAccount.provider == provider,
+                    UserOAuthAccount.provider_user_id == provider_user_id,
+                )
+                .first()
+            )
+            if oauth_account:
+                user = oauth_account.user
+            else:
+                raise HTTPException(status_code=500, detail="Failed to create OAuth link")
         db.refresh(user)
 
     oauth_login_counter.add(1, {"provider": provider, "is_new_user": str(is_new_user).lower()})

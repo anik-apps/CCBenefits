@@ -112,10 +112,7 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
     if not user.hashed_password:
         auth_login_counter.add(1, {"success": "false"})
         auth_failure_counter.add(1, {"reason": "oauth_only"})
-        raise HTTPException(
-            status_code=401,
-            detail="This account uses Google/Apple sign-in. Please use that method or set a password via forgot password.",
-        )
+        raise HTTPException(status_code=401, detail="Invalid email or password")
     if not verify_password(data.password, user.hashed_password):
         auth_login_counter.add(1, {"success": "false"})
         auth_failure_counter.add(1, {"reason": "invalid_credentials"})
@@ -297,6 +294,9 @@ def link_oauth_provider(
             raise HTTPException(status_code=401, detail="Invalid Apple token")
     else:
         raise HTTPException(status_code=400, detail="Unsupported provider")
+
+    if not info.get("email_verified"):
+        raise HTTPException(status_code=400, detail="Email not verified by provider")
 
     existing = (
         db.query(UserOAuthAccount)

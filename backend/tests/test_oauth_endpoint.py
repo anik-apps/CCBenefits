@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 GOOGLE_USER = {
     "provider_user_id": "google-123",
@@ -72,7 +72,7 @@ class TestNullPasswordGuards:
         client.post("/api/auth/oauth", json={"provider": "google", "id_token": "tok"})
         resp = client.post("/api/auth/login", json={"email": "oauth@test.com", "password": "anything"})
         assert resp.status_code == 401
-        assert "Google" in resp.json()["detail"] or "Apple" in resp.json()["detail"]
+        assert resp.json()["detail"] == "Invalid email or password"
 
     @patch("ccbenefits.routers.auth.verify_google_token")
     def test_change_password_rejects_oauth_only_user(self, mock_verify, client):
@@ -130,3 +130,63 @@ class TestOAuthProfileEndpoints:
         resp = client.delete("/api/auth/oauth/link/google", headers={"Authorization": f"Bearer {token}"})
         assert resp.status_code == 400
         assert "password" in resp.json()["detail"].lower() or "sign-in" in resp.json()["detail"].lower()
+
+
+APPLE_USER = {
+    "provider_user_id": "apple-456",
+    "email": "apple@test.com",
+    "email_verified": True,
+    "display_name": None,
+}
+
+
+class TestAppleWebCallback:
+    @patch("ccbenefits.routers.auth.verify_apple_token")
+    def test_happy_path_redirects_with_tokens(self, mock_verify, client):
+        mock_verify.return_value = APPLE_USER
+        resp = client.post(
+            "/api/auth/oauth/apple/callback",
+            data={"id_token": "tok", "state": "test-state", "user": ""},
+            cookies={"apple_oauth_state": "test-state"},
+            follow_redirects=False,
+        )
+        assert resp.status_code == 302
+        location = resp.headers["location"]
+        assert "#access_token=" in location
+        assert "&refresh_token=" in location
+
+    @patch("ccbenefits.routers.auth.verify_apple_token")
+    def test_csrf_state_mismatch_rejected(self, mock_verify, client):
+        mock_verify.return_value = APPLE_USER
+        resp = client.post(
+            "/api/auth/oauth/apple/callback",
+            data={"id_token": "tok", "state": "wrong-state", "user": ""},
+            cookies={"apple_oauth_state": "correct-state"},
+        )
+        assert resp.status_code == 400
+        assert "state" in resp.json()["detail"].lower()
+
+    @patch("ccbenefits.routers.auth.verify_apple_token")
+    def test_missing_state_cookie_rejected(self, mock_verify, client):
+        mock_verify.return_value = APPLE_USER
+        resp = client.post(
+            "/api/auth/oauth/apple/callback",
+            data={"id_token": "tok", "state": "some-state", "user": ""},
+        )
+        assert resp.status_code == 400
+
+    @patch("ccbenefits.routers.auth.verify_apple_token")
+    def test_extracts_display_name_from_user_json(self, mock_verify, client, db_session):
+        mock_verify.return_value = APPLE_USER
+        user_json = '{"name":{"firstName":"John","lastName":"Doe"}}'
+        resp = client.post(
+            "/api/auth/oauth/apple/callback",
+            data={"id_token": "tok", "state": "s", "user": user_json},
+            cookies={"apple_oauth_state": "s"},
+            follow_redirects=False,
+        )
+        assert resp.status_code == 302
+        # Verify user was created with the name
+        from ccbenefits.models import User
+        u = db_session.query(User).filter(User.email == "apple@test.com").first()
+        assert u.display_name == "John Doe"

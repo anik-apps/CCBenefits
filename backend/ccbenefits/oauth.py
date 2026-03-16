@@ -34,7 +34,10 @@ def verify_google_token(token: str) -> dict:
                 "email_verified": info.get("email_verified", False),
                 "display_name": info.get("name"),
             }
+        except ValueError:
+            continue
         except Exception:
+            logger.exception("Unexpected error verifying Google token with client_id %s", client_id)
             continue
     raise ValueError("Invalid Google ID token")
 
