@@ -8,6 +8,13 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { PERIOD_ORDER, PERIOD_LABELS } from '../constants/periodLabels';
 import { getIssuerColor } from '../constants/issuerTheme';
 
+const SHORT_PERIODS: Record<string, string> = {
+  monthly: 'M',
+  quarterly: 'Q',
+  semiannual: 'SA',
+  annual: 'A',
+};
+
 interface BenefitWithCard extends BenefitStatus {
   userCardId: number;
   cardName: string;
@@ -18,7 +25,7 @@ export default function AllCredits() {
   const queryClient = useQueryClient();
   const [modal, setModal] = useState<{ benefit: BenefitWithCard; mode: 'usage' | 'perceived' } | null>(null);
   const [view, setView] = useState<'period' | 'card' | 'sheet'>('period');
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<string> | null>(null); // null = initial (first only)
 
   const { data: cardDetails, isLoading } = useQuery({
     queryKey: ['all-card-details'],
@@ -153,19 +160,24 @@ export default function AllCredits() {
   };
 
   const toggleCollapse = (key: string) => {
-    setCollapsed(prev => {
-      const next = new Set(prev);
+    setExpandedSections(prev => {
+      // On first interaction, initialize from default state
+      const current = prev ?? new Set([getSectionKeys()[0]]);
+      const next = new Set(current);
       if (next.has(key)) next.delete(key);
       else next.add(key);
       return next;
     });
   };
 
+  const getSectionKeys = (): string[] => {
+    if (view === 'period') return PERIOD_ORDER.filter(p => grouped[p]).map(p => `period-${p}`);
+    return sortedCards.map(c => `card-${c.id}`);
+  };
+
   const isCollapsed = (key: string, index: number) => {
-    // First section expanded by default, rest collapsed
-    if (collapsed.size === 0 && index > 0) return true;
-    if (collapsed.size === 0 && index === 0) return false;
-    return collapsed.has(key);
+    if (expandedSections === null) return index > 0;
+    return !expandedSections.has(key);
   };
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
@@ -238,10 +250,10 @@ export default function AllCredits() {
           display: 'flex', gap: 4, background: 'var(--bg-card)',
           borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', padding: 3,
         }}>
-          <button style={tabStyle(view === 'period')} onClick={() => { setView('period'); setCollapsed(new Set()); }}>
+          <button style={tabStyle(view === 'period')} onClick={() => { setView('period'); setExpandedSections(null); }}>
             By Period
           </button>
-          <button style={tabStyle(view === 'card')} onClick={() => { setView('card'); setCollapsed(new Set()); }}>
+          <button style={tabStyle(view === 'card')} onClick={() => { setView('card'); setExpandedSections(null); }}>
             By Card
           </button>
           <button style={tabStyle(view === 'sheet')} onClick={() => setView('sheet')}>
@@ -381,12 +393,9 @@ export default function AllCredits() {
               <tr>
                 <th style={thStyle}>Card</th>
                 <th style={thStyle}>Benefit</th>
-                <th style={thStyle}>Category</th>
-                <th style={thStyle}>Period</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>Max</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>Used</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>Remaining</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>%</th>
+                <th style={thStyle}>Per.</th>
+                <th style={{ ...thStyle, textAlign: 'right' }}>Used / Max</th>
+                <th style={{ ...thStyle, textAlign: 'center', width: 28 }}></th>
               </tr>
             </thead>
             <tbody>
@@ -395,36 +404,34 @@ export default function AllCredits() {
                 const sortedBenefits = [...card.benefits_status].sort((a, b) => b.remaining - a.remaining);
                 const issuerColor = getIssuerColor(card.issuer).bg;
                 return sortedBenefits.map((b, i) => {
+                  const pct = b.max_value > 0 ? Math.min((b.amount_used / b.max_value) * 100, 100) : 0;
+                  const r = 8; const circ = 2 * Math.PI * r;
+                  const fillColor = getStatusColor(b);
                   return (
                   <tr key={`${card.id}-${b.benefit_template_id}`} style={{ borderBottom: '1px solid var(--border-subtle)', background: `${issuerColor}0A` }}>
                     <td style={{
-                      ...tdStyle, color: 'var(--text-secondary)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis',
+                      ...tdStyle, color: 'var(--text-secondary)', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis',
                       borderLeft: `3px solid ${issuerColor}`,
                     }}>
                       {i === 0 ? cardName : ''}
                     </td>
                     <td style={tdStyle}>{b.name}</td>
-                    <td style={{ ...tdStyle, color: 'var(--text-muted)' }}>{b.category}</td>
-                    <td style={{ ...tdStyle, color: 'var(--text-muted)', textTransform: 'capitalize' }}>
-                      {PERIOD_LABELS[b.period_type] || b.period_type}
+                    <td style={{ ...tdStyle, color: 'var(--text-muted)' }}>
+                      {SHORT_PERIODS[b.period_type] || b.period_type}
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                      ${b.max_value.toFixed(0)}
+                      <span style={{ color: 'var(--accent-gold)' }}>${b.amount_used.toFixed(0)}</span>
+                      <span style={{ color: 'var(--text-muted)' }}> / ${b.max_value.toFixed(0)}</span>
                     </td>
-                    <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--accent-gold)' }}>
-                      ${b.amount_used.toFixed(0)}
-                    </td>
-                    <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                      ${b.remaining.toFixed(0)}
-                    </td>
-                    <td style={{
-                      ...tdStyle,
-                      textAlign: 'right',
-                      fontWeight: 600,
-                      fontVariantNumeric: 'tabular-nums',
-                      color: getStatusColor(b),
-                    }}>
-                      {b.max_value > 0 ? ((b.amount_used / b.max_value) * 100).toFixed(0) : 0}%
+                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                      <svg width="20" height="20" viewBox="0 0 20 20" style={{ verticalAlign: 'middle' }}>
+                        <circle cx="10" cy="10" r={r} fill="none" stroke="var(--border-medium)" strokeWidth="3" />
+                        <circle cx="10" cy="10" r={r} fill="none" stroke={fillColor} strokeWidth="3"
+                          strokeDasharray={`${(pct / 100) * circ} ${circ}`}
+                          strokeDashoffset={circ / 4}
+                          strokeLinecap="round"
+                        />
+                      </svg>
                     </td>
                   </tr>
                   );
@@ -432,21 +439,23 @@ export default function AllCredits() {
               })}
               {/* Grand total row */}
               <tr style={{ borderTop: '2px solid var(--border-medium)' }}>
-                <td style={{ ...tdStyle, fontWeight: 700 }} colSpan={4}>Total (Fees: ${grandTotalFees.toFixed(0)})</td>
+                <td style={{ ...tdStyle, fontWeight: 700 }} colSpan={2}>Total (Fees: ${grandTotalFees.toFixed(0)})</td>
+                <td style={tdStyle}></td>
                 <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                  ${grandTotalMax.toFixed(0)}
+                  <span style={{ color: 'var(--accent-gold)' }}>${grandTotalUsed.toFixed(0)}</span>
+                  <span style={{ color: 'var(--text-muted)' }}> / ${grandTotalMax.toFixed(0)}</span>
                 </td>
-                <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--accent-gold)' }}>
-                  ${grandTotalUsed.toFixed(0)}
-                </td>
-                <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                  ${(grandTotalMax - grandTotalUsed).toFixed(0)}
-                </td>
-                <td style={{
-                  ...tdStyle, textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-                  color: grandUtilization >= 80 ? 'var(--accent-emerald)' : grandUtilization > 0 ? 'var(--accent-gold)' : 'var(--text-muted)',
-                }}>
-                  {grandUtilization.toFixed(0)}%
+                <td style={{ ...tdStyle, textAlign: 'center' }}>
+                  <svg width="20" height="20" viewBox="0 0 20 20" style={{ verticalAlign: 'middle' }}>
+                    <circle cx="10" cy="10" r="8" fill="none" stroke="var(--border-medium)" strokeWidth="3" />
+                    <circle cx="10" cy="10" r="8" fill="none"
+                      stroke={grandUtilization >= 80 ? 'var(--accent-emerald)' : 'var(--accent-gold)'}
+                      strokeWidth="3"
+                      strokeDasharray={`${(Math.min(grandUtilization, 100) / 100) * 2 * Math.PI * 8} ${2 * Math.PI * 8}`}
+                      strokeDashoffset={2 * Math.PI * 8 / 4}
+                      strokeLinecap="round"
+                    />
+                  </svg>
                 </td>
               </tr>
             </tbody>

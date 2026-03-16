@@ -1,7 +1,7 @@
 import ScreenWrapper from '../components/ScreenWrapper';
 import LoadingScreen from '../components/LoadingScreen';
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SectionList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, SectionList, ScrollView, TouchableOpacity } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUserCardDetails, logUsage, updateUsage, deleteUsage } from '../services/api';
 import UsageModal from '../components/UsageModal';
@@ -14,7 +14,14 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type Props = NativeStackScreenProps<any, 'AllCredits'>;
 
-type TabMode = 'period' | 'card';
+type TabMode = 'period' | 'card' | 'sheet';
+
+const SHORT_PERIODS: Record<string, string> = {
+  monthly: 'M',
+  quarterly: 'Q',
+  semiannual: 'SA',
+  annual: 'A',
+};
 
 interface BenefitWithCard extends BenefitStatus {
   userCardId: number;
@@ -26,6 +33,7 @@ export default function AllCreditsScreen({ navigation }: Props) {
   const queryClient = useQueryClient();
   const [selectedBenefit, setSelectedBenefit] = useState<BenefitWithCard | null>(null);
   const [activeTab, setActiveTab] = useState<TabMode>('period');
+  const [expandedSections, setExpandedSections] = useState<Set<string> | null>(null); // null = initial (first only)
 
   const { data: cardDetails, isLoading } = useQuery({
     queryKey: ['all-card-details'],
@@ -58,14 +66,17 @@ export default function AllCreditsScreen({ navigation }: Props) {
 
   const periodSections = PERIOD_ORDER
     .map(period => ({
+      key: `period-${period}`,
       title: PERIOD_LABELS[period] || period,
       data: allBenefits.filter(b => b.period_type === period),
     }))
     .filter(s => s.data.length > 0);
 
-  const cardSections = [...cardDetails]
-    .sort((a, b) => (a.utilization_pct ?? 0) - (b.utilization_pct ?? 0))
+  const sortedCards = [...cardDetails].sort((a, b) => (a.utilization_pct ?? 0) - (b.utilization_pct ?? 0));
+
+  const cardSections = sortedCards
     .map(card => ({
+      key: `card-${card.id}`,
       card,
       title: card.card_name,
       data: [...card.benefits_status]
@@ -75,6 +86,38 @@ export default function AllCreditsScreen({ navigation }: Props) {
     .filter(s => s.data.length > 0);
 
   const sections = activeTab === 'period' ? periodSections : cardSections;
+
+  const getAllSectionKeys = (): string[] => {
+    if (activeTab === 'period') return periodSections.map(s => s.key);
+    return cardSections.map(s => s.key);
+  };
+
+  const toggleSection = (key: string) => {
+    setExpandedSections(prev => {
+      const current = prev ?? new Set([getAllSectionKeys()[0]]);
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const isSectionCollapsed = (key: string, index: number) => {
+    if (expandedSections === null) return index > 0;
+    return !expandedSections.has(key);
+  };
+
+  // Grand totals for sheet
+  const grandTotalFees = cardDetails.reduce((s, c) => s + c.annual_fee, 0);
+  const grandTotalMax = allBenefits.reduce((s, b) => s + b.max_value, 0);
+  const grandTotalUsed = allBenefits.reduce((s, b) => s + b.amount_used, 0);
+  const grandUtilization = grandTotalMax > 0 ? (grandTotalUsed / grandTotalMax) * 100 : 0;
+
+  const getStatusColor = (b: BenefitStatus) => {
+    if (b.is_used && b.amount_used >= b.max_value) return colors.statusSuccess;
+    if (b.amount_used > 0) return colors.accentGold;
+    return colors.textMuted;
+  };
 
   return (
     <ScreenWrapper>
@@ -87,131 +130,213 @@ export default function AllCreditsScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.tabRow}>
-        <TouchableOpacity
-          style={[styles.tabBtn, activeTab === 'period' && styles.tabBtnActive]}
-          onPress={() => setActiveTab('period')}
-        >
-          <Text style={[styles.tabText, activeTab === 'period' && styles.tabTextActive]}>By Period</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabBtn, activeTab === 'card' && styles.tabBtnActive]}
-          onPress={() => setActiveTab('card')}
-        >
-          <Text style={[styles.tabText, activeTab === 'card' && styles.tabTextActive]}>By Card</Text>
-        </TouchableOpacity>
+        {(['period', 'card', 'sheet'] as TabMode[]).map(tab => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tabBtn, activeTab === tab && styles.tabBtnActive]}
+            onPress={() => { setActiveTab(tab); setExpandedSections(null); }}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+              {tab === 'period' ? 'By Period' : tab === 'card' ? 'By Card' : 'Sheet'}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      <SectionList
-        sections={sections}
-        keyExtractor={(item, index) => `${activeTab}-${item.benefit_template_id}-${item.cardName}-${index}`}
-        contentContainerStyle={styles.list}
-        renderSectionHeader={({ section }) => {
-          if (activeTab === 'card' && 'card' in section) {
-            const card = (section as typeof cardSections[number]).card;
-            const issuerColor = getIssuerColor(card.issuer);
-            return (
-              <View style={[styles.cardSectionHeader, { borderLeftColor: issuerColor.bg }]}>
-                <View style={styles.cardSectionRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.cardSectionName}>{card.nickname || card.card_name}</Text>
-                    <Text style={styles.cardSectionIssuer}>{card.issuer}</Text>
-                  </View>
-                  <View style={styles.cardSectionStats}>
-                    <Text style={styles.cardSectionFee}>${card.annual_fee} fee</Text>
-                    <Text style={[
-                      styles.cardSectionUtil,
-                      { color: (card.utilization_pct ?? 0) > 50 ? colors.statusSuccess : colors.accentGold },
-                    ]}>
-                      {(card.utilization_pct ?? 0).toFixed(0)}% util
+      {/* ===== SHEET VIEW ===== */}
+      {activeTab === 'sheet' && (
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xxl }}>
+        <ScrollView horizontal contentContainerStyle={{ paddingHorizontal: spacing.lg }}>
+          <View>
+            {/* Header row */}
+            <View style={styles.sheetRow}>
+              <Text style={[styles.sheetHeader, { width: 90 }]}>Card</Text>
+              <Text style={[styles.sheetHeader, { width: 120 }]}>Benefit</Text>
+              <Text style={[styles.sheetHeader, styles.sheetRight, { width: 90, paddingLeft: 0 }]}>Used / Max</Text>
+              <View style={{ width: 24 }} />
+            </View>
+            {/* Data rows */}
+            {sortedCards.map(card => {
+              const issuerColor = getIssuerColor(card.issuer).bg;
+              const sorted = [...card.benefits_status].sort((a, b) => b.remaining - a.remaining);
+              return sorted.map((b, i) => {
+                const pct = b.max_value > 0 ? Math.min((b.amount_used / b.max_value) * 100, 100) : 0;
+                const statusColor = getStatusColor(b);
+                return (
+                  <View key={`${card.id}-${b.benefit_template_id}`} style={[styles.sheetRow, { borderLeftWidth: 3, borderLeftColor: issuerColor, backgroundColor: issuerColor + '0A' }]}>
+                    <Text style={[styles.sheetCell, { width: 90, color: colors.textSecondary }]} numberOfLines={1}>
+                      {i === 0 ? (card.nickname || card.card_name) : ''}
                     </Text>
+                    <Text style={[styles.sheetCell, { width: 120 }]} numberOfLines={1}>{b.name}</Text>
+                    <Text style={[styles.sheetCell, styles.sheetRight, { width: 90, paddingLeft: 0 }]}>
+                      <Text style={{ color: colors.accentGold }}>${b.amount_used}</Text>
+                      <Text style={{ color: colors.textMuted }}> / ${b.max_value}</Text>
+                    </Text>
+                    <View style={{ width: 24, alignItems: 'center', justifyContent: 'center' }}>
+                      <View style={{
+                        width: 18, height: 18, borderRadius: 9,
+                        borderWidth: 2.5, borderColor: colors.borderMedium,
+                      }}>
+                        <View style={{
+                          position: 'absolute', top: -2.5, left: -2.5,
+                          width: 18, height: 18, borderRadius: 9,
+                          borderWidth: 2.5, borderColor: statusColor,
+                          borderTopColor: pct >= 25 ? statusColor : 'transparent',
+                          borderRightColor: pct >= 50 ? statusColor : 'transparent',
+                          borderBottomColor: pct >= 75 ? statusColor : 'transparent',
+                          borderLeftColor: pct >= 100 ? statusColor : 'transparent',
+                          transform: [{ rotate: '-45deg' }],
+                        }} />
+                      </View>
+                    </View>
                   </View>
-                </View>
-              </View>
-            );
-          }
-          return <Text style={styles.sectionHeader}>{section.title}</Text>;
-        }}
-        renderItem={({ item }) => {
-          const catIcon = getCategoryIcon(item.category);
-          const catColor = getCategoryColor(item.category);
+                );
+              });
+            })}
+            {/* Grand total */}
+            <View style={[styles.sheetRow, { borderTopWidth: 2, borderTopColor: colors.borderMedium }]}>
+              <Text style={[styles.sheetCell, { width: 90, fontWeight: '700' }]}>Total</Text>
+              <Text style={[styles.sheetCell, { width: 120, color: colors.textMuted }]}>Fees: ${grandTotalFees}</Text>
+              <Text style={[styles.sheetCell, styles.sheetRight, { width: 90, paddingLeft: 0, fontWeight: '700' }]}>
+                <Text style={{ color: colors.accentGold }}>${grandTotalUsed}</Text>
+                <Text style={{ color: colors.textMuted }}> / ${grandTotalMax}</Text>
+              </Text>
+              <View style={{ width: 24 }} />
+            </View>
+          </View>
+        </ScrollView>
+        </ScrollView>
+      )}
 
-          if (activeTab === 'card') {
-            const statusColor = item.is_used
-              ? (item.remaining <= 0 ? colors.statusSuccess : colors.accentGold)
-              : colors.textMuted;
+      {/* ===== PERIOD + CARD VIEWS with collapsible sections ===== */}
+      {activeTab !== 'sheet' && (
+        <SectionList
+          sections={sections}
+          keyExtractor={(item, index) => `${activeTab}-${item.benefit_template_id}-${item.cardName}-${index}`}
+          contentContainerStyle={styles.list}
+          stickySectionHeadersEnabled={false}
+          renderSectionHeader={({ section }) => {
+            const sectionKey = (section as any).key || section.title;
+            const sectionIndex = sections.findIndex(s => ((s as any).key || s.title) === sectionKey);
+            const collapsed = isSectionCollapsed(sectionKey, sectionIndex);
+
+            if (activeTab === 'card' && 'card' in section) {
+              const card = (section as typeof cardSections[number]).card;
+              const issuerColor = getIssuerColor(card.issuer);
+              return (
+                <TouchableOpacity onPress={() => toggleSection(sectionKey)} activeOpacity={0.7}>
+                  <View style={[styles.cardSectionHeader, { borderLeftColor: issuerColor.bg }]}>
+                    <View style={styles.cardSectionRow}>
+                      <Text style={{ fontSize: 10, color: colors.textMuted, marginRight: spacing.xs }}>{collapsed ? '▶' : '▼'}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.cardSectionName}>{card.nickname || card.card_name}</Text>
+                        <Text style={styles.cardSectionIssuer}>{card.issuer}</Text>
+                      </View>
+                      <View style={styles.cardSectionStats}>
+                        <Text style={styles.cardSectionFee}>${card.annual_fee} fee</Text>
+                        <Text style={[
+                          styles.cardSectionUtil,
+                          { color: (card.utilization_pct ?? 0) > 50 ? colors.statusSuccess : colors.accentGold },
+                        ]}>
+                          {(card.utilization_pct ?? 0).toFixed(0)}% util
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            }
+            return (
+              <TouchableOpacity onPress={() => toggleSection(sectionKey)} activeOpacity={0.7}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg, marginBottom: spacing.sm }}>
+                  <Text style={{ fontSize: 10, color: colors.textMuted, marginRight: spacing.xs }}>{collapsed ? '▶' : '▼'}</Text>
+                  <Text style={styles.sectionHeader}>{section.title} ({section.data.length})</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          }}
+          renderItem={({ item, section }) => {
+            const sectionKey = (section as any).key || section.title;
+            const sectionIndex = sections.findIndex(s => ((s as any).key || s.title) === sectionKey);
+            if (isSectionCollapsed(sectionKey, sectionIndex)) return null;
+
+            const catIcon = getCategoryIcon(item.category);
+            const catColor = getCategoryColor(item.category);
+
+            if (activeTab === 'card') {
+              return (
+                <TouchableOpacity
+                  style={styles.benefitCard}
+                  onPress={() => setSelectedBenefit(item)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.benefitRow}>
+                    <View style={[styles.catIconBox, { backgroundColor: catColor + '20', borderColor: catColor + '40' }]}>
+                      <Text style={styles.catIconText}>{catIcon}</Text>
+                    </View>
+                    <View style={{ flex: 1, marginLeft: spacing.sm }}>
+                      <Text style={styles.benefitName}>{item.name}</Text>
+                      <Text style={styles.cardLabel}>{item.category}</Text>
+                    </View>
+                    <View style={styles.benefitRight}>
+                      <Text style={styles.benefitMax}>${item.max_value}</Text>
+                      <Text style={styles.benefitUsedLabel}>
+                        ${item.amount_used} used / ${item.remaining} left
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            }
+
             return (
               <TouchableOpacity
-                style={styles.benefitCard}
+                style={[styles.benefitCard, { borderLeftWidth: 3, borderLeftColor: getIssuerColor(item.issuer).bg }]}
                 onPress={() => setSelectedBenefit(item)}
                 activeOpacity={0.7}
               >
                 <View style={styles.benefitRow}>
-                  <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
                   <View style={[styles.catIconBox, { backgroundColor: catColor + '20', borderColor: catColor + '40' }]}>
                     <Text style={styles.catIconText}>{catIcon}</Text>
                   </View>
                   <View style={{ flex: 1, marginLeft: spacing.sm }}>
                     <Text style={styles.benefitName}>{item.name}</Text>
-                    <Text style={styles.cardLabel}>{item.category}</Text>
+                    {item.description ? (
+                      <Text style={styles.benefitDesc} numberOfLines={2}>{item.description}</Text>
+                    ) : null}
+                    <Text style={styles.cardLabel}>{item.cardName}</Text>
                   </View>
                   <View style={styles.benefitRight}>
-                    <Text style={styles.benefitMax}>${item.max_value}</Text>
-                    <Text style={styles.benefitUsedLabel}>
-                      ${item.amount_used} used / ${item.remaining} left
+                    <Text style={[styles.benefitValue, item.is_used && styles.benefitUsedStyle]}>
+                      ${item.amount_used} / ${item.max_value}
+                    </Text>
+                    <Text style={styles.tapHint}>
+                      {item.is_used ? 'Tap to edit' : 'Tap to log'}
                     </Text>
                   </View>
                 </View>
+                <View style={styles.dotsRow}>
+                  {item.periods.map(p => {
+                    const isFullyUsed = p.is_used && p.amount_used >= item.max_value;
+                    const isPartial = p.is_used && !isFullyUsed;
+                    return (
+                      <View
+                        key={p.label}
+                        style={[
+                          styles.dot,
+                          isPartial && styles.dotPartial,
+                          isFullyUsed && styles.dotFull,
+                          p.is_current && styles.dotCurrent,
+                        ]}
+                      />
+                    );
+                  })}
+                </View>
               </TouchableOpacity>
             );
-          }
-
-          return (
-            <TouchableOpacity
-              style={[styles.benefitCard, { borderLeftWidth: 3, borderLeftColor: getIssuerColor(item.issuer).bg }]}
-              onPress={() => setSelectedBenefit(item)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.benefitRow}>
-                <View style={[styles.catIconBox, { backgroundColor: catColor + '20', borderColor: catColor + '40' }]}>
-                  <Text style={styles.catIconText}>{catIcon}</Text>
-                </View>
-                <View style={{ flex: 1, marginLeft: spacing.sm }}>
-                  <Text style={styles.benefitName}>{item.name}</Text>
-                  {item.description ? (
-                    <Text style={styles.benefitDesc} numberOfLines={2}>{item.description}</Text>
-                  ) : null}
-                  <Text style={styles.cardLabel}>{item.cardName}</Text>
-                </View>
-                <View style={styles.benefitRight}>
-                  <Text style={[styles.benefitValue, item.is_used && styles.benefitUsedStyle]}>
-                    ${item.amount_used} / ${item.max_value}
-                  </Text>
-                  <Text style={styles.tapHint}>
-                    {item.is_used ? 'Tap to edit' : 'Tap to log'}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.dotsRow}>
-                {item.periods.map(p => {
-                  const isFullyUsed = p.is_used && p.amount_used >= item.max_value;
-                  const isPartial = p.is_used && !isFullyUsed;
-                  return (
-                    <View
-                      key={p.label}
-                      style={[
-                        styles.dot,
-                        isPartial && styles.dotPartial,
-                        isFullyUsed && styles.dotFull,
-                        p.is_current && styles.dotCurrent,
-                      ]}
-                    />
-                  );
-                })}
-              </View>
-            </TouchableOpacity>
-          );
-        }}
-      />
+          }}
+        />
+      )}
 
       {selectedBenefit && (
         <UsageModal
@@ -241,15 +366,14 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm - 2,
   },
   tabBtnActive: {
-    backgroundColor: colors.bgCard,
-    borderWidth: 1, borderColor: colors.borderMedium,
+    backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.borderMedium,
   },
-  tabText: { fontSize: 13, fontWeight: '500', color: colors.textMuted },
+  tabText: { fontSize: 12, fontWeight: '500', color: colors.textMuted },
   tabTextActive: { color: colors.accentGold, fontWeight: '600' },
   list: { padding: spacing.lg, paddingTop: 0, paddingBottom: spacing.xxl },
   sectionHeader: {
     fontSize: 13, fontWeight: '600', color: colors.accentGold, textTransform: 'uppercase',
-    letterSpacing: 1, marginTop: spacing.lg, marginBottom: spacing.sm,
+    letterSpacing: 1,
   },
   cardSectionHeader: {
     backgroundColor: colors.bgTertiary, borderRadius: radius.md,
@@ -269,8 +393,7 @@ const styles = StyleSheet.create({
   benefitRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.sm },
   catIconBox: {
     width: 36, height: 36, borderRadius: radius.sm,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1,
   },
   catIconText: { fontSize: 16 },
   benefitName: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
@@ -288,4 +411,17 @@ const styles = StyleSheet.create({
   dotPartial: { backgroundColor: colors.accentGold },
   dotFull: { backgroundColor: colors.statusSuccess },
   dotCurrent: { borderWidth: 1.5, borderColor: colors.accentGold },
+  // Sheet styles
+  sheetRow: {
+    flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.borderSubtle,
+    alignItems: 'center',
+  },
+  sheetHeader: {
+    fontSize: 10, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase',
+    letterSpacing: 0.5, paddingVertical: 8, paddingHorizontal: 6,
+  },
+  sheetCell: {
+    fontSize: 12, color: colors.textPrimary, paddingVertical: 6, paddingHorizontal: 6,
+  },
+  sheetRight: { textAlign: 'right' },
 });
