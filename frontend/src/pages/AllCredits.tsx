@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getUserCards, getUserCard, logUsage, updateUsage, deleteUsage, updateBenefitSetting } from '../services/api';
-import type { BenefitStatus, PeriodSegment } from '../types';
+import { getUserCardDetails, logUsage, updateUsage, deleteUsage, updateBenefitSetting } from '../services/api';
+import type { BenefitStatus, PeriodSegment, UserCardDetail } from '../types';
 import BenefitRow from '../components/BenefitRow';
 import UsageModal from '../components/UsageModal';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -16,31 +16,17 @@ interface BenefitWithCard extends BenefitStatus {
 export default function AllCredits() {
   const queryClient = useQueryClient();
   const [modal, setModal] = useState<{ benefit: BenefitWithCard; mode: 'usage' | 'perceived' } | null>(null);
+  const [view, setView] = useState<'period' | 'card'>('period');
 
-  const { data: summaries, isLoading: loadingSummaries } = useQuery({
-    queryKey: ['user-cards'],
-    queryFn: getUserCards,
-    refetchOnMount: 'always',
-  });
-
-  // Fetch detail for each user card
-  const cardIds = summaries?.map(s => s.id) ?? [];
-  const { data: cardDetails, isLoading: loadingDetails } = useQuery({
-    queryKey: ['all-card-details', cardIds],
-    queryFn: async () => {
-      const details = await Promise.all(cardIds.map(id => getUserCard(id)));
-      return details;
-    },
-    enabled: cardIds.length > 0,
+  const { data: cardDetails, isLoading } = useQuery({
+    queryKey: ['all-card-details'],
+    queryFn: getUserCardDetails,
     refetchOnMount: 'always',
   });
 
   const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['user-cards'] });
     queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
   };
-
-  const isLoading = loadingSummaries || loadingDetails;
 
   if (isLoading) {
     return (
@@ -146,60 +132,253 @@ export default function AllCredits() {
     refresh();
   };
 
+  // Compute grand totals for card view
+  const computeCardStats = (card: UserCardDetail) => {
+    const totalMax = card.benefits_status.reduce((sum, b) => sum + b.max_value, 0);
+    const totalUsed = card.benefits_status.reduce((sum, b) => sum + b.amount_used, 0);
+    const utilization = totalMax > 0 ? (totalUsed / totalMax) * 100 : 0;
+    return { totalMax, totalUsed, utilization };
+  };
+
+  const grandTotalFees = cardDetails.reduce((sum, c) => sum + c.annual_fee, 0);
+  const grandTotalMax = cardDetails.reduce((sum, c) => {
+    const s = computeCardStats(c);
+    return sum + s.totalMax;
+  }, 0);
+  const grandTotalUsed = cardDetails.reduce((sum, c) => {
+    const s = computeCardStats(c);
+    return sum + s.totalUsed;
+  }, 0);
+  const grandUtilization = grandTotalMax > 0 ? (grandTotalUsed / grandTotalMax) * 100 : 0;
+
+  // Sort cards by utilization ascending for card view
+  const sortedCards = [...cardDetails].sort((a, b) => {
+    const aUtil = computeCardStats(a).utilization;
+    const bUtil = computeCardStats(b).utilization;
+    return aUtil - bUtil;
+  });
+
+  const getStatusColor = (benefit: BenefitStatus) => {
+    if (benefit.is_used && benefit.amount_used >= benefit.max_value) return 'var(--accent-emerald)';
+    if (benefit.amount_used > 0) return 'var(--accent-gold)';
+    return 'var(--text-muted)';
+  };
+
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    padding: '6px 16px',
+    fontSize: '0.78rem',
+    fontWeight: 600,
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    background: active ? 'rgba(212, 175, 55, 0.15)' : 'transparent',
+    color: active ? 'var(--accent-gold)' : 'var(--text-muted)',
+  });
+
   return (
     <div>
-      <h1 style={{
-        fontFamily: 'var(--font-display)',
-        fontSize: '1.4rem',
-        fontWeight: 600,
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         marginBottom: 16,
         animation: 'fadeInUp 0.4s ease-out both',
       }}>
-        All Credits
-      </h1>
-
-      {PERIOD_ORDER.filter(p => grouped[p]).map((periodType, gi) => (
-        <div key={periodType} style={{
-          marginBottom: 16,
-          animation: `fadeInUp 0.4s ease-out ${(gi + 1) * 0.06}s both`,
+        <h1 style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '1.4rem',
+          fontWeight: 600,
+          margin: 0,
         }}>
-          <div style={{
-            fontSize: '0.7rem',
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            color: 'var(--text-muted)',
-            padding: '6px 14px',
-            marginBottom: 2,
-          }}>
-            {PERIOD_LABELS[periodType]} ({grouped[periodType].length})
-          </div>
+          All Credits
+        </h1>
+
+        <div style={{
+          display: 'flex',
+          gap: 4,
+          background: 'var(--bg-card)',
+          borderRadius: 'var(--radius-sm)',
+          border: '1px solid var(--border-subtle)',
+          padding: 3,
+        }}>
+          <button style={tabStyle(view === 'period')} onClick={() => setView('period')}>
+            By Period
+          </button>
+          <button style={tabStyle(view === 'card')} onClick={() => setView('card')}>
+            By Card
+          </button>
+        </div>
+      </div>
+
+      {view === 'period' && (
+        <>
+          {PERIOD_ORDER.filter(p => grouped[p]).map((periodType, gi) => (
+            <div key={periodType} style={{
+              marginBottom: 16,
+              animation: `fadeInUp 0.4s ease-out ${(gi + 1) * 0.06}s both`,
+            }}>
+              <div style={{
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: 'var(--text-muted)',
+                padding: '6px 14px',
+                marginBottom: 2,
+              }}>
+                {PERIOD_LABELS[periodType]} ({grouped[periodType].length})
+              </div>
+              <div style={{
+                background: 'var(--bg-card)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-subtle)',
+                overflow: 'hidden',
+              }}>
+                {grouped[periodType].map((b, i) => {
+                  const handlers = makeHandlers(b.userCardId);
+                  return (
+                    <div key={`${b.userCardId}-${b.benefit_template_id}`}>
+                      {i > 0 && <div style={{ height: 1, background: 'var(--border-subtle)', margin: '0 14px' }} />}
+                      <BenefitRow
+                        benefit={b}
+                        cardName={b.cardName}
+                        issuer={b.issuer}
+                        onToggleBinary={handlers.onToggleBinary}
+                        onLogContinuous={handlers.onLogContinuous}
+                        onSetPerceived={handlers.onSetPerceived}
+                        onSegmentClick={handlers.onSegmentClick}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+
+      {view === 'card' && (
+        <>
+          {/* Grand total row */}
           <div style={{
             background: 'var(--bg-card)',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-subtle)',
-            overflow: 'hidden',
+            padding: '12px 14px',
+            marginBottom: 16,
+            animation: 'fadeInUp 0.4s ease-out 0.06s both',
           }}>
-            {grouped[periodType].map((b, i) => {
-              const handlers = makeHandlers(b.userCardId);
-              return (
-                <div key={`${b.userCardId}-${b.benefit_template_id}`}>
-                  {i > 0 && <div style={{ height: 1, background: 'var(--border-subtle)', margin: '0 14px' }} />}
-                  <BenefitRow
-                    benefit={b}
-                    cardName={b.cardName}
-                    issuer={b.issuer}
-                    onToggleBinary={handlers.onToggleBinary}
-                    onLogContinuous={handlers.onLogContinuous}
-                    onSetPerceived={handlers.onSetPerceived}
-                    onSegmentClick={handlers.onSegmentClick}
-                  />
-                </div>
-              );
-            })}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>All Cards Total</span>
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  Fees: ${grandTotalFees.toFixed(0)}
+                </span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                  ${grandTotalUsed.toFixed(0)} / ${grandTotalMax.toFixed(0)}
+                </span>
+                <span style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: grandUtilization >= 80 ? 'var(--accent-emerald)' : grandUtilization > 0 ? 'var(--accent-gold)' : 'var(--text-muted)',
+                  fontVariantNumeric: 'tabular-nums',
+                }}>
+                  {grandUtilization.toFixed(0)}%
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
-      ))}
+
+          {/* Card sections */}
+          {sortedCards.map((card, ci) => {
+            const stats = computeCardStats(card);
+            const cardName = card.nickname || card.card_name;
+            const handlers = makeHandlers(card.id);
+            // Sort benefits by remaining descending
+            const sortedBenefits = [...card.benefits_status].sort((a, b) => b.remaining - a.remaining);
+
+            return (
+              <div key={card.id} style={{
+                marginBottom: 16,
+                animation: `fadeInUp 0.4s ease-out ${(ci + 2) * 0.06}s both`,
+              }}>
+                {/* Card header */}
+                <div style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  color: 'var(--text-muted)',
+                  padding: '6px 14px',
+                  marginBottom: 2,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}>
+                  <span>{cardName} &middot; {card.issuer}</span>
+                  <span style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <span>Fee: ${card.annual_fee.toFixed(0)}</span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                      ${stats.totalUsed.toFixed(0)} / ${stats.totalMax.toFixed(0)}
+                    </span>
+                    <span style={{
+                      fontWeight: 700,
+                      color: stats.utilization >= 80 ? 'var(--accent-emerald)' : stats.utilization > 0 ? 'var(--accent-gold)' : 'var(--text-muted)',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}>
+                      {stats.utilization.toFixed(0)}%
+                    </span>
+                  </span>
+                </div>
+
+                <div style={{
+                  background: 'var(--bg-card)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-subtle)',
+                  overflow: 'hidden',
+                }}>
+                  {sortedBenefits.map((b, i) => {
+                    const benefitWithCard: BenefitWithCard = {
+                      ...b,
+                      userCardId: card.id,
+                      cardName,
+                      issuer: card.issuer,
+                    };
+                    return (
+                      <div key={`${card.id}-${b.benefit_template_id}`}>
+                        {i > 0 && <div style={{ height: 1, background: 'var(--border-subtle)', margin: '0 14px' }} />}
+                        <div style={{ display: 'flex', alignItems: 'stretch' }}>
+                          {/* Status color indicator */}
+                          <div style={{
+                            width: 3,
+                            background: getStatusColor(b),
+                            flexShrink: 0,
+                          }} />
+                          <div style={{ flex: 1 }}>
+                            <BenefitRow
+                              benefit={b}
+                              issuer={card.issuer}
+                              onToggleBinary={handlers.onToggleBinary}
+                              onLogContinuous={handlers.onLogContinuous}
+                              onSetPerceived={handlers.onSetPerceived}
+                              onSegmentClick={handlers.onSegmentClick}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
 
       {modal && (
         <UsageModal
