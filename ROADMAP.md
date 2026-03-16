@@ -15,6 +15,10 @@
 - [x] Email/password registration with bcrypt hashing
 - [x] Email verification via Resend (24-hour token expiry)
 - [x] Password reset with opaque tokens (SHA-256 hashed)
+- [x] Forgot password UI (web + mobile)
+- [x] OAuth sign-in: Google (web + mobile), Apple (coming soon)
+- [x] Auto account linking by verified email
+- [x] OAuth profile management (link/unlink providers)
 - [x] Admin role via `CCB_ADMIN_EMAILS` env var
 
 ### Mobile App (Android)
@@ -54,7 +58,7 @@
 - [x] CI sync: dashboards auto-pushed on merge, validated on PRs
 
 ### Code Quality
-- [x] 157+ backend tests with 88%+ coverage
+- [x] 185+ backend tests with 87%+ coverage
 - [x] Frontend TypeScript strict mode + Vite build
 - [x] Mobile TypeScript compilation checks
 - [x] Shared types drift check (CI enforced)
@@ -72,6 +76,7 @@
 - [ ] **In-app notification inbox**: Bell icon with notification history in the app (most visible gap in notification UX)
 
 ### Medium Priority
+- [ ] **Apple Sign-In**: Requires Apple Developer account ($99/yr), Service ID, private key for web flow
 - [ ] **iOS app**: Build and distribute via TestFlight / App Store (requires Apple Developer account $99/yr)
 - [ ] **Shared/family cards**: Allow multiple users to track the same card's benefits
 - [ ] **Benefit usage reminders**: Configurable reminder frequency (not just 3 days before expiry)

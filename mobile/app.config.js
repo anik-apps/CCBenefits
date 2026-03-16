@@ -39,12 +39,17 @@ export default {
         },
       ],
       "expo-splash-screen",
+      "expo-web-browser",
+      "expo-apple-authentication",
     ],
     scheme: "ccbenefits",
     extra: {
       eas: {
         projectId: "d9ff5adf-f515-442c-833b-cd22c566541d",
       },
+      googleClientId: process.env.GOOGLE_CLIENT_ID || "",
+      googleClientIdAndroid: process.env.GOOGLE_CLIENT_ID_ANDROID || "",
+      googleClientIdIos: process.env.GOOGLE_CLIENT_ID_IOS || "",
     },
     owner: "kumaranik",
   },

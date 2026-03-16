@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { updateProfile, changePassword } from '../services/api';
+import { updateProfile, changePassword, getOAuthProviders, linkOAuthProvider, unlinkOAuthProvider } from '../services/api';
+import { GoogleLogin } from '@react-oauth/google';
+import { extractApiError } from '../utils/apiError';
 import { inputStyle, labelStyle, primaryButtonStyle } from '../styles/form';
 import type { NotificationPreferences, ChannelPreferences } from '../types';
 
@@ -81,6 +83,13 @@ export default function ProfilePage() {
   );
   const [notifMsg, setNotifMsg] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [oauthProviders, setOauthProviders] = useState<{ provider: string; provider_email: string }[]>([]);
+  const [oauthMsg, setOauthMsg] = useState('');
+
+  useEffect(() => {
+    getOAuthProviders().then(setOauthProviders).catch(() => {});
+  }, []);
 
   const saveNotifPrefs = useCallback(async (prefs: NotificationPreferences) => {
     try {
@@ -216,6 +225,63 @@ export default function ProfilePage() {
 
       <div style={{ marginBottom: 32 }}>
         <h3 style={{ marginBottom: 12 }}>
+          Connected Accounts
+          {oauthMsg && <span style={{ marginLeft: 12, fontSize: '0.8rem', fontWeight: 400, color: 'var(--text-muted)' }}>{oauthMsg}</span>}
+        </h3>
+        {oauthProviders.map(p => (
+          <div key={p.provider} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, padding: '8px 12px', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+            <span style={{ fontSize: '0.9rem' }}>{p.provider === 'google' ? 'Google' : 'Apple'} — <span style={{ color: 'var(--text-muted)' }}>{p.provider_email}</span></span>
+            <button
+              onClick={async () => {
+                try {
+                  await unlinkOAuthProvider(p.provider);
+                  setOauthProviders(prev => prev.filter(op => op.provider !== p.provider));
+                  setOauthMsg('Unlinked');
+                  setTimeout(() => setOauthMsg(''), 2000);
+                } catch (err) {
+                  const msg = extractApiError(err, 'Failed to unlink');
+                  if (msg.toLowerCase().includes('password') || msg.toLowerCase().includes('sign-in')) {
+                    setOauthMsg('Set a password first before unlinking. Use "Set a password via email" below.');
+                  } else {
+                    setOauthMsg(msg);
+                  }
+                  setTimeout(() => setOauthMsg(''), 5000);
+                }
+              }}
+              style={{ fontSize: '0.8rem', color: 'var(--accent-red)', cursor: 'pointer' }}
+            >
+              Unlink
+            </button>
+          </div>
+        ))}
+        {!oauthProviders.find(p => p.provider === 'google') && (
+          <div style={{ marginTop: 8 }}>
+            <GoogleLogin
+              onSuccess={async (response) => {
+                if (response.credential) {
+                  try {
+                    await linkOAuthProvider('google', response.credential);
+                    const providers = await getOAuthProviders();
+                    setOauthProviders(providers);
+                    setOauthMsg('Google linked');
+                    setTimeout(() => setOauthMsg(''), 2000);
+                  } catch (err) {
+                    setOauthMsg(extractApiError(err, 'Failed to link Google'));
+                    setTimeout(() => setOauthMsg(''), 3000);
+                  }
+                }
+              }}
+              onError={() => setOauthMsg('Failed to link Google')}
+              theme="filled_black"
+              size="medium"
+              text="signin"
+            />
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginBottom: 32 }}>
+        <h3 style={{ marginBottom: 12 }}>
           Notifications
           {notifMsg && <span style={{ marginLeft: 12, fontSize: '0.8rem', fontWeight: 400, color: 'var(--text-muted)' }}>{notifMsg}</span>}
         </h3>
@@ -281,23 +347,35 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <form onSubmit={handlePasswordChange} style={{ marginBottom: 32 }}>
-        <h3 style={{ marginBottom: 12 }}>Change Password</h3>
-        <label style={{ display: 'block', marginBottom: 12 }}>
-          <span style={labelStyle}>Current Password</span>
-          <input type="password" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} required style={inputStyle} />
-        </label>
-        <label style={{ display: 'block', marginBottom: 16 }}>
-          <span style={labelStyle}>New Password</span>
-          <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} required minLength={8} style={inputStyle} />
-        </label>
-        <button type="submit" style={{
-          padding: '8px 20px', borderRadius: 'var(--radius-sm)',
-          background: 'rgba(255,255,255,0.1)', color: 'var(--text-primary)',
-          fontWeight: 600, border: '1px solid var(--border-medium)', cursor: 'pointer',
-        }}>Change Password</button>
-        {pwMsg && <span style={{ marginLeft: 12, fontSize: '0.85rem' }}>{pwMsg}</span>}
-      </form>
+      <div style={{ marginBottom: 32 }}>
+        <h3 style={{ marginBottom: 12 }}>Password</h3>
+        {oauthProviders.length > 0 && !currentPw && pwMsg === '' ? (
+          <div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 12 }}>
+              No password set. You can add one to enable email/password sign-in.
+            </p>
+            <a href="/forgot-password" style={{ color: 'var(--accent-gold)', fontSize: '0.85rem' }}>
+              Set a password via email
+            </a>
+          </div>
+        ) : null}
+        <form onSubmit={handlePasswordChange} style={{ marginTop: oauthProviders.length > 0 ? 16 : 0 }}>
+          <label style={{ display: 'block', marginBottom: 12 }}>
+            <span style={labelStyle}>Current Password</span>
+            <input type="password" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} required style={inputStyle} />
+          </label>
+          <label style={{ display: 'block', marginBottom: 16 }}>
+            <span style={labelStyle}>New Password</span>
+            <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} required minLength={8} style={inputStyle} />
+          </label>
+          <button type="submit" style={{
+            padding: '8px 20px', borderRadius: 'var(--radius-sm)',
+            background: 'rgba(255,255,255,0.1)', color: 'var(--text-primary)',
+            fontWeight: 600, border: '1px solid var(--border-medium)', cursor: 'pointer',
+          }}>Change Password</button>
+          {pwMsg && <span style={{ marginLeft: 12, fontSize: '0.85rem' }}>{pwMsg}</span>}
+        </form>
+      </div>
 
       <div>
         <button onClick={logout} style={{

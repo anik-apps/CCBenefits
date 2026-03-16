@@ -11,6 +11,7 @@ import {
   logout as apiLogout,
   clearTokens,
   setAuthFailureHandler,
+  oauthSignIn,
 } from '../services/api';
 import { getCurrentPushToken, unregisterPushNotifications } from '../services/notifications';
 // Note: no resetToAuth needed — clearing user state triggers RootNavigator to show AuthStack
@@ -20,6 +21,7 @@ export interface AuthContextValue {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, displayName: string) => Promise<User>;
+  oauthLogin: (provider: string, idToken: string, displayName?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -77,6 +79,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return response.user;
   };
 
+  const oauthLogin = async (provider: string, idToken: string, displayName?: string) => {
+    queryClient.clear();
+    const data = await oauthSignIn(provider, idToken, displayName);
+    setUser(data.user);
+  };
+
   const logout = async () => {
     const pushToken = getCurrentPushToken();
     if (pushToken) {
@@ -88,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, oauthLogin, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

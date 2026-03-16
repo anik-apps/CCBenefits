@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../hooks/useAuth';
 import { inputStyle, labelStyle, primaryButtonStyle, errorStyle, authPageStyle } from '../styles/form';
 import { extractApiError } from '../utils/apiError';
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { register, oauthLogin } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -57,6 +58,30 @@ export default function RegisterPage() {
           {loading ? 'Creating account...' : 'Create Account'}
         </button>
       </form>
+      <div style={{ textAlign: 'center', margin: '20px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>or</div>
+      <GoogleLogin
+        onSuccess={async (response) => {
+          if (response.credential) {
+            try {
+              await oauthLogin('google', response.credential);
+              navigate('/');
+            } catch (err) {
+              setError(extractApiError(err, 'Google sign-up failed'));
+            }
+          }
+        }}
+        onError={() => setError('Google sign-up failed')}
+        theme="filled_black"
+        size="large"
+        width={352}
+        text="signup_with"
+      />
+      <button
+        disabled
+        style={{ ...primaryButtonStyle, width: '100%', padding: '10px', marginTop: 8, background: '#333', color: '#888', cursor: 'not-allowed', opacity: 0.6 }}
+      >
+        Sign up with Apple — Coming Soon
+      </button>
       <p style={{ marginTop: 16, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
         Already have an account? <Link to="/login" style={{ color: 'var(--accent-gold)' }}>Sign in</Link>
       </p>

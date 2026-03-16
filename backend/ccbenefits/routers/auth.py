@@ -2,7 +2,10 @@ import logging
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import json as json_mod
+
+from fastapi import APIRouter, Depends, Form, HTTPException, Request as FastAPIRequest
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from ..auth import (
@@ -26,14 +29,20 @@ from ..metrics import (
     auth_failure_counter,
     auth_login_counter,
     auth_register_counter,
+    oauth_link_counter,
     password_reset_counter,
     verification_completed_counter,
     verification_sent_counter,
 )
 from ..helpers import user_out
-from ..models import User
+from ..models import User, UserOAuthAccount
+from ..oauth import verify_apple_token, verify_google_token
+from ..oauth_helpers import get_error_redirect_url, resolve_or_create_oauth_user
 from ..schemas import (
     AuthResponse,
+    OAuthLinkRequest,
+    OAuthProviderOut,
+    OAuthRequest,
     PasswordReset,
     PasswordResetRequest,
     RefreshRequest,
@@ -96,7 +105,15 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
 @router.post("/login", response_model=TokenResponse)
 def login(data: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email.lower()).first()
-    if not user or not verify_password(data.password, user.hashed_password):
+    if not user:
+        auth_login_counter.add(1, {"success": "false"})
+        auth_failure_counter.add(1, {"reason": "invalid_credentials"})
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    if not user.hashed_password:
+        auth_login_counter.add(1, {"success": "false"})
+        auth_failure_counter.add(1, {"reason": "oauth_only"})
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    if not verify_password(data.password, user.hashed_password):
         auth_login_counter.add(1, {"success": "false"})
         auth_failure_counter.add(1, {"reason": "invalid_credentials"})
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -208,3 +225,183 @@ def reset_password(data: PasswordReset, db: Session = Depends(get_db)):
     user.password_reset_expires = None
     db.commit()
     return {"message": "Password reset successfully"}
+
+
+# --- OAuth endpoints ---
+
+
+@router.post("/oauth", response_model=AuthResponse)
+def oauth_sign_in(data: OAuthRequest, db: Session = Depends(get_db)):
+    if data.provider == "google":
+        try:
+            info = verify_google_token(data.id_token)
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid Google token")
+    elif data.provider == "apple":
+        try:
+            info = verify_apple_token(data.id_token)
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid Apple token")
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported provider")
+
+    if not info["email_verified"]:
+        raise HTTPException(status_code=400, detail="Email not verified by provider")
+
+    display_name = info.get("display_name") or data.display_name or info["email"].split("@")[0]
+
+    auth_response, _ = resolve_or_create_oauth_user(
+        db=db,
+        provider=data.provider,
+        provider_user_id=info["provider_user_id"],
+        email=info["email"],
+        display_name=display_name,
+    )
+    return auth_response
+
+
+@router.get("/oauth/providers", response_model=list[OAuthProviderOut])
+def list_oauth_providers(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    accounts = (
+        db.query(UserOAuthAccount)
+        .filter(UserOAuthAccount.user_id == current_user.id)
+        .all()
+    )
+    return [
+        OAuthProviderOut(provider=a.provider, provider_email=a.provider_email, created_at=a.created_at)
+        for a in accounts
+    ]
+
+
+@router.post("/oauth/link")
+def link_oauth_provider(
+    data: OAuthLinkRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if data.provider == "google":
+        try:
+            info = verify_google_token(data.id_token)
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid Google token")
+    elif data.provider == "apple":
+        try:
+            info = verify_apple_token(data.id_token)
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid Apple token")
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported provider")
+
+    if not info.get("email_verified"):
+        raise HTTPException(status_code=400, detail="Email not verified by provider")
+
+    existing = (
+        db.query(UserOAuthAccount)
+        .filter(UserOAuthAccount.provider == data.provider, UserOAuthAccount.provider_user_id == info["provider_user_id"])
+        .first()
+    )
+    if existing:
+        if existing.user_id == current_user.id:
+            return {"message": "Already linked"}
+        raise HTTPException(status_code=409, detail="This account is linked to another user")
+
+    db.add(UserOAuthAccount(
+        user_id=current_user.id, provider=data.provider,
+        provider_user_id=info["provider_user_id"], provider_email=info["email"],
+    ))
+    db.commit()
+    oauth_link_counter.add(1, {"provider": data.provider, "action": "link"})
+    return {"message": f"{data.provider} linked successfully"}
+
+
+@router.delete("/oauth/link/{provider}")
+def unlink_oauth_provider(
+    provider: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    account = (
+        db.query(UserOAuthAccount)
+        .filter(UserOAuthAccount.user_id == current_user.id, UserOAuthAccount.provider == provider)
+        .first()
+    )
+    if not account:
+        raise HTTPException(status_code=404, detail="Provider not linked")
+
+    other_oauth_count = (
+        db.query(UserOAuthAccount)
+        .filter(UserOAuthAccount.user_id == current_user.id, UserOAuthAccount.provider != provider)
+        .count()
+    )
+    has_password = current_user.hashed_password is not None
+    if not has_password and other_oauth_count == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot unlink your only sign-in method. Set a password first or link another provider.",
+        )
+
+    db.delete(account)
+    db.commit()
+    oauth_link_counter.add(1, {"provider": provider, "action": "unlink"})
+    return {"message": f"{provider} unlinked successfully"}
+
+
+@router.post("/oauth/apple/callback")
+def apple_web_callback(
+    request: FastAPIRequest,
+    id_token: str = Form(...),
+    state: str = Form(...),
+    apple_user_data: str = Form("", alias="user"),
+    db: Session = Depends(get_db),
+):
+    """Apple web sign-in callback. Apple POSTs here after authentication."""
+    # CSRF: validate state matches cookie
+    cookie_state = request.cookies.get("apple_oauth_state")
+    if not cookie_state or cookie_state != state:
+        raise HTTPException(status_code=400, detail="Invalid state parameter")
+
+    try:
+        info = verify_apple_token(id_token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid Apple token")
+
+    if not info["email_verified"]:
+        return RedirectResponse(get_error_redirect_url(FRONTEND_URL, "email_not_verified"))
+
+    # Extract display name from Apple's user JSON (only sent on first sign-in)
+    display_name = None
+    if apple_user_data:
+        try:
+            parsed = json_mod.loads(apple_user_data)
+            name = parsed.get("name", {})
+            parts = [name.get("firstName", ""), name.get("lastName", "")]
+            display_name = " ".join(p for p in parts if p) or None
+        except (json_mod.JSONDecodeError, AttributeError):
+            logger.warning("Failed to parse Apple user JSON: %s", apple_user_data[:200])
+    if not display_name:
+        display_name = info["email"].split("@")[0]
+
+    try:
+        auth_response, _ = resolve_or_create_oauth_user(
+            db=db,
+            provider="apple",
+            provider_user_id=info["provider_user_id"],
+            email=info["email"],
+            display_name=display_name,
+        )
+    except HTTPException as e:
+        error_map = {409: "unverified_account", 401: "account_deactivated"}
+        error_key = error_map.get(e.status_code, "sign_in_failed")
+        return RedirectResponse(get_error_redirect_url(FRONTEND_URL, error_key))
+
+    # Redirect with tokens in URL fragment (not query params, for security)
+    response = RedirectResponse(
+        f"{FRONTEND_URL}/login#access_token={auth_response.access_token}&refresh_token={auth_response.refresh_token}",
+        status_code=302,
+    )
+    # Clear the state cookie to prevent replay
+    response.delete_cookie("apple_oauth_state")
+    return response

@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import Constants from 'expo-constants';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { useAuth } from '../hooks/useAuth';
 import { extractApiError } from '../utils/apiError';
@@ -8,14 +11,29 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type Props = NativeStackScreenProps<any, 'Register'>;
 
+WebBrowser.maybeCompleteAuthSession();
+
 export default function RegisterScreen({ navigation }: Props) {
-  const { register } = useAuth();
+  const { register, oauthLogin } = useAuth();
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: Constants.expoConfig?.extra?.googleClientId,
+    androidClientId: Constants.expoConfig?.extra?.googleClientIdAndroid,
+    iosClientId: Constants.expoConfig?.extra?.googleClientIdIos,
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+      oauthLogin('google', id_token).catch(() => setError('Google sign-up failed'));
+    }
+  }, [response]);
 
   const handleSubmit = async () => {
     setError('');
@@ -57,6 +75,23 @@ export default function RegisterScreen({ navigation }: Props) {
           <Text style={styles.buttonText}>{loading ? 'Creating account...' : 'Create Account'}</Text>
         </TouchableOpacity>
 
+        <Text style={styles.divider}>or</Text>
+
+        <TouchableOpacity
+          style={[styles.oauthButton, !request && styles.buttonDisabled]}
+          onPress={() => promptAsync()}
+          disabled={!request}
+        >
+          <Text style={styles.oauthButtonText}>Sign up with Google</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          disabled
+          style={[styles.oauthButton, { backgroundColor: '#333', opacity: 0.6, marginTop: spacing.sm }]}
+        >
+          <Text style={[styles.oauthButtonText, { color: '#888' }]}>Sign up with Apple — Coming Soon</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity onPress={() => navigation.navigate('Login')}>
           <Text style={styles.link}>Already have an account? <Text style={styles.linkAccent}>Sign in</Text></Text>
         </TouchableOpacity>
@@ -81,6 +116,12 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: colors.bgPrimary, fontWeight: '600', fontSize: 16 },
   error: { color: colors.statusDanger, fontSize: 13, marginBottom: spacing.lg, textAlign: 'center' },
-  link: { color: colors.textMuted, fontSize: 13, textAlign: 'center' },
+  divider: { textAlign: 'center', color: colors.textMuted, fontSize: 13, marginVertical: spacing.md },
+  oauthButton: {
+    backgroundColor: '#4285F4', borderRadius: radius.sm,
+    padding: spacing.lg, alignItems: 'center',
+  },
+  oauthButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  link: { color: colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: spacing.lg },
   linkAccent: { color: colors.accentGold },
 });

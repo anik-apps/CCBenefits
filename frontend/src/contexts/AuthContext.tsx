@@ -10,6 +10,7 @@ import {
   register as apiRegister,
   logout as apiLogout,
   clearTokens,
+  oauthSignIn,
 } from '../services/api';
 
 export interface AuthContextValue {
@@ -17,6 +18,7 @@ export interface AuthContextValue {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, displayName: string) => Promise<void>;
+  oauthLogin: (provider: string, idToken: string, displayName?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -63,6 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(response.user);
   };
 
+  const oauthLogin = async (provider: string, idToken: string, displayName?: string) => {
+    queryClient.clear();
+    const data = await oauthSignIn(provider, idToken, displayName);
+    setUser(data.user);
+  };
+
   const logout = () => {
     setUser(null);
     queryClient.clear();
@@ -70,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, oauthLogin, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

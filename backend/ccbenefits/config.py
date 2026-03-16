@@ -38,6 +38,18 @@ EMAIL_FROM = os.environ.get("CCB_EMAIL_FROM", "CCBenefits <notifications@ccb.kum
 FRONTEND_URL = os.environ.get("CCB_FRONTEND_URL", "http://localhost:5173")
 VERIFICATION_TOKEN_EXPIRE_HOURS = 24
 
+# OAuth
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_ID_ANDROID = os.environ.get("GOOGLE_CLIENT_ID_ANDROID", "")
+GOOGLE_CLIENT_ID_IOS = os.environ.get("GOOGLE_CLIENT_ID_IOS", "")
+GOOGLE_CLIENT_IDS = [cid for cid in [GOOGLE_CLIENT_ID, GOOGLE_CLIENT_ID_ANDROID, GOOGLE_CLIENT_ID_IOS] if cid]
+
+APPLE_SERVICE_ID = os.environ.get("APPLE_SERVICE_ID", "")
+APPLE_BUNDLE_ID = os.environ.get("APPLE_BUNDLE_ID", "com.anikapps.ccbenefits")
+APPLE_TEAM_ID = os.environ.get("APPLE_TEAM_ID", "")
+APPLE_KEY_ID = os.environ.get("APPLE_KEY_ID", "")
+APPLE_PRIVATE_KEY = os.environ.get("APPLE_PRIVATE_KEY", "")  # PEM format
+
 GRAFANA_OTLP_ENDPOINT = os.environ.get("GRAFANA_OTLP_ENDPOINT", "")
 GRAFANA_INSTANCE_ID = os.environ.get("GRAFANA_INSTANCE_ID", "")
 GRAFANA_OTLP_TOKEN = os.environ.get("GRAFANA_OTLP_TOKEN", "")
