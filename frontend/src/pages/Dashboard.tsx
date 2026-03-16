@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { getUserCards } from '../services/api';
 import CardSummary from '../components/CardSummary';
 import ROISummary from '../components/ROISummary';
+import DonutChart from '../components/DonutChart';
+import BarChart from '../components/BarChart';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { Link } from 'react-router-dom';
 
@@ -110,6 +112,73 @@ export default function Dashboard() {
           <CardSummary key={card.id} card={card} index={i} />
         ))}
       </div>
+
+      {(() => {
+        const totalUsed = cards.reduce((sum, c) => sum + c.ytd_actual_used, 0);
+        const totalMax = cards.reduce((sum, c) => sum + c.total_max_annual_value, 0);
+        const barData = cards.map((c) => ({
+          label: c.nickname || c.card_name,
+          value: c.utilization_pct,
+        }));
+
+        if (totalMax <= 0) return null;
+
+        return (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: 16,
+            marginTop: 24,
+            animation: 'fadeInUp 0.5s ease-out both',
+          }}>
+            <div style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-md)',
+              padding: 24,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 8,
+            }}>
+              <h3 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '1rem',
+                fontWeight: 600,
+                margin: 0,
+                marginBottom: 8,
+              }}>
+                Overall Utilization
+              </h3>
+              <DonutChart used={totalUsed} total={totalMax} />
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0 }}>
+                ${totalUsed.toLocaleString()} of ${totalMax.toLocaleString()} used
+              </p>
+            </div>
+
+            <div style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-md)',
+              padding: 24,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}>
+              <h3 style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '1rem',
+                fontWeight: 600,
+                margin: 0,
+                marginBottom: 8,
+              }}>
+                Per-Card Utilization
+              </h3>
+              <BarChart data={barData} />
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
