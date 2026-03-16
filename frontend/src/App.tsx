@@ -12,6 +12,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminFeedback from './pages/AdminFeedback';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import VerifyPendingPage from './pages/VerifyPendingPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import TabLink from './components/TabLink';
 import UserMenu from './components/UserMenu';
 import NotificationPanel from './components/NotificationPanel';
@@ -22,7 +24,7 @@ function App() {
   const location = useLocation();
   const { user } = useAuth();
   const isTabPage = location.pathname === '/' || location.pathname === '/credits';
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/verify-pending';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/verify-pending' || location.pathname === '/forgot-password' || location.pathname === '/reset-password';
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [showSplash, setShowSplash] = useState(() => !sessionStorage.getItem('ccb-splash-shown'));
 
@@ -116,6 +118,8 @@ function App() {
           <Route path="/register" element={user && user.is_verified ? <Navigate to="/" replace /> : <RegisterPage />} />
           <Route path="/verify" element={<VerifyEmailPage />} />
           <Route path="/verify-pending" element={<VerifyPendingPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/credits" element={<ProtectedRoute><AllCredits /></ProtectedRoute>} />
           <Route path="/add-card" element={<ProtectedRoute><AddCard /></ProtectedRoute>} />

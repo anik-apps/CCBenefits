@@ -231,6 +231,14 @@ export async function resendVerification(): Promise<void> {
   await api.post('/api/auth/resend-verification');
 }
 
+export async function requestPasswordReset(email: string): Promise<void> {
+  await api.post('/api/auth/password-reset-request', { email });
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  await api.post('/api/auth/password-reset', { token, new_password: newPassword });
+}
+
 // Notification inbox API functions
 export interface NotificationItem {
   id: number;
