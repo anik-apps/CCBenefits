@@ -91,22 +91,10 @@ export default function LoginPage() {
         width={352}
       />
       <button
-        onClick={() => {
-          const state = crypto.randomUUID();
-          document.cookie = `apple_oauth_state=${state};path=/;max-age=600;SameSite=None;Secure`;
-          const params = new URLSearchParams({
-            client_id: import.meta.env.VITE_APPLE_SERVICE_ID || '',
-            redirect_uri: `${window.location.origin}/api/auth/oauth/apple/callback`,
-            response_type: 'code id_token',
-            response_mode: 'form_post',
-            scope: 'name email',
-            state,
-          });
-          window.location.href = `https://appleid.apple.com/auth/authorize?${params}`;
-        }}
-        style={{ ...primaryButtonStyle, width: '100%', padding: '10px', marginTop: 8, background: '#000', color: '#fff' }}
+        disabled
+        style={{ ...primaryButtonStyle, width: '100%', padding: '10px', marginTop: 8, background: '#333', color: '#888', cursor: 'not-allowed', opacity: 0.6 }}
       >
-        Sign in with Apple
+        Sign in with Apple — Coming Soon
       </button>
       <p style={{ marginTop: 16, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
         Don't have an account? <Link to="/register" style={{ color: 'var(--accent-gold)' }}>Sign up</Link>

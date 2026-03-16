@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
+import { Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import * as Google from 'expo-auth-session/providers/google';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
 import ScreenWrapper from '../components/ScreenWrapper';
@@ -86,31 +85,12 @@ export default function RegisterScreen({ navigation }: Props) {
           <Text style={styles.oauthButtonText}>Sign up with Google</Text>
         </TouchableOpacity>
 
-        {Platform.OS === 'ios' && (
-          <AppleAuthentication.AppleAuthenticationButton
-            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
-            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-            cornerRadius={radius.sm}
-            style={{ height: 48, width: '100%', marginTop: spacing.sm }}
-            onPress={async () => {
-              try {
-                const credential = await AppleAuthentication.signInAsync({
-                  requestedScopes: [
-                    AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-                    AppleAuthentication.AppleAuthenticationScope.EMAIL,
-                  ],
-                });
-                const dn = [credential.fullName?.givenName, credential.fullName?.familyName]
-                  .filter(Boolean).join(' ') || undefined;
-                await oauthLogin('apple', credential.identityToken!, dn);
-              } catch (err: any) {
-                if (err.code !== 'ERR_REQUEST_CANCELED') {
-                  setError('Apple sign-up failed');
-                }
-              }
-            }}
-          />
-        )}
+        <TouchableOpacity
+          disabled
+          style={[styles.oauthButton, { backgroundColor: '#333', opacity: 0.6, marginTop: spacing.sm }]}
+        >
+          <Text style={[styles.oauthButtonText, { color: '#888' }]}>Sign up with Apple — Coming Soon</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.navigate('Login')}>
           <Text style={styles.link}>Already have an account? <Text style={styles.linkAccent}>Sign in</Text></Text>

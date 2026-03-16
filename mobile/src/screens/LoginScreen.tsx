@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import * as Google from 'expo-auth-session/providers/google';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
 import { useAuth } from '../hooks/useAuth';
@@ -106,31 +105,12 @@ export default function LoginScreen({ navigation }: Props) {
           <Text style={styles.oauthButtonText}>Sign in with Google</Text>
         </TouchableOpacity>
 
-        {Platform.OS === 'ios' && (
-          <AppleAuthentication.AppleAuthenticationButton
-            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-            cornerRadius={radius.sm}
-            style={{ height: 48, width: '100%', marginTop: spacing.sm }}
-            onPress={async () => {
-              try {
-                const credential = await AppleAuthentication.signInAsync({
-                  requestedScopes: [
-                    AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-                    AppleAuthentication.AppleAuthenticationScope.EMAIL,
-                  ],
-                });
-                const displayName = [credential.fullName?.givenName, credential.fullName?.familyName]
-                  .filter(Boolean).join(' ') || undefined;
-                await oauthLogin('apple', credential.identityToken!, displayName);
-              } catch (err: any) {
-                if (err.code !== 'ERR_REQUEST_CANCELED') {
-                  setError('Apple sign-in failed');
-                }
-              }
-            }}
-          />
-        )}
+        <TouchableOpacity
+          disabled
+          style={[styles.oauthButton, { backgroundColor: '#333', opacity: 0.6, marginTop: spacing.sm }]}
+        >
+          <Text style={[styles.oauthButtonText, { color: '#888' }]}>Sign in with Apple — Coming Soon</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
           <Text style={styles.link}>Don't have an account? <Text style={styles.linkAccent}>Sign up</Text></Text>
