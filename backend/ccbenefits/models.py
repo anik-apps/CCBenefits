@@ -37,7 +37,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     display_name: Mapped[str] = mapped_column(String, nullable=False)
-    hashed_password: Mapped[str] = mapped_column(String, nullable=False)
+    hashed_password: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
     preferred_currency: Mapped[str] = mapped_column(String, default="USD", nullable=False)
     timezone: Mapped[str] = mapped_column(String, default="UTC", nullable=False)
     notification_preferences: Mapped[dict | None] = mapped_column(JSON, default=dict)
@@ -58,6 +58,26 @@ class User(Base):
     )
 
     cards: Mapped[list["UserCard"]] = relationship(back_populates="user")
+    oauth_accounts: Mapped[list["UserOAuthAccount"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+
+
+class UserOAuthAccount(Base):
+    __tablename__ = "user_oauth_accounts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    provider: Mapped[str] = mapped_column(String, nullable=False)
+    provider_user_id: Mapped[str] = mapped_column(String, nullable=False)
+    provider_email: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(dt_timezone.utc).replace(tzinfo=None), nullable=False
+    )
+
+    user: Mapped["User"] = relationship(back_populates="oauth_accounts")
+
+    __table_args__ = (
+        UniqueConstraint("provider", "provider_user_id", name="uq_provider_user"),
+    )
 
 
 class CardTemplate(Base):

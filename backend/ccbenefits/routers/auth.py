@@ -96,7 +96,18 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
 @router.post("/login", response_model=TokenResponse)
 def login(data: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email.lower()).first()
-    if not user or not verify_password(data.password, user.hashed_password):
+    if not user:
+        auth_login_counter.add(1, {"success": "false"})
+        auth_failure_counter.add(1, {"reason": "invalid_credentials"})
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    if not user.hashed_password:
+        auth_login_counter.add(1, {"success": "false"})
+        auth_failure_counter.add(1, {"reason": "oauth_only"})
+        raise HTTPException(
+            status_code=401,
+            detail="This account uses Google/Apple sign-in. Please use that method or set a password via forgot password.",
+        )
+    if not verify_password(data.password, user.hashed_password):
         auth_login_counter.add(1, {"success": "false"})
         auth_failure_counter.add(1, {"reason": "invalid_credentials"})
         raise HTTPException(status_code=401, detail="Invalid email or password")
