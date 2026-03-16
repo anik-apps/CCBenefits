@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session, joinedload
 
 from ..config import ADMIN_EMAILS
 from ..database import get_db
-from ..metrics import feedback_submitted_counter
 from ..dependencies import get_current_user
+from ..metrics import feedback_submitted_counter
 from ..models import Feedback, User
 from ..schemas import FeedbackCreate, FeedbackOut
 

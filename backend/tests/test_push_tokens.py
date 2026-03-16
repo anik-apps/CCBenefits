@@ -1,6 +1,5 @@
-from ccbenefits.auth import create_access_token, hash_password
+from ccbenefits.auth import hash_password
 from ccbenefits.models import PushToken, User
-
 
 VALID_TOKEN = "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]"
 ENDPOINT = "/api/notifications/push-token"

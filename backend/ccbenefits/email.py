@@ -26,8 +26,8 @@ class ConsoleEmailSender:
     """Logs emails to console. Used in development when no email provider is configured."""
 
     def send(self, to: str, subject: str, html_body: str, from_address: str | None = None) -> None:
-        logger.info(f"Email to {to} | From: {from_address or 'default'} | Subject: {subject}")
-        logger.debug(f"Body: {html_body}")
+        logger.info("Email to %s | From: %s | Subject: %s", to, from_address or "default", subject)
+        logger.debug("Body: %s", html_body)
 
 
 class ResendEmailSender:

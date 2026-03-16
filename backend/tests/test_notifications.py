@@ -402,7 +402,7 @@ def test_check_unused_recap_respects_preference(db_session):
 @freeze_time("2026-04-01T10:00:00Z")
 def test_fee_approaching_fires_30_days_before(db_session):
     """Card with renewal_date 30 days from today should trigger notification."""
-    from datetime import date, timedelta
+    from datetime import date
     from unittest.mock import patch
 
     from ccbenefits.models import CardTemplate, UserCard

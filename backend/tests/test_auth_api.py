@@ -98,9 +98,11 @@ def test_password_reset_request_nonexistent_email(client):
 
 
 def test_password_reset_end_to_end(client, db_session):
+    from datetime import datetime, timedelta
+    from datetime import timezone as dt_timezone
+
     from ccbenefits.auth import create_opaque_token, hash_opaque_token
     from ccbenefits.models import User
-    from datetime import datetime, timedelta, timezone as dt_timezone
 
     # Register a user
     client.post("/api/auth/register", json={
@@ -141,9 +143,11 @@ def test_password_reset_invalid_token(client):
 
 
 def test_password_reset_token_single_use(client, db_session):
+    from datetime import datetime, timedelta
+    from datetime import timezone as dt_timezone
+
     from ccbenefits.auth import create_opaque_token, hash_opaque_token
     from ccbenefits.models import User
-    from datetime import datetime, timedelta, timezone as dt_timezone
 
     client.post("/api/auth/register", json={
         "email": "singleuse@test.com", "password": "password123", "display_name": "S",

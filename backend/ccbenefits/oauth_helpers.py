@@ -53,7 +53,8 @@ def resolve_or_create_oauth_user(
             if not user.is_verified:
                 raise HTTPException(
                     status_code=409,
-                    detail="An unverified account exists with this email. Verify it first or use a different sign-in method.",
+                    detail="An unverified account exists with this email. "
+                    "Verify it first or use a different sign-in method.",
                 )
             if not user.is_active:
                 raise HTTPException(status_code=401, detail="Account is deactivated")

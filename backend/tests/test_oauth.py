@@ -1,6 +1,8 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from ccbenefits.oauth import verify_google_token, verify_apple_token
+
+from ccbenefits.oauth import verify_apple_token, verify_google_token
 
 
 class TestVerifyGoogleToken:

@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from .auth import create_opaque_token, hash_opaque_token
 from .config import FRONTEND_URL
-from .email import get_email_sender, NOTIFICATIONS_FROM, EMAIL_FOOTER
+from .email import EMAIL_FOOTER, NOTIFICATIONS_FROM, get_email_sender
 from .metrics import email_sent_counter, notifications_sent_counter
 from .models import NotificationLog, UnsubscribeToken
 

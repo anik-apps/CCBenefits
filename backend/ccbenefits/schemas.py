@@ -3,7 +3,6 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-
 # --- Card Template schemas ---
 
 

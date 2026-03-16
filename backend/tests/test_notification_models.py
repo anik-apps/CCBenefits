@@ -1,4 +1,4 @@
-from ccbenefits.models import PushToken, NotificationLog
+from ccbenefits.models import NotificationLog, PushToken
 
 
 def test_push_token_creation(db_session):
@@ -50,9 +50,10 @@ def test_notification_log_creation(db_session):
 
 
 def test_user_card_renewal_date(db_session):
-    from ccbenefits.models import User, UserCard, CardTemplate
-    from ccbenefits.auth import hash_password
     from datetime import date
+
+    from ccbenefits.auth import hash_password
+    from ccbenefits.models import CardTemplate, User, UserCard
 
     user = User(email="renewal@test.com", hashed_password=hash_password("pass123"), display_name="Renew")
     db_session.add(user)
@@ -67,8 +68,8 @@ def test_user_card_renewal_date(db_session):
 
 
 def test_user_card_renewal_date_nullable(db_session):
-    from ccbenefits.models import User, UserCard, CardTemplate
     from ccbenefits.auth import hash_password
+    from ccbenefits.models import CardTemplate, User, UserCard
 
     user = User(email="norenewal@test.com", hashed_password=hash_password("pass123"), display_name="NoRenew")
     db_session.add(user)

@@ -1,10 +1,10 @@
+import json
 import logging
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 
-import json as json_mod
-
-from fastapi import APIRouter, Depends, Form, HTTPException, Request as FastAPIRequest
+from fastapi import APIRouter, Depends, Form, HTTPException
+from fastapi import Request as FastAPIRequest
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -12,8 +12,8 @@ from ..auth import (
     create_access_token,
     create_opaque_token,
     create_refresh_token,
-    hash_password,
     hash_opaque_token,
+    hash_password,
     resolve_user_from_token,
     verify_password,
 )
@@ -25,6 +25,7 @@ from ..config import (
 from ..database import get_db
 from ..dependencies import get_current_user
 from ..email import get_email_sender, send_password_reset_email, send_verification_email
+from ..helpers import user_out
 from ..metrics import (
     auth_failure_counter,
     auth_login_counter,
@@ -34,7 +35,6 @@ from ..metrics import (
     verification_completed_counter,
     verification_sent_counter,
 )
-from ..helpers import user_out
 from ..models import User, UserOAuthAccount
 from ..oauth import verify_apple_token, verify_google_token
 from ..oauth_helpers import get_error_redirect_url, resolve_or_create_oauth_user
@@ -93,7 +93,7 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
         send_verification_email(sender, user.email, verification_raw, FRONTEND_URL)
         verification_sent_counter.add(1)
     except Exception:
-        logger.warning(f"Failed to send verification email to {user.email}", exc_info=True)
+        logger.warning("Failed to send verification email to %s", user.email, exc_info=True)
 
     return AuthResponse(
         user=user_out(user),
@@ -185,7 +185,7 @@ def resend_verification(
         sender = get_email_sender()
         send_verification_email(sender, current_user.email, verification_raw, FRONTEND_URL)
     except Exception:
-        logger.warning(f"Failed to send verification email to {current_user.email}", exc_info=True)
+        logger.warning("Failed to send verification email to %s", current_user.email, exc_info=True)
 
     return {"message": "Verification email sent"}
 
@@ -204,7 +204,7 @@ def request_password_reset(data: PasswordResetRequest, db: Session = Depends(get
             sender = get_email_sender()
             send_password_reset_email(sender, user.email, token, FRONTEND_URL)
         except Exception:
-            logger.warning(f"Failed to send reset email to {user.email}", exc_info=True)
+            logger.warning("Failed to send reset email to %s", user.email, exc_info=True)
     return {"message": "If the email exists, a reset link has been sent"}
 
 
@@ -300,7 +300,10 @@ def link_oauth_provider(
 
     existing = (
         db.query(UserOAuthAccount)
-        .filter(UserOAuthAccount.provider == data.provider, UserOAuthAccount.provider_user_id == info["provider_user_id"])
+        .filter(
+            UserOAuthAccount.provider == data.provider,
+            UserOAuthAccount.provider_user_id == info["provider_user_id"],
+        )
         .first()
     )
     if existing:
@@ -375,11 +378,11 @@ def apple_web_callback(
     display_name = None
     if apple_user_data:
         try:
-            parsed = json_mod.loads(apple_user_data)
+            parsed = json.loads(apple_user_data)
             name = parsed.get("name", {})
             parts = [name.get("firstName", ""), name.get("lastName", "")]
             display_name = " ".join(p for p in parts if p) or None
-        except (json_mod.JSONDecodeError, AttributeError):
+        except (json.JSONDecodeError, AttributeError):
             logger.warning("Failed to parse Apple user JSON: %s", apple_user_data[:200])
     if not display_name:
         display_name = info["email"].split("@")[0]

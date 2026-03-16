@@ -7,9 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .config import ALLOWED_ORIGINS, RESEND_API_KEY, EMAIL_FROM
+from .config import ALLOWED_ORIGINS, EMAIL_FROM, RESEND_API_KEY
 from .database import engine
-from .email import set_email_sender, ResendEmailSender
+from .email import ResendEmailSender, set_email_sender
 from .observability import setup_observability, shutdown_observability
 from .routers import auth, card_templates, feedback, notifications, usage, user_cards, users
 

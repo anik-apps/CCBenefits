@@ -1,13 +1,14 @@
 import logging
-from datetime import datetime, timedelta, timezone as dt_timezone
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from . import config
-from .metrics import notification_jobs_counter
 from .database import SessionLocal
+from .metrics import notification_jobs_counter
 from .models import User
 
 logger = logging.getLogger(__name__)
@@ -37,14 +38,14 @@ def get_users_for_notification_hour(db, utc_hour: int) -> list[User]:
             if user_utc_hour == utc_hour:
                 matched.append(user)
         except Exception:
-            logger.warning(f"Invalid timezone for user {user.id}: {user_tz}")
+            logger.warning("Invalid timezone for user %s: %s", user.id, user_tz)
     return matched
 
 
 def hourly_notification_check():
     """Runs every hour at minute=0. Dispatches notification jobs for matching users."""
     utc_hour = datetime.now(dt_timezone.utc).hour
-    logger.info(f"Running hourly notification check for UTC hour {utc_hour}")
+    logger.info("Running hourly notification check for UTC hour %s", utc_hour)
     db = SessionLocal()
     try:
         from .notifications import (
@@ -56,7 +57,7 @@ def hourly_notification_check():
         users = get_users_for_notification_hour(db, utc_hour)
         if not users:
             return
-        logger.info(f"Processing notifications for {len(users)} users")
+        logger.info("Processing notifications for %d users", len(users))
         check_expiring_credits(db, users)
         check_period_transitions(db, users)
         check_fee_approaching(db, users)
@@ -96,7 +97,7 @@ def cleanup_old_notifications():
         cutoff = datetime.now(dt_timezone.utc) - timedelta(days=90)
         deleted = db.query(Notification).filter(Notification.created_at < cutoff).delete()
         db.commit()
-        logger.info(f"Cleaned up {deleted} old notifications")
+        logger.info("Cleaned up %d old notifications", deleted)
     except Exception:
         logger.exception("Error cleaning up old notifications")
         db.rollback()
