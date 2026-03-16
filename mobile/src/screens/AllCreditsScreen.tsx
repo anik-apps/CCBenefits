@@ -151,7 +151,7 @@ export default function AllCreditsScreen({ navigation }: Props) {
             <View style={styles.sheetRow}>
               <Text style={[styles.sheetHeader, { width: 90 }]}>Card</Text>
               <Text style={[styles.sheetHeader, { width: 120 }]}>Benefit</Text>
-              <Text style={[styles.sheetHeader, { width: 30 }]}>Per</Text>
+              <Text style={[styles.sheetHeader, { width: 22 }]}></Text>
               <Text style={[styles.sheetHeader, styles.sheetRight, { width: 100 }]}>Used / Max</Text>
               <View style={{ width: 24 }} />
             </View>
@@ -168,7 +168,7 @@ export default function AllCreditsScreen({ navigation }: Props) {
                       {i === 0 ? (card.nickname || card.card_name) : ''}
                     </Text>
                     <Text style={[styles.sheetCell, { width: 120 }]} numberOfLines={1}>{b.name}</Text>
-                    <Text style={[styles.sheetCell, { width: 30, color: colors.textMuted }]}>
+                    <Text style={[styles.sheetCell, { width: 22, color: colors.textMuted, fontSize: 10 }]}>
                       {SHORT_PERIODS[b.period_type] || b.period_type}
                     </Text>
                     <Text style={[styles.sheetCell, styles.sheetRight, { width: 100 }]}>
@@ -200,7 +200,7 @@ export default function AllCreditsScreen({ navigation }: Props) {
             <View style={[styles.sheetRow, { borderTopWidth: 2, borderTopColor: colors.borderMedium }]}>
               <Text style={[styles.sheetCell, { width: 90, fontWeight: '700' }]}>Total</Text>
               <Text style={[styles.sheetCell, { width: 120, color: colors.textMuted }]}>Fees: ${grandTotalFees}</Text>
-              <Text style={[styles.sheetCell, { width: 30 }]}></Text>
+              <Text style={[styles.sheetCell, { width: 22 }]}></Text>
               <Text style={[styles.sheetCell, styles.sheetRight, { width: 100, fontWeight: '700' }]}>
                 <Text style={{ color: colors.accentGold }}>${grandTotalUsed}</Text>
                 <Text style={{ color: colors.textMuted }}> / ${grandTotalMax}</Text>
@@ -267,9 +267,6 @@ export default function AllCreditsScreen({ navigation }: Props) {
             const catColor = getCategoryColor(item.category);
 
             if (activeTab === 'card') {
-              const statusColor = item.is_used
-                ? (item.remaining <= 0 ? colors.statusSuccess : colors.accentGold)
-                : colors.textMuted;
               return (
                 <TouchableOpacity
                   style={styles.benefitCard}
@@ -277,7 +274,6 @@ export default function AllCreditsScreen({ navigation }: Props) {
                   activeOpacity={0.7}
                 >
                   <View style={styles.benefitRow}>
-                    <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
                     <View style={[styles.catIconBox, { backgroundColor: catColor + '20', borderColor: catColor + '40' }]}>
                       <Text style={styles.catIconText}>{catIcon}</Text>
                     </View>
