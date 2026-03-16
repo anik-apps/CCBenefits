@@ -6,6 +6,7 @@ import BenefitRow from '../components/BenefitRow';
 import UsageModal from '../components/UsageModal';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { PERIOD_ORDER, PERIOD_LABELS } from '../constants/periodLabels';
+import { getIssuerColor } from '../constants/issuerTheme';
 
 interface BenefitWithCard extends BenefitStatus {
   userCardId: number;
@@ -393,12 +394,14 @@ export default function AllCredits() {
               {sortedCards.map(card => {
                 const cardName = card.nickname || card.card_name;
                 const sortedBenefits = [...card.benefits_status].sort((a, b) => b.remaining - a.remaining);
+                const issuerColor = getIssuerColor(card.issuer).bg;
                 return sortedBenefits.map((b, i) => {
-                  const pct = b.max_value > 0 ? (b.amount_used / b.max_value) * 100 : 0;
-                  const rowBg = pct >= 100 ? 'rgba(34, 197, 94, 0.06)' : pct > 0 ? 'rgba(201, 168, 76, 0.06)' : 'transparent';
                   return (
-                  <tr key={`${card.id}-${b.benefit_template_id}`} style={{ borderBottom: '1px solid var(--border-subtle)', background: rowBg }}>
-                    <td style={{ ...tdStyle, color: 'var(--text-secondary)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <tr key={`${card.id}-${b.benefit_template_id}`} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <td style={{
+                      ...tdStyle, color: 'var(--text-secondary)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis',
+                      borderLeft: `3px solid ${issuerColor}`,
+                    }}>
                       {i === 0 ? cardName : ''}
                     </td>
                     <td style={tdStyle}>{b.name}</td>
