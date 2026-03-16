@@ -24,6 +24,7 @@ alembic = "^1.18.4"
 apscheduler = "^3.11.2"
 httpx = "^0.28.1"
 google-auth = ">=2.20.0"
+python-multipart = ">=0.0.6"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.0"

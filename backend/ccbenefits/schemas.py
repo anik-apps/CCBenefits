@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -261,6 +262,24 @@ class UserUpdate(BaseModel):
 
 class AuthResponse(TokenResponse):
     user: UserOut
+
+
+class OAuthRequest(BaseModel):
+    provider: Literal["google", "apple"]
+    id_token: str
+    display_name: str | None = None  # Apple sends name only on first sign-in
+
+
+class OAuthProviderOut(BaseModel):
+    provider: str
+    provider_email: str
+    created_at: datetime
+
+
+class OAuthLinkRequest(BaseModel):
+    provider: Literal["google", "apple"]
+    id_token: str
+    display_name: str | None = None
 
 
 # --- Feedback schemas ---
