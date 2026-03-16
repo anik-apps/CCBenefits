@@ -239,8 +239,13 @@ export default function ProfilePage() {
                   setOauthMsg('Unlinked');
                   setTimeout(() => setOauthMsg(''), 2000);
                 } catch (err) {
-                  setOauthMsg(extractApiError(err, 'Failed to unlink'));
-                  setTimeout(() => setOauthMsg(''), 3000);
+                  const msg = extractApiError(err, 'Failed to unlink');
+                  if (msg.toLowerCase().includes('password') || msg.toLowerCase().includes('sign-in')) {
+                    setOauthMsg('Set a password first before unlinking. Use "Set a password via email" below.');
+                  } else {
+                    setOauthMsg(msg);
+                  }
+                  setTimeout(() => setOauthMsg(''), 5000);
                 }
               }}
               style={{ fontSize: '0.8rem', color: 'var(--accent-red)', cursor: 'pointer' }}
