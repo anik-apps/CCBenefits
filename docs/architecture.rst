@@ -32,13 +32,15 @@ for HTTPS.
        observability.py   # OpenTelemetry setup for Grafana Cloud
        metrics.py         # Business metric counters
        middleware.py       # Request logging with PII masking
-       models.py          # SQLAlchemy ORM models (7 models)
+       oauth.py           # Google/Apple ID token verification
+       oauth_helpers.py   # Shared OAuth account resolution logic
+       models.py          # SQLAlchemy ORM models (8 models, incl. UserOAuthAccount)
        schemas.py         # Pydantic request/response schemas
        database.py        # Engine, session, base (Postgres/SQLite)
        utils.py           # Period calculation, helpers
        seed.py            # Card template seed data
        routers/
-         auth.py            # Register, login, verify, refresh, password reset
+         auth.py            # Register, login, verify, refresh, password reset, OAuth
          users.py           # User profile CRUD
          feedback.py        # Feedback submit + admin list
          card_templates.py  # GET card templates
@@ -64,11 +66,6 @@ for HTTPS.
        components/         # UsageModal, ScreenWrapper, LoadingScreen
        theme.ts            # Dark theme (colors, spacing, radius)
 
-Data Model
-----------
-
-- **User** — registered user (email, password hash, profile settings, verification status)
-- **Feedback** — user feedback (category, message, timestamp)
 - **CardTemplate** — credit card definition (name, issuer, annual fee)
 - **BenefitTemplate** — a benefit belonging to a card (name, max value, period type, redemption type)
 - **UserCard** — a user's instance of a card template (linked to User via ``user_id`` FK)
@@ -78,18 +75,36 @@ Data Model
 Authentication
 --------------
 
-JWT-based authentication with email/password. Access tokens (30 min) are sent
-as ``Authorization: Bearer`` headers. Refresh tokens (7 days) are used to obtain
-new access tokens without re-login. JWTs include user email for logging.
+JWT-based authentication with email/password and OAuth (Google, Apple coming soon).
+Access tokens (30 min) are sent as ``Authorization: Bearer`` headers. Refresh tokens
+(7 days) are used to obtain new access tokens without re-login. JWTs include user
+email for logging.
 
-Email verification is required after registration. Unverified users are blocked
-from accessing the app until they click the verification link sent via Resend.
+**Email/password**: Registration with bcrypt password hashing, email verification
+required before access. Password reset via opaque tokens (SHA-256 hashed in DB).
+
+**OAuth**: Google Sign-In (web popup + mobile via expo-auth-session) and Apple Sign-In
+(web redirect + mobile native, currently disabled pending Apple Developer account).
+OAuth token verification happens server-side: Google via ``google-auth`` library,
+Apple via JWKS public key verification with PyJWT.
+
+**Account linking**: If an OAuth sign-in email matches an existing verified user,
+the account is auto-linked. Users can have multiple sign-in methods (email/password +
+Google + Apple). OAuth-only users have nullable ``hashed_password`` — they can add
+a password later via the forgot-password flow.
+
+**Profile management**: Users can link/unlink OAuth providers on the profile page.
+Unlinking the last sign-in method is blocked (must set a password or keep another provider).
 
 All ``/api/user-cards/``, ``/api/usage/``, and ``/api/feedback/`` endpoints require
 authentication and filter data by the authenticated user. Card templates remain public.
 
-Password reset and email verification use opaque random tokens (SHA-256 hashed in DB)
-with the pluggable email sender interface (Resend in production, console in development).
+Data Model
+----------
+
+- **User** — registered user (email, optional password hash, profile settings, verification status)
+- **UserOAuthAccount** — OAuth provider link (provider, provider_user_id, provider_email, FK to User)
+- **Feedback** — user feedback (category, message, timestamp)
 
 Notifications
 -------------
