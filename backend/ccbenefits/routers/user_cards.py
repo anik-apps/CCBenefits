@@ -125,6 +125,47 @@ def list_user_cards(
     return result
 
 
+@router.get("/details", response_model=list[UserCardDetailOut])
+def list_user_card_details(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    user_cards = (
+        db.query(UserCard)
+        .filter(UserCard.user_id == current_user.id, UserCard.is_active.is_(True))
+        .options(
+            joinedload(UserCard.card_template).joinedload(CardTemplate.benefits),
+            joinedload(UserCard.usages),
+            joinedload(UserCard.benefit_settings),
+        )
+        .all()
+    )
+
+    result = []
+    for uc in user_cards:
+        summary = _compute_summary(uc)
+        benefits_status = _compute_benefits_status(uc)
+        result.append(
+            UserCardDetailOut(
+                id=uc.id,
+                card_template_id=uc.card_template_id,
+                card_name=uc.card_template.name,
+                issuer=uc.card_template.issuer,
+                annual_fee=uc.card_template.annual_fee,
+                nickname=uc.nickname,
+                member_since_date=uc.member_since_date,
+                renewal_date=uc.renewal_date,
+                is_active=uc.is_active,
+                ytd_actual_used=summary.ytd_actual_used,
+                utilization_pct=summary.utilization_pct,
+                benefits_status=benefits_status,
+            )
+        )
+
+    result.sort(key=lambda x: x.utilization_pct)
+    return result
+
+
 @router.get("/{user_card_id}", response_model=UserCardDetailOut)
 def get_user_card_detail(
     user_card_id: int,
@@ -144,6 +185,7 @@ def get_user_card_detail(
     if not uc:
         raise HTTPException(status_code=404, detail="User card not found")
 
+    summary = _compute_summary(uc)
     benefits_status = _compute_benefits_status(uc)
 
     return UserCardDetailOut(
@@ -156,6 +198,8 @@ def get_user_card_detail(
         member_since_date=uc.member_since_date,
         renewal_date=uc.renewal_date,
         is_active=uc.is_active,
+        ytd_actual_used=summary.ytd_actual_used,
+        utilization_pct=summary.utilization_pct,
         benefits_status=benefits_status,
     )
 
