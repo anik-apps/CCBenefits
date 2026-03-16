@@ -4,7 +4,7 @@ from datetime import timezone as dt_timezone
 
 import json as json_mod
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request as FastAPIRequest, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Request as FastAPIRequest
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -380,7 +380,7 @@ def apple_web_callback(
             parts = [name.get("firstName", ""), name.get("lastName", "")]
             display_name = " ".join(p for p in parts if p) or None
         except (json_mod.JSONDecodeError, AttributeError):
-            pass
+            logger.warning("Failed to parse Apple user JSON: %s", user[:200])
     if not display_name:
         display_name = info["email"].split("@")[0]
 

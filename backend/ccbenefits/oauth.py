@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # Cache Apple's public keys
 _apple_keys_cache: dict[str, Any] = {}
-_apple_keys_fetched_at: float = 0
+_apple_keys_fetched_at: float = 0  # noqa: used via global in _get_apple_public_keys and verify_apple_token
 _APPLE_KEYS_TTL = 86400  # 24 hours
 
 

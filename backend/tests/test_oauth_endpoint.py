@@ -1,4 +1,4 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 GOOGLE_USER = {
     "provider_user_id": "google-123",
