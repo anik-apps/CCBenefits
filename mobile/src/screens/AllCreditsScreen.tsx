@@ -145,7 +145,8 @@ export default function AllCreditsScreen({ navigation }: Props) {
 
       {/* ===== SHEET VIEW ===== */}
       {activeTab === 'sheet' && (
-        <ScrollView horizontal style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl }}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xxl }}>
+        <ScrollView horizontal contentContainerStyle={{ paddingHorizontal: spacing.lg }}>
           <View>
             {/* Header row */}
             <View style={styles.sheetRow}>
@@ -208,6 +209,7 @@ export default function AllCreditsScreen({ navigation }: Props) {
               <View style={{ width: 24 }} />
             </View>
           </View>
+        </ScrollView>
         </ScrollView>
       )}
 
