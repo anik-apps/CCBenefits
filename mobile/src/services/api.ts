@@ -158,6 +158,26 @@ export async function resetPassword(token: string, newPassword: string): Promise
   await api.post('/api/auth/password-reset', { token, new_password: newPassword });
 }
 
+// OAuth API functions
+export async function oauthSignIn(provider: string, idToken: string, displayName?: string) {
+  const { data } = await api.post('/api/auth/oauth', { provider, id_token: idToken, display_name: displayName });
+  await storeTokens(data.access_token, data.refresh_token);
+  return data;
+}
+
+export async function getOAuthProviders(): Promise<{ provider: string; provider_email: string; created_at: string }[]> {
+  const { data } = await api.get('/api/auth/oauth/providers');
+  return data;
+}
+
+export async function linkOAuthProvider(provider: string, idToken: string): Promise<void> {
+  await api.post('/api/auth/oauth/link', { provider, id_token: idToken });
+}
+
+export async function unlinkOAuthProvider(provider: string): Promise<void> {
+  await api.delete(`/api/auth/oauth/link/${provider}`);
+}
+
 // Card templates
 export async function getCardTemplates(): Promise<CardTemplateListItem[]> {
   const { data } = await api.get('/api/card-templates/');

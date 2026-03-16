@@ -1,4 +1,5 @@
 import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useAuth } from './hooks/useAuth';
 import Dashboard from './pages/Dashboard';
 import AddCard from './pages/AddCard';
@@ -29,6 +30,7 @@ function App() {
   const [showSplash, setShowSplash] = useState(() => !sessionStorage.getItem('ccb-splash-shown'));
 
   return (
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
     <div style={{
       minHeight: '100vh', display: 'flex', flexDirection: 'column',
       backgroundImage: `url(${appIcon})`,
@@ -189,6 +191,7 @@ function App() {
         </>
       )}
     </div>
+    </GoogleOAuthProvider>
   );
 }
 

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { updateProfile, changePassword } from '../services/api';
+import { updateProfile, changePassword, getOAuthProviders, unlinkOAuthProvider } from '../services/api';
+import { GoogleLogin } from '@react-oauth/google';
+import { extractApiError } from '../utils/apiError';
 import { inputStyle, labelStyle, primaryButtonStyle } from '../styles/form';
 import type { NotificationPreferences, ChannelPreferences } from '../types';
 
@@ -66,7 +68,7 @@ function formatHour(hour: number): string {
 }
 
 export default function ProfilePage() {
-  const { user, refreshUser, logout } = useAuth();
+  const { user, refreshUser, logout, oauthLogin } = useAuth();
   const [displayName, setDisplayName] = useState(user?.display_name || '');
   const [currency, setCurrency] = useState(user?.preferred_currency || 'USD');
   const [tz, setTz] = useState(user?.timezone || 'UTC');
@@ -81,6 +83,13 @@ export default function ProfilePage() {
   );
   const [notifMsg, setNotifMsg] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [oauthProviders, setOauthProviders] = useState<{ provider: string; provider_email: string }[]>([]);
+  const [oauthMsg, setOauthMsg] = useState('');
+
+  useEffect(() => {
+    getOAuthProviders().then(setOauthProviders).catch(() => {});
+  }, []);
 
   const saveNotifPrefs = useCallback(async (prefs: NotificationPreferences) => {
     try {
@@ -213,6 +222,58 @@ export default function ProfilePage() {
         <button type="submit" style={primaryButtonStyle}>Save</button>
         {profileMsg && <span style={{ marginLeft: 12, fontSize: '0.85rem' }}>{profileMsg}</span>}
       </form>
+
+      <div style={{ marginBottom: 32 }}>
+        <h3 style={{ marginBottom: 12 }}>
+          Connected Accounts
+          {oauthMsg && <span style={{ marginLeft: 12, fontSize: '0.8rem', fontWeight: 400, color: 'var(--text-muted)' }}>{oauthMsg}</span>}
+        </h3>
+        {oauthProviders.map(p => (
+          <div key={p.provider} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, padding: '8px 12px', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+            <span style={{ fontSize: '0.9rem' }}>{p.provider === 'google' ? 'Google' : 'Apple'} — <span style={{ color: 'var(--text-muted)' }}>{p.provider_email}</span></span>
+            <button
+              onClick={async () => {
+                try {
+                  await unlinkOAuthProvider(p.provider);
+                  setOauthProviders(prev => prev.filter(op => op.provider !== p.provider));
+                  setOauthMsg('Unlinked');
+                  setTimeout(() => setOauthMsg(''), 2000);
+                } catch (err) {
+                  setOauthMsg(extractApiError(err, 'Failed to unlink'));
+                  setTimeout(() => setOauthMsg(''), 3000);
+                }
+              }}
+              style={{ fontSize: '0.8rem', color: 'var(--accent-red)', cursor: 'pointer' }}
+            >
+              Unlink
+            </button>
+          </div>
+        ))}
+        {!oauthProviders.find(p => p.provider === 'google') && (
+          <div style={{ marginTop: 8 }}>
+            <GoogleLogin
+              onSuccess={async (response) => {
+                if (response.credential) {
+                  try {
+                    await oauthLogin('google', response.credential);
+                    const providers = await getOAuthProviders();
+                    setOauthProviders(providers);
+                    setOauthMsg('Google linked');
+                    setTimeout(() => setOauthMsg(''), 2000);
+                  } catch (err) {
+                    setOauthMsg(extractApiError(err, 'Failed to link Google'));
+                    setTimeout(() => setOauthMsg(''), 3000);
+                  }
+                }
+              }}
+              onError={() => setOauthMsg('Failed to link Google')}
+              theme="filled_black"
+              size="medium"
+              text="signin"
+            />
+          </div>
+        )}
+      </div>
 
       <div style={{ marginBottom: 32 }}>
         <h3 style={{ marginBottom: 12 }}>

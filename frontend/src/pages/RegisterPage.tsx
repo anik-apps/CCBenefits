@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../hooks/useAuth';
 import { inputStyle, labelStyle, primaryButtonStyle, errorStyle, authPageStyle } from '../styles/form';
 import { extractApiError } from '../utils/apiError';
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { register, oauthLogin } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -57,6 +58,42 @@ export default function RegisterPage() {
           {loading ? 'Creating account...' : 'Create Account'}
         </button>
       </form>
+      <div style={{ textAlign: 'center', margin: '20px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>or</div>
+      <GoogleLogin
+        onSuccess={async (response) => {
+          if (response.credential) {
+            try {
+              await oauthLogin('google', response.credential);
+              navigate('/');
+            } catch (err) {
+              setError(extractApiError(err, 'Google sign-up failed'));
+            }
+          }
+        }}
+        onError={() => setError('Google sign-up failed')}
+        theme="filled_black"
+        size="large"
+        width={352}
+        text="signup_with"
+      />
+      <button
+        onClick={() => {
+          const state = crypto.randomUUID();
+          document.cookie = `apple_oauth_state=${state};path=/;max-age=600;SameSite=None;Secure`;
+          const params = new URLSearchParams({
+            client_id: import.meta.env.VITE_APPLE_SERVICE_ID || '',
+            redirect_uri: `${window.location.origin}/api/auth/oauth/apple/callback`,
+            response_type: 'code id_token',
+            response_mode: 'form_post',
+            scope: 'name email',
+            state,
+          });
+          window.location.href = `https://appleid.apple.com/auth/authorize?${params}`;
+        }}
+        style={{ ...primaryButtonStyle, width: '100%', padding: '10px', marginTop: 8, background: '#000', color: '#fff' }}
+      >
+        Sign up with Apple
+      </button>
       <p style={{ marginTop: 16, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
         Already have an account? <Link to="/login" style={{ color: 'var(--accent-gold)' }}>Sign in</Link>
       </p>

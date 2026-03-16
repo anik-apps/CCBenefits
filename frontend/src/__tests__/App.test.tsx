@@ -26,6 +26,10 @@ vi.mock('../services/api', () => ({
   markAllRead: vi.fn(),
   requestPasswordReset: vi.fn(),
   resetPassword: vi.fn(),
+  oauthSignIn: vi.fn(),
+  getOAuthProviders: () => Promise.resolve([]),
+  linkOAuthProvider: vi.fn(),
+  unlinkOAuthProvider: vi.fn(),
 }));
 
 // Disable splash animation in tests
