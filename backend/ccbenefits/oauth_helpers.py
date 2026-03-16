@@ -1,5 +1,6 @@
 """Shared OAuth account resolution logic."""
 import logging
+from urllib.parse import quote
 
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
@@ -42,7 +43,7 @@ def resolve_or_create_oauth_user(
         if not user.is_active:
             raise HTTPException(status_code=401, detail="Account is deactivated")
         if oauth_account.provider_email != email:
-            logger.warning(f"OAuth email drift for {provider}: {oauth_account.provider_email} → {email}")
+            logger.warning("OAuth email drift for %s: %s -> %s", provider, oauth_account.provider_email, email)
             oauth_account.provider_email = email
             db.commit()
     else:
@@ -104,4 +105,4 @@ def resolve_or_create_oauth_user(
 
 def get_error_redirect_url(frontend_url: str, error: str) -> str:
     """Build redirect URL with error parameter for Apple web callback."""
-    return f"{frontend_url}/login?error={error}"
+    return f"{frontend_url}/login?error={quote(error)}"

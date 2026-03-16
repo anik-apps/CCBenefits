@@ -68,7 +68,7 @@ function formatHour(hour: number): string {
 }
 
 export default function ProfilePage() {
-  const { user, refreshUser, logout, oauthLogin } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   const [displayName, setDisplayName] = useState(user?.display_name || '');
   const [currency, setCurrency] = useState(user?.preferred_currency || 'USD');
   const [tz, setTz] = useState(user?.timezone || 'UTC');
@@ -260,7 +260,7 @@ export default function ProfilePage() {
               onSuccess={async (response) => {
                 if (response.credential) {
                   try {
-                    await oauthLogin('google', response.credential);
+                    await linkOAuthProvider('google', response.credential);
                     const providers = await getOAuthProviders();
                     setOauthProviders(providers);
                     setOauthMsg('Google linked');

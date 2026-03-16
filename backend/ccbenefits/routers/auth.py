@@ -354,7 +354,7 @@ def apple_web_callback(
     request: FastAPIRequest,
     id_token: str = Form(...),
     state: str = Form(...),
-    user: str = Form(""),
+    apple_user_data: str = Form("", alias="user"),
     db: Session = Depends(get_db),
 ):
     """Apple web sign-in callback. Apple POSTs here after authentication."""
@@ -373,14 +373,14 @@ def apple_web_callback(
 
     # Extract display name from Apple's user JSON (only sent on first sign-in)
     display_name = None
-    if user:
+    if apple_user_data:
         try:
-            user_data = json_mod.loads(user)
-            name = user_data.get("name", {})
+            parsed = json_mod.loads(apple_user_data)
+            name = parsed.get("name", {})
             parts = [name.get("firstName", ""), name.get("lastName", "")]
             display_name = " ".join(p for p in parts if p) or None
         except (json_mod.JSONDecodeError, AttributeError):
-            logger.warning("Failed to parse Apple user JSON: %s", user[:200])
+            logger.warning("Failed to parse Apple user JSON: %s", apple_user_data[:200])
     if not display_name:
         display_name = info["email"].split("@")[0]
 
@@ -398,7 +398,10 @@ def apple_web_callback(
         return RedirectResponse(get_error_redirect_url(FRONTEND_URL, error_key))
 
     # Redirect with tokens in URL fragment (not query params, for security)
-    return RedirectResponse(
+    response = RedirectResponse(
         f"{FRONTEND_URL}/login#access_token={auth_response.access_token}&refresh_token={auth_response.refresh_token}",
         status_code=302,
     )
+    # Clear the state cookie to prevent replay
+    response.delete_cookie("apple_oauth_state")
+    return response
