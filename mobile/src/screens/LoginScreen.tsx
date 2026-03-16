@@ -65,6 +65,10 @@ export default function LoginScreen({ navigation }: Props) {
           placeholderTextColor={colors.textMuted}
         />
 
+        <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+          <Text style={styles.forgotLink}>Forgot password?</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={[styles.button, (loading || !email.trim() || !password.trim()) && styles.buttonDisabled]}
           onPress={handleSubmit}
@@ -101,6 +105,7 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: colors.bgPrimary, fontWeight: '600', fontSize: 16 },
   error: { color: colors.statusDanger, fontSize: 13, marginBottom: spacing.lg, textAlign: 'center' },
+  forgotLink: { color: colors.accentGold, fontSize: 13, textAlign: 'right', marginTop: -8, marginBottom: spacing.lg },
   link: { color: colors.textMuted, fontSize: 13, textAlign: 'center' },
   linkAccent: { color: colors.accentGold },
 });

@@ -24,6 +24,8 @@ vi.mock('../services/api', () => ({
   getUnreadCount: () => Promise.resolve({ unread_count: 0 }),
   markNotificationRead: vi.fn(),
   markAllRead: vi.fn(),
+  requestPasswordReset: vi.fn(),
+  resetPassword: vi.fn(),
 }));
 
 // Disable splash animation in tests
@@ -34,7 +36,7 @@ beforeEach(() => {
 describe('App', () => {
   it('renders header with logo text', async () => {
     renderWithProviders(<App />, { route: '/' });
-    expect(await screen.findByText('CCBenefits')).toBeInTheDocument();
+    expect(await screen.findByText('CCB')).toBeInTheDocument();
   });
 
   it('renders tab navigation on home page', async () => {
@@ -57,15 +59,31 @@ describe('App', () => {
   it('hides tab navigation on card detail page', async () => {
     renderWithProviders(<App />, { route: '/card/1' });
     // Wait for auth to resolve
-    expect(await screen.findByText('CCBenefits')).toBeInTheDocument();
+    expect(await screen.findByText('CCB')).toBeInTheDocument();
     expect(screen.queryByText('Cards')).not.toBeInTheDocument();
     expect(screen.getByTitle('Add a card')).toBeInTheDocument();
   });
 
   it('hides tab navigation on add card page', async () => {
     renderWithProviders(<App />, { route: '/add-card' });
-    expect(await screen.findByText('CCBenefits')).toBeInTheDocument();
+    expect(await screen.findByText('CCB')).toBeInTheDocument();
     expect(screen.queryByText('Cards')).not.toBeInTheDocument();
+  });
+
+  it('renders forgot password page', async () => {
+    renderWithProviders(<App />, { route: '/forgot-password' });
+    expect(await screen.findByText('Forgot Password')).toBeInTheDocument();
+    expect(screen.getByText('Send Reset Link')).toBeInTheDocument();
+  });
+
+  it('renders reset password page with token', async () => {
+    renderWithProviders(<App />, { route: '/reset-password?token=abc' });
+    expect(await screen.findByText('Enter your new password.')).toBeInTheDocument();
+  });
+
+  it('renders invalid reset link when no token', async () => {
+    renderWithProviders(<App />, { route: '/reset-password' });
+    expect(await screen.findByText('Invalid Reset Link')).toBeInTheDocument();
   });
 
 });

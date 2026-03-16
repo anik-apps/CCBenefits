@@ -150,6 +150,14 @@ export async function resendVerification(): Promise<void> {
   await api.post('/api/auth/resend-verification');
 }
 
+export async function requestPasswordReset(email: string): Promise<void> {
+  await api.post('/api/auth/password-reset-request', { email });
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  await api.post('/api/auth/password-reset', { token, new_password: newPassword });
+}
+
 // Card templates
 export async function getCardTemplates(): Promise<CardTemplateListItem[]> {
   const { data } = await api.get('/api/card-templates/');

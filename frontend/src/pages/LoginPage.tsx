@@ -34,10 +34,13 @@ export default function LoginPage() {
           <span style={labelStyle}>Email</span>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputStyle} />
         </label>
-        <label style={{ display: 'block', marginBottom: 20 }}>
+        <label style={{ display: 'block', marginBottom: 12 }}>
           <span style={labelStyle}>Password</span>
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required style={inputStyle} />
         </label>
+        <div style={{ textAlign: 'right', marginTop: -4, marginBottom: 16 }}>
+          <Link to="/forgot-password" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem' }}>Forgot password?</Link>
+        </div>
         <button type="submit" disabled={loading} style={{ ...primaryButtonStyle, width: '100%', padding: '10px' }}>
           {loading ? 'Signing in...' : 'Sign In'}
         </button>
