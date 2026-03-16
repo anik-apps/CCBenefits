@@ -16,7 +16,8 @@ interface BenefitWithCard extends BenefitStatus {
 export default function AllCredits() {
   const queryClient = useQueryClient();
   const [modal, setModal] = useState<{ benefit: BenefitWithCard; mode: 'usage' | 'perceived' } | null>(null);
-  const [view, setView] = useState<'period' | 'card'>('period');
+  const [view, setView] = useState<'period' | 'card' | 'sheet'>('period');
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const { data: cardDetails, isLoading } = useQuery({
     queryKey: ['all-card-details'],
@@ -52,7 +53,6 @@ export default function AllCredits() {
     }
   }
 
-  // Lookup by composite key: "userCardId-benefitTemplateId"
   const benefitMap = new Map<string, BenefitWithCard>();
   for (const b of allBenefits) {
     benefitMap.set(`${b.userCardId}-${b.benefit_template_id}`, b);
@@ -65,7 +65,6 @@ export default function AllCredits() {
     grouped[b.period_type].push(b);
   }
 
-  // Factory: create card-scoped handlers for each benefit row
   const makeHandlers = (cardId: number) => ({
     onToggleBinary: async (benefitId: number, used: boolean) => {
       const b = benefitMap.get(`${cardId}-${benefitId}`);
@@ -132,7 +131,6 @@ export default function AllCredits() {
     refresh();
   };
 
-  // Compute grand totals for card view
   const computeCardStats = (card: UserCardDetail) => {
     const totalMax = card.benefits_status.reduce((sum, b) => sum + b.max_value, 0);
     const totalUsed = card.benefits_status.reduce((sum, b) => sum + b.amount_used, 0);
@@ -141,27 +139,32 @@ export default function AllCredits() {
   };
 
   const grandTotalFees = cardDetails.reduce((sum, c) => sum + c.annual_fee, 0);
-  const grandTotalMax = cardDetails.reduce((sum, c) => {
-    const s = computeCardStats(c);
-    return sum + s.totalMax;
-  }, 0);
-  const grandTotalUsed = cardDetails.reduce((sum, c) => {
-    const s = computeCardStats(c);
-    return sum + s.totalUsed;
-  }, 0);
+  const grandTotalMax = cardDetails.reduce((sum, c) => sum + computeCardStats(c).totalMax, 0);
+  const grandTotalUsed = cardDetails.reduce((sum, c) => sum + computeCardStats(c).totalUsed, 0);
   const grandUtilization = grandTotalMax > 0 ? (grandTotalUsed / grandTotalMax) * 100 : 0;
 
-  // Sort cards by utilization ascending for card view
-  const sortedCards = [...cardDetails].sort((a, b) => {
-    const aUtil = computeCardStats(a).utilization;
-    const bUtil = computeCardStats(b).utilization;
-    return aUtil - bUtil;
-  });
+  const sortedCards = [...cardDetails].sort((a, b) => computeCardStats(a).utilization - computeCardStats(b).utilization);
 
   const getStatusColor = (benefit: BenefitStatus) => {
     if (benefit.is_used && benefit.amount_used >= benefit.max_value) return 'var(--accent-emerald)';
     if (benefit.amount_used > 0) return 'var(--accent-gold)';
     return 'var(--text-muted)';
+  };
+
+  const toggleCollapse = (key: string) => {
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const isCollapsed = (key: string, index: number) => {
+    // First section expanded by default, rest collapsed
+    if (collapsed.size === 0 && index > 0) return true;
+    if (collapsed.size === 0 && index === 0) return false;
+    return collapsed.has(key);
   };
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
@@ -176,117 +179,132 @@ export default function AllCredits() {
     color: active ? 'var(--accent-gold)' : 'var(--text-muted)',
   });
 
+  const thStyle: React.CSSProperties = {
+    padding: '6px 8px',
+    fontSize: '0.68rem',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    color: 'var(--text-muted)',
+    textAlign: 'left',
+    borderBottom: '1px solid var(--border-subtle)',
+    whiteSpace: 'nowrap',
+  };
+
+  const tdStyle: React.CSSProperties = {
+    padding: '5px 8px',
+    fontSize: '0.78rem',
+    borderBottom: '1px solid var(--border-subtle)',
+    whiteSpace: 'nowrap',
+  };
+
+  const sectionHeader = (label: string, key: string, index: number, rightContent?: React.ReactNode) => (
+    <div
+      onClick={() => toggleCollapse(key)}
+      style={{
+        fontSize: '0.7rem',
+        fontWeight: 600,
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+        color: 'var(--text-muted)',
+        padding: '6px 14px',
+        marginBottom: 2,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        cursor: 'pointer',
+        userSelect: 'none',
+      }}
+    >
+      <span>
+        <span style={{ marginRight: 6, fontSize: '0.6rem' }}>{isCollapsed(key, index) ? '▶' : '▼'}</span>
+        {label}
+      </span>
+      {rightContent}
+    </div>
+  );
+
   return (
     <div>
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-        animation: 'fadeInUp 0.4s ease-out both',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 16, animation: 'fadeInUp 0.4s ease-out both',
       }}>
-        <h1 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '1.4rem',
-          fontWeight: 600,
-          margin: 0,
-        }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 600, margin: 0 }}>
           All Credits
         </h1>
-
         <div style={{
-          display: 'flex',
-          gap: 4,
-          background: 'var(--bg-card)',
-          borderRadius: 'var(--radius-sm)',
-          border: '1px solid var(--border-subtle)',
-          padding: 3,
+          display: 'flex', gap: 4, background: 'var(--bg-card)',
+          borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', padding: 3,
         }}>
-          <button style={tabStyle(view === 'period')} onClick={() => setView('period')}>
+          <button style={tabStyle(view === 'period')} onClick={() => { setView('period'); setCollapsed(new Set()); }}>
             By Period
           </button>
-          <button style={tabStyle(view === 'card')} onClick={() => setView('card')}>
+          <button style={tabStyle(view === 'card')} onClick={() => { setView('card'); setCollapsed(new Set()); }}>
             By Card
+          </button>
+          <button style={tabStyle(view === 'sheet')} onClick={() => setView('sheet')}>
+            Sheet
           </button>
         </div>
       </div>
 
+      {/* ===== PERIOD VIEW ===== */}
       {view === 'period' && (
         <>
           {PERIOD_ORDER.filter(p => grouped[p]).map((periodType, gi) => (
-            <div key={periodType} style={{
-              marginBottom: 16,
-              animation: `fadeInUp 0.4s ease-out ${(gi + 1) * 0.06}s both`,
-            }}>
-              <div style={{
-                fontSize: '0.7rem',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                color: 'var(--text-muted)',
-                padding: '6px 14px',
-                marginBottom: 2,
-              }}>
-                {PERIOD_LABELS[periodType]} ({grouped[periodType].length})
-              </div>
-              <div style={{
-                background: 'var(--bg-card)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-subtle)',
-                overflow: 'hidden',
-              }}>
-                {grouped[periodType].map((b, i) => {
-                  const handlers = makeHandlers(b.userCardId);
-                  return (
-                    <div key={`${b.userCardId}-${b.benefit_template_id}`}>
-                      {i > 0 && <div style={{ height: 1, background: 'var(--border-subtle)', margin: '0 14px' }} />}
-                      <BenefitRow
-                        benefit={b}
-                        cardName={b.cardName}
-                        issuer={b.issuer}
-                        onToggleBinary={handlers.onToggleBinary}
-                        onLogContinuous={handlers.onLogContinuous}
-                        onSetPerceived={handlers.onSetPerceived}
-                        onSegmentClick={handlers.onSegmentClick}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
+            <div key={periodType} style={{ marginBottom: 16, animation: `fadeInUp 0.4s ease-out ${(gi + 1) * 0.06}s both` }}>
+              {sectionHeader(
+                `${PERIOD_LABELS[periodType]} (${grouped[periodType].length})`,
+                `period-${periodType}`,
+                gi,
+              )}
+              {!isCollapsed(`period-${periodType}`, gi) && (
+                <div style={{
+                  background: 'var(--bg-card)', borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-subtle)', overflow: 'hidden',
+                }}>
+                  {grouped[periodType].map((b, i) => {
+                    const handlers = makeHandlers(b.userCardId);
+                    return (
+                      <div key={`${b.userCardId}-${b.benefit_template_id}`}>
+                        {i > 0 && <div style={{ height: 1, background: 'var(--border-subtle)', margin: '0 14px' }} />}
+                        <BenefitRow
+                          benefit={b} cardName={b.cardName} issuer={b.issuer}
+                          onToggleBinary={handlers.onToggleBinary}
+                          onLogContinuous={handlers.onLogContinuous}
+                          onSetPerceived={handlers.onSetPerceived}
+                          onSegmentClick={handlers.onSegmentClick}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ))}
         </>
       )}
 
+      {/* ===== CARD VIEW ===== */}
       {view === 'card' && (
         <>
-          {/* Grand total row */}
+          {/* Grand total */}
           <div style={{
-            background: 'var(--bg-card)',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-subtle)',
-            padding: '12px 14px',
-            marginBottom: 16,
-            animation: 'fadeInUp 0.4s ease-out 0.06s both',
+            background: 'var(--bg-card)', borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-subtle)', padding: '12px 14px',
+            marginBottom: 16, animation: 'fadeInUp 0.4s ease-out 0.06s both',
           }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>All Cards Total</span>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  Fees: ${grandTotalFees.toFixed(0)}
-                </span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Fees: ${grandTotalFees.toFixed(0)}</span>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
                   ${grandTotalUsed.toFixed(0)} / ${grandTotalMax.toFixed(0)}
                 </span>
                 <span style={{
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
+                  fontSize: '0.75rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums',
                   color: grandUtilization >= 80 ? 'var(--accent-emerald)' : grandUtilization > 0 ? 'var(--accent-gold)' : 'var(--text-muted)',
-                  fontVariantNumeric: 'tabular-nums',
                 }}>
                   {grandUtilization.toFixed(0)}%
                 </span>
@@ -294,90 +312,140 @@ export default function AllCredits() {
             </div>
           </div>
 
-          {/* Card sections */}
           {sortedCards.map((card, ci) => {
             const stats = computeCardStats(card);
             const cardName = card.nickname || card.card_name;
             const handlers = makeHandlers(card.id);
-            // Sort benefits by remaining descending
             const sortedBenefits = [...card.benefits_status].sort((a, b) => b.remaining - a.remaining);
+            const key = `card-${card.id}`;
 
             return (
-              <div key={card.id} style={{
-                marginBottom: 16,
-                animation: `fadeInUp 0.4s ease-out ${(ci + 2) * 0.06}s both`,
-              }}>
-                {/* Card header */}
-                <div style={{
-                  fontSize: '0.7rem',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  color: 'var(--text-muted)',
-                  padding: '6px 14px',
-                  marginBottom: 2,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}>
-                  <span>{cardName} &middot; {card.issuer}</span>
+              <div key={card.id} style={{ marginBottom: 16, animation: `fadeInUp 0.4s ease-out ${(ci + 2) * 0.06}s both` }}>
+                {sectionHeader(
+                  `${cardName} · ${card.issuer}`,
+                  key,
+                  ci,
                   <span style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                     <span>Fee: ${card.annual_fee.toFixed(0)}</span>
-                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-                      ${stats.totalUsed.toFixed(0)} / ${stats.totalMax.toFixed(0)}
-                    </span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>${stats.totalUsed.toFixed(0)} / ${stats.totalMax.toFixed(0)}</span>
                     <span style={{
-                      fontWeight: 700,
+                      fontWeight: 700, fontVariantNumeric: 'tabular-nums',
                       color: stats.utilization >= 80 ? 'var(--accent-emerald)' : stats.utilization > 0 ? 'var(--accent-gold)' : 'var(--text-muted)',
-                      fontVariantNumeric: 'tabular-nums',
                     }}>
                       {stats.utilization.toFixed(0)}%
                     </span>
-                  </span>
-                </div>
-
-                <div style={{
-                  background: 'var(--bg-card)',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border-subtle)',
-                  overflow: 'hidden',
-                }}>
-                  {sortedBenefits.map((b, i) => {
-                    const benefitWithCard: BenefitWithCard = {
-                      ...b,
-                      userCardId: card.id,
-                      cardName,
-                      issuer: card.issuer,
-                    };
-                    return (
-                      <div key={`${card.id}-${b.benefit_template_id}`}>
-                        {i > 0 && <div style={{ height: 1, background: 'var(--border-subtle)', margin: '0 14px' }} />}
-                        <div style={{ display: 'flex', alignItems: 'stretch' }}>
-                          {/* Status color indicator */}
-                          <div style={{
-                            width: 3,
-                            background: getStatusColor(b),
-                            flexShrink: 0,
-                          }} />
-                          <div style={{ flex: 1 }}>
-                            <BenefitRow
-                              benefit={b}
-                              issuer={card.issuer}
-                              onToggleBinary={handlers.onToggleBinary}
-                              onLogContinuous={handlers.onLogContinuous}
-                              onSetPerceived={handlers.onSetPerceived}
-                              onSegmentClick={handlers.onSegmentClick}
-                            />
+                  </span>,
+                )}
+                {!isCollapsed(key, ci) && (
+                  <div style={{
+                    background: 'var(--bg-card)', borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-subtle)', overflow: 'hidden',
+                  }}>
+                    {sortedBenefits.map((b, i) => {
+                      const benefitWithCard: BenefitWithCard = { ...b, userCardId: card.id, cardName, issuer: card.issuer };
+                      return (
+                        <div key={`${card.id}-${b.benefit_template_id}`}>
+                          {i > 0 && <div style={{ height: 1, background: 'var(--border-subtle)', margin: '0 14px' }} />}
+                          <div style={{ display: 'flex', alignItems: 'stretch' }}>
+                            <div style={{ width: 3, background: getStatusColor(b), flexShrink: 0 }} />
+                            <div style={{ flex: 1 }}>
+                              <BenefitRow
+                                benefit={b} issuer={card.issuer}
+                                onToggleBinary={handlers.onToggleBinary}
+                                onLogContinuous={handlers.onLogContinuous}
+                                onSetPerceived={handlers.onSetPerceived}
+                                onSegmentClick={handlers.onSegmentClick}
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
         </>
+      )}
+
+      {/* ===== SHEET VIEW ===== */}
+      {view === 'sheet' && (
+        <div style={{
+          background: 'var(--bg-card)', borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-subtle)', overflow: 'auto',
+          animation: 'fadeInUp 0.4s ease-out both',
+        }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
+            <thead>
+              <tr>
+                <th style={thStyle}>Card</th>
+                <th style={thStyle}>Benefit</th>
+                <th style={thStyle}>Category</th>
+                <th style={thStyle}>Period</th>
+                <th style={{ ...thStyle, textAlign: 'right' }}>Max</th>
+                <th style={{ ...thStyle, textAlign: 'right' }}>Used</th>
+                <th style={{ ...thStyle, textAlign: 'right' }}>Remaining</th>
+                <th style={{ ...thStyle, textAlign: 'right' }}>%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedCards.map(card => {
+                const cardName = card.nickname || card.card_name;
+                const sortedBenefits = [...card.benefits_status].sort((a, b) => b.remaining - a.remaining);
+                return sortedBenefits.map((b, i) => (
+                  <tr key={`${card.id}-${b.benefit_template_id}`} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                    <td style={{ ...tdStyle, color: 'var(--text-secondary)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {i === 0 ? cardName : ''}
+                    </td>
+                    <td style={tdStyle}>{b.name}</td>
+                    <td style={{ ...tdStyle, color: 'var(--text-muted)' }}>{b.category}</td>
+                    <td style={{ ...tdStyle, color: 'var(--text-muted)', textTransform: 'capitalize' }}>
+                      {PERIOD_LABELS[b.period_type] || b.period_type}
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      ${b.max_value.toFixed(0)}
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--accent-gold)' }}>
+                      ${b.amount_used.toFixed(0)}
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      ${b.remaining.toFixed(0)}
+                    </td>
+                    <td style={{
+                      ...tdStyle,
+                      textAlign: 'right',
+                      fontWeight: 600,
+                      fontVariantNumeric: 'tabular-nums',
+                      color: getStatusColor(b),
+                    }}>
+                      {b.max_value > 0 ? ((b.amount_used / b.max_value) * 100).toFixed(0) : 0}%
+                    </td>
+                  </tr>
+                ));
+              })}
+              {/* Grand total row */}
+              <tr style={{ borderTop: '2px solid var(--border-medium)' }}>
+                <td style={{ ...tdStyle, fontWeight: 700 }} colSpan={4}>Total (Fees: ${grandTotalFees.toFixed(0)})</td>
+                <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                  ${grandTotalMax.toFixed(0)}
+                </td>
+                <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--accent-gold)' }}>
+                  ${grandTotalUsed.toFixed(0)}
+                </td>
+                <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                  ${(grandTotalMax - grandTotalUsed).toFixed(0)}
+                </td>
+                <td style={{
+                  ...tdStyle, textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                  color: grandUtilization >= 80 ? 'var(--accent-emerald)' : grandUtilization > 0 ? 'var(--accent-gold)' : 'var(--text-muted)',
+                }}>
+                  {grandUtilization.toFixed(0)}%
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       )}
 
       {modal && (
