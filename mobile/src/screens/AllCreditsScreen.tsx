@@ -16,6 +16,13 @@ type Props = NativeStackScreenProps<any, 'AllCredits'>;
 
 type TabMode = 'period' | 'card' | 'sheet';
 
+const SHORT_PERIODS: Record<string, string> = {
+  monthly: 'M',
+  quarterly: 'Q',
+  semiannual: 'SA',
+  annual: 'A',
+};
+
 interface BenefitWithCard extends BenefitStatus {
   userCardId: number;
   cardName: string;
@@ -26,7 +33,7 @@ export default function AllCreditsScreen({ navigation }: Props) {
   const queryClient = useQueryClient();
   const [selectedBenefit, setSelectedBenefit] = useState<BenefitWithCard | null>(null);
   const [activeTab, setActiveTab] = useState<TabMode>('period');
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<string> | null>(null); // null = initial (first only)
 
   const { data: cardDetails, isLoading } = useQuery({
     queryKey: ['all-card-details'],
@@ -80,9 +87,15 @@ export default function AllCreditsScreen({ navigation }: Props) {
 
   const sections = activeTab === 'period' ? periodSections : cardSections;
 
+  const getAllSectionKeys = (): string[] => {
+    if (activeTab === 'period') return periodSections.map(s => s.key);
+    return cardSections.map(s => s.key);
+  };
+
   const toggleSection = (key: string) => {
-    setCollapsedSections(prev => {
-      const next = new Set(prev);
+    setExpandedSections(prev => {
+      const current = prev ?? new Set([getAllSectionKeys()[0]]);
+      const next = new Set(current);
       if (next.has(key)) next.delete(key);
       else next.add(key);
       return next;
@@ -90,9 +103,8 @@ export default function AllCreditsScreen({ navigation }: Props) {
   };
 
   const isSectionCollapsed = (key: string, index: number) => {
-    if (collapsedSections.size === 0 && index > 0) return true;
-    if (collapsedSections.size === 0 && index === 0) return false;
-    return collapsedSections.has(key);
+    if (expandedSections === null) return index > 0;
+    return !expandedSections.has(key);
   };
 
   // Grand totals for sheet
@@ -122,7 +134,7 @@ export default function AllCreditsScreen({ navigation }: Props) {
           <TouchableOpacity
             key={tab}
             style={[styles.tabBtn, activeTab === tab && styles.tabBtnActive]}
-            onPress={() => { setActiveTab(tab); setCollapsedSections(new Set()); }}
+            onPress={() => { setActiveTab(tab); setExpandedSections(null); }}
           >
             <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
               {tab === 'period' ? 'By Period' : tab === 'card' ? 'By Card' : 'Sheet'}
@@ -137,50 +149,63 @@ export default function AllCreditsScreen({ navigation }: Props) {
           <View>
             {/* Header row */}
             <View style={styles.sheetRow}>
-              <Text style={[styles.sheetHeader, { width: 100 }]}>Card</Text>
-              <Text style={[styles.sheetHeader, { width: 130 }]}>Benefit</Text>
-              <Text style={[styles.sheetHeader, { width: 70 }]}>Period</Text>
-              <Text style={[styles.sheetHeader, styles.sheetRight, { width: 60 }]}>Max</Text>
-              <Text style={[styles.sheetHeader, styles.sheetRight, { width: 60 }]}>Used</Text>
-              <Text style={[styles.sheetHeader, styles.sheetRight, { width: 60 }]}>Left</Text>
-              <Text style={[styles.sheetHeader, styles.sheetRight, { width: 45 }]}>%</Text>
+              <Text style={[styles.sheetHeader, { width: 90 }]}>Card</Text>
+              <Text style={[styles.sheetHeader, { width: 120 }]}>Benefit</Text>
+              <Text style={[styles.sheetHeader, { width: 30 }]}>Per</Text>
+              <Text style={[styles.sheetHeader, styles.sheetRight, { width: 100 }]}>Used / Max</Text>
+              <View style={{ width: 24 }} />
             </View>
             {/* Data rows */}
             {sortedCards.map(card => {
               const issuerColor = getIssuerColor(card.issuer).bg;
               const sorted = [...card.benefits_status].sort((a, b) => b.remaining - a.remaining);
               return sorted.map((b, i) => {
-                const pct = b.max_value > 0 ? (b.amount_used / b.max_value) * 100 : 0;
+                const pct = b.max_value > 0 ? Math.min((b.amount_used / b.max_value) * 100, 100) : 0;
+                const statusColor = getStatusColor(b);
                 return (
                   <View key={`${card.id}-${b.benefit_template_id}`} style={[styles.sheetRow, { borderLeftWidth: 3, borderLeftColor: issuerColor, backgroundColor: issuerColor + '0A' }]}>
-                    <Text style={[styles.sheetCell, { width: 100, color: colors.textSecondary }]} numberOfLines={1}>
+                    <Text style={[styles.sheetCell, { width: 90, color: colors.textSecondary }]} numberOfLines={1}>
                       {i === 0 ? (card.nickname || card.card_name) : ''}
                     </Text>
-                    <Text style={[styles.sheetCell, { width: 130 }]} numberOfLines={1}>{b.name}</Text>
-                    <Text style={[styles.sheetCell, { width: 70, color: colors.textMuted, textTransform: 'capitalize' }]}>
-                      {PERIOD_LABELS[b.period_type] || b.period_type}
+                    <Text style={[styles.sheetCell, { width: 120 }]} numberOfLines={1}>{b.name}</Text>
+                    <Text style={[styles.sheetCell, { width: 30, color: colors.textMuted }]}>
+                      {SHORT_PERIODS[b.period_type] || b.period_type}
                     </Text>
-                    <Text style={[styles.sheetCell, styles.sheetRight, { width: 60 }]}>${b.max_value}</Text>
-                    <Text style={[styles.sheetCell, styles.sheetRight, { width: 60, color: colors.accentGold }]}>${b.amount_used}</Text>
-                    <Text style={[styles.sheetCell, styles.sheetRight, { width: 60 }]}>${b.remaining}</Text>
-                    <Text style={[styles.sheetCell, styles.sheetRight, { width: 45, fontWeight: '600', color: getStatusColor(b) }]}>
-                      {pct.toFixed(0)}%
+                    <Text style={[styles.sheetCell, styles.sheetRight, { width: 100 }]}>
+                      <Text style={{ color: colors.accentGold }}>${b.amount_used}</Text>
+                      <Text style={{ color: colors.textMuted }}> / ${b.max_value}</Text>
                     </Text>
+                    <View style={{ width: 24, alignItems: 'center', justifyContent: 'center' }}>
+                      <View style={{
+                        width: 18, height: 18, borderRadius: 9,
+                        borderWidth: 2.5, borderColor: colors.borderMedium,
+                      }}>
+                        <View style={{
+                          position: 'absolute', top: -2.5, left: -2.5,
+                          width: 18, height: 18, borderRadius: 9,
+                          borderWidth: 2.5, borderColor: statusColor,
+                          borderTopColor: pct >= 25 ? statusColor : 'transparent',
+                          borderRightColor: pct >= 50 ? statusColor : 'transparent',
+                          borderBottomColor: pct >= 75 ? statusColor : 'transparent',
+                          borderLeftColor: pct >= 100 ? statusColor : 'transparent',
+                          transform: [{ rotate: '-45deg' }],
+                        }} />
+                      </View>
+                    </View>
                   </View>
                 );
               });
             })}
             {/* Grand total */}
             <View style={[styles.sheetRow, { borderTopWidth: 2, borderTopColor: colors.borderMedium }]}>
-              <Text style={[styles.sheetCell, { width: 100, fontWeight: '700' }]}>Total</Text>
-              <Text style={[styles.sheetCell, { width: 130, color: colors.textMuted }]}>Fees: ${grandTotalFees}</Text>
-              <Text style={[styles.sheetCell, { width: 70 }]}></Text>
-              <Text style={[styles.sheetCell, styles.sheetRight, { width: 60, fontWeight: '700' }]}>${grandTotalMax}</Text>
-              <Text style={[styles.sheetCell, styles.sheetRight, { width: 60, fontWeight: '700', color: colors.accentGold }]}>${grandTotalUsed}</Text>
-              <Text style={[styles.sheetCell, styles.sheetRight, { width: 60, fontWeight: '700' }]}>${grandTotalMax - grandTotalUsed}</Text>
-              <Text style={[styles.sheetCell, styles.sheetRight, { width: 45, fontWeight: '700', color: grandUtilization >= 80 ? colors.statusSuccess : colors.accentGold }]}>
-                {grandUtilization.toFixed(0)}%
+              <Text style={[styles.sheetCell, { width: 90, fontWeight: '700' }]}>Total</Text>
+              <Text style={[styles.sheetCell, { width: 120, color: colors.textMuted }]}>Fees: ${grandTotalFees}</Text>
+              <Text style={[styles.sheetCell, { width: 30 }]}></Text>
+              <Text style={[styles.sheetCell, styles.sheetRight, { width: 100, fontWeight: '700' }]}>
+                <Text style={{ color: colors.accentGold }}>${grandTotalUsed}</Text>
+                <Text style={{ color: colors.textMuted }}> / ${grandTotalMax}</Text>
               </Text>
+              <View style={{ width: 24 }} />
             </View>
           </View>
         </ScrollView>
