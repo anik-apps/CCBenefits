@@ -397,7 +397,7 @@ export default function AllCredits() {
                 const issuerColor = getIssuerColor(card.issuer).bg;
                 return sortedBenefits.map((b, i) => {
                   return (
-                  <tr key={`${card.id}-${b.benefit_template_id}`} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                  <tr key={`${card.id}-${b.benefit_template_id}`} style={{ borderBottom: '1px solid var(--border-subtle)', background: `${issuerColor}0A` }}>
                     <td style={{
                       ...tdStyle, color: 'var(--text-secondary)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis',
                       borderLeft: `3px solid ${issuerColor}`,
