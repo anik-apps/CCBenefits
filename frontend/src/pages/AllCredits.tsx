@@ -159,7 +159,7 @@ export default function AllCredits() {
     return 'var(--text-muted)';
   };
 
-  const toggleCollapse = (key: string, index: number) => {
+  const toggleCollapse = (key: string) => {
     setExpandedSections(prev => {
       // On first interaction, initialize from default state
       const current = prev ?? new Set([getSectionKeys()[0]]);
@@ -213,7 +213,7 @@ export default function AllCredits() {
 
   const sectionHeader = (label: string, key: string, index: number, rightContent?: React.ReactNode) => (
     <div
-      onClick={() => toggleCollapse(key, index)}
+      onClick={() => toggleCollapse(key)}
       style={{
         fontSize: '0.7rem',
         fontWeight: 600,
