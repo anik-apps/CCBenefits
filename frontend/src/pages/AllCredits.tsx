@@ -343,7 +343,6 @@ export default function AllCredits() {
                     border: '1px solid var(--border-subtle)', overflow: 'hidden',
                   }}>
                     {sortedBenefits.map((b, i) => {
-                      const benefitWithCard: BenefitWithCard = { ...b, userCardId: card.id, cardName, issuer: card.issuer };
                       return (
                         <div key={`${card.id}-${b.benefit_template_id}`}>
                           {i > 0 && <div style={{ height: 1, background: 'var(--border-subtle)', margin: '0 14px' }} />}
