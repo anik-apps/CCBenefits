@@ -151,6 +151,8 @@ class UserCardDetailOut(BaseModel):
     member_since_date: date | None
     renewal_date: date | None = None
     is_active: bool
+    ytd_actual_used: float = 0
+    utilization_pct: float = 0
     benefits_status: list[BenefitStatusOut]
 
 

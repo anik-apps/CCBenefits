@@ -1,7 +1,7 @@
 import ScreenWrapper from '../components/ScreenWrapper';
 import LoadingScreen from '../components/LoadingScreen';
 import CardIcon from '../components/CardIcon';
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, Animated } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { getUserCards, getUnreadCount } from '../services/api';
@@ -78,6 +78,14 @@ export default function DashboardScreen({ navigation }: Props) {
   const unreadCount = unreadData?.unread_count ?? 0;
   const appReady = useAppReady();
 
+  const stats = useMemo(() => {
+    if (!cards || cards.length === 0) return null;
+    const totalFees = cards.reduce((sum, c) => sum + (c.annual_fee ?? 0), 0);
+    const totalUsed = cards.reduce((sum, c) => sum + (c.ytd_actual_used ?? 0), 0);
+    const avgUtilization = cards.reduce((sum, c) => sum + (c.utilization_pct ?? 0), 0) / cards.length;
+    return { totalFees, totalUsed, avgUtilization };
+  }, [cards]);
+
   if (isLoading) {
     return (
       <View style={styles.center}>
@@ -135,6 +143,24 @@ export default function DashboardScreen({ navigation }: Props) {
           onRefresh={refetch}
           refreshing={isLoading}
           contentContainerStyle={{ paddingBottom: spacing.xxl }}
+          ListHeaderComponent={stats ? (
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryLabel}>Total Fees</Text>
+                <Text style={styles.summaryValue}>${stats.totalFees.toLocaleString()}</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryLabel}>YTD Redeemed</Text>
+                <Text style={[styles.summaryValue, { color: colors.accentGold }]}>${stats.totalUsed.toLocaleString()}</Text>
+              </View>
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryLabel}>Utilization</Text>
+                <Text style={[styles.summaryValue, { color: stats.avgUtilization > 50 ? colors.statusSuccess : colors.accentGold }]}>
+                  {stats.avgUtilization.toFixed(0)}%
+                </Text>
+              </View>
+            </View>
+          ) : null}
           renderItem={({ item, index }) => (
             <AnimatedCard item={item} index={index} appReady={appReady} navigation={navigation} />
           )}
@@ -219,4 +245,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3, shadowRadius: 8,
   },
   fabText: { fontSize: 28, color: colors.bgPrimary, fontWeight: '600', marginTop: -2 },
+  summaryRow: {
+    flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg,
+  },
+  summaryCard: {
+    flex: 1, backgroundColor: colors.bgCard, borderRadius: radius.md,
+    padding: spacing.md, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.borderSubtle,
+  },
+  summaryLabel: { fontSize: 11, color: colors.textMuted, marginBottom: 4 },
+  summaryValue: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
 });

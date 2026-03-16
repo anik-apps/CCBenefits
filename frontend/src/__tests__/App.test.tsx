@@ -16,6 +16,7 @@ vi.mock('../services/api', () => ({
   getCardTemplates: () => Promise.resolve([]),
   getUserCards: () => Promise.resolve([]),
   getUserCard: () => Promise.resolve({ id: 1, card_template_id: 1, card_name: 'Test', issuer: 'Test', annual_fee: 0, nickname: null, member_since_date: null, is_active: true, benefits_status: [], renewal_date: null }),
+  getUserCardDetails: () => Promise.resolve([]),
   getUserCardSummary: () => Promise.resolve({}),
   login: vi.fn(),
   register: vi.fn(),

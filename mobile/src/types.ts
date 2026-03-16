@@ -80,6 +80,8 @@ export interface UserCardDetail {
   nickname: string | null;
   member_since_date: string | null;
   is_active: boolean;
+  ytd_actual_used: number;
+  utilization_pct: number;
   benefits_status: BenefitStatus[];
   renewal_date: string | null;
 }

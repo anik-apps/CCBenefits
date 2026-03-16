@@ -200,6 +200,11 @@ export async function getUserCard(id: number): Promise<UserCardDetail> {
   return data;
 }
 
+export async function getUserCardDetails(): Promise<UserCardDetail[]> {
+  const { data } = await api.get('/api/user-cards/details');
+  return data;
+}
+
 export async function getUserCardSummary(id: number): Promise<UserCardSummary> {
   const { data } = await api.get(`/api/user-cards/${id}/summary`);
   return data;
