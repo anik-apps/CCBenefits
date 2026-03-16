@@ -342,23 +342,35 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <form onSubmit={handlePasswordChange} style={{ marginBottom: 32 }}>
-        <h3 style={{ marginBottom: 12 }}>Change Password</h3>
-        <label style={{ display: 'block', marginBottom: 12 }}>
-          <span style={labelStyle}>Current Password</span>
-          <input type="password" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} required style={inputStyle} />
-        </label>
-        <label style={{ display: 'block', marginBottom: 16 }}>
-          <span style={labelStyle}>New Password</span>
-          <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} required minLength={8} style={inputStyle} />
-        </label>
-        <button type="submit" style={{
-          padding: '8px 20px', borderRadius: 'var(--radius-sm)',
-          background: 'rgba(255,255,255,0.1)', color: 'var(--text-primary)',
-          fontWeight: 600, border: '1px solid var(--border-medium)', cursor: 'pointer',
-        }}>Change Password</button>
-        {pwMsg && <span style={{ marginLeft: 12, fontSize: '0.85rem' }}>{pwMsg}</span>}
-      </form>
+      <div style={{ marginBottom: 32 }}>
+        <h3 style={{ marginBottom: 12 }}>Password</h3>
+        {oauthProviders.length > 0 && !currentPw && pwMsg === '' ? (
+          <div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 12 }}>
+              No password set. You can add one to enable email/password sign-in.
+            </p>
+            <a href="/forgot-password" style={{ color: 'var(--accent-gold)', fontSize: '0.85rem' }}>
+              Set a password via email
+            </a>
+          </div>
+        ) : null}
+        <form onSubmit={handlePasswordChange} style={{ marginTop: oauthProviders.length > 0 ? 16 : 0 }}>
+          <label style={{ display: 'block', marginBottom: 12 }}>
+            <span style={labelStyle}>Current Password</span>
+            <input type="password" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} required style={inputStyle} />
+          </label>
+          <label style={{ display: 'block', marginBottom: 16 }}>
+            <span style={labelStyle}>New Password</span>
+            <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} required minLength={8} style={inputStyle} />
+          </label>
+          <button type="submit" style={{
+            padding: '8px 20px', borderRadius: 'var(--radius-sm)',
+            background: 'rgba(255,255,255,0.1)', color: 'var(--text-primary)',
+            fontWeight: 600, border: '1px solid var(--border-medium)', cursor: 'pointer',
+          }}>Change Password</button>
+          {pwMsg && <span style={{ marginLeft: 12, fontSize: '0.85rem' }}>{pwMsg}</span>}
+        </form>
+      </div>
 
       <div>
         <button onClick={logout} style={{
