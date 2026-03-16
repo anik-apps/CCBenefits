@@ -35,17 +35,32 @@ sphinx-autodoc-typehints = "^3.9.7"
 sphinx-rtd-theme = "^3.1.0"
 furo = "^2025.12.19"
 freezegun = "^1.5.5"
+ruff = "^0.15.6"
 
 [tool.pytest.ini_options]
 addopts = "--cov=ccbenefits --cov-report=term-missing --cov-report=html"
 
 [tool.coverage.run]
 source = ["ccbenefits"]
-omit = ["ccbenefits/seed.py"]
+omit = []
 
 [tool.coverage.report]
 fail_under = 80
 show_missing = true
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "G004"]
+
+[tool.ruff.lint.per-file-ignores]
+"ccbenefits/email.py" = ["E501"]  # HTML email templates have long lines
+"ccbenefits/notifications.py" = ["E501"]  # HTML email templates
+"ccbenefits/middleware.py" = ["E501"]  # URL pattern mapping
+"ccbenefits/seed.py" = ["E501"]  # Long benefit descriptions
+"ccbenefits/main.py" = ["E402"]  # Middleware import after app setup is intentional
+"tests/*" = ["E501", "E402"]  # Long test assertions and late imports are fine
 
 [build-system]
 requires = ["poetry-core"]

@@ -37,7 +37,7 @@ export default function LoginPage() {
       };
       setError(messages[err] || 'Sign-in failed');
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount for Apple callback
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

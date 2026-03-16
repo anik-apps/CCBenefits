@@ -1,5 +1,7 @@
 import pytest
-from ccbenefits.schemas import NotificationPreferences, ChannelPreferences
+
+from ccbenefits.schemas import ChannelPreferences, NotificationPreferences
+
 
 def test_default_preferences():
     prefs = NotificationPreferences()

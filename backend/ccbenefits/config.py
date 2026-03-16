@@ -2,7 +2,6 @@ import os
 import re
 import warnings
 
-
 SECRET_KEY = os.environ.get("CCB_SECRET_KEY", "")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30

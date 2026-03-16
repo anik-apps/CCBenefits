@@ -1,5 +1,6 @@
-from datetime import datetime, timedelta, timezone as dt_timezone
-from unittest.mock import patch, MagicMock
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
+from unittest.mock import patch
 
 from ccbenefits.auth import create_opaque_token, hash_opaque_token
 from ccbenefits.models import User

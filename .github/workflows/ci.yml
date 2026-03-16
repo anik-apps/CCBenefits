@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction
 
+      - name: Lint (ruff)
+        run: poetry run ruff check ccbenefits/ tests/
+
       - name: Run tests with coverage
         run: poetry run pytest -v
 
@@ -88,7 +91,6 @@ jobs:
 
       - name: Lint
         run: npm run lint
-        continue-on-error: true
 
     outputs:
       frontend-coverage: ${{ steps.coverage.outputs.total }}
