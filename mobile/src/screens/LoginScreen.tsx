@@ -1,19 +1,38 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Platform } from 'react-native';
+import * as Google from 'expo-auth-session/providers/google';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as WebBrowser from 'expo-web-browser';
+import Constants from 'expo-constants';
 import { useAuth } from '../hooks/useAuth';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { colors, spacing, radius } from '../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+WebBrowser.maybeCompleteAuthSession();
+
 type Props = NativeStackScreenProps<any, 'Login'>;
 
 export default function LoginScreen({ navigation }: Props) {
-  const { login } = useAuth();
+  const { login, oauthLogin } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const passwordRef = useRef<TextInput>(null);
+
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: Constants.expoConfig?.extra?.googleClientId,
+    androidClientId: Constants.expoConfig?.extra?.googleClientIdAndroid,
+    iosClientId: Constants.expoConfig?.extra?.googleClientIdIos,
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+      oauthLogin('google', id_token).catch(() => setError('Google sign-in failed'));
+    }
+  }, [response]);
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
@@ -77,6 +96,42 @@ export default function LoginScreen({ navigation }: Props) {
           <Text style={styles.buttonText}>{loading ? 'Signing in...' : 'Sign In'}</Text>
         </TouchableOpacity>
 
+        <Text style={styles.divider}>or</Text>
+
+        <TouchableOpacity
+          style={[styles.oauthButton, !request && styles.buttonDisabled]}
+          onPress={() => promptAsync()}
+          disabled={!request}
+        >
+          <Text style={styles.oauthButtonText}>Sign in with Google</Text>
+        </TouchableOpacity>
+
+        {Platform.OS === 'ios' && (
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+            cornerRadius={radius.sm}
+            style={{ height: 48, width: '100%', marginTop: spacing.sm }}
+            onPress={async () => {
+              try {
+                const credential = await AppleAuthentication.signInAsync({
+                  requestedScopes: [
+                    AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+                    AppleAuthentication.AppleAuthenticationScope.EMAIL,
+                  ],
+                });
+                const displayName = [credential.fullName?.givenName, credential.fullName?.familyName]
+                  .filter(Boolean).join(' ') || undefined;
+                await oauthLogin('apple', credential.identityToken!, displayName);
+              } catch (err: any) {
+                if (err.code !== 'ERR_REQUEST_CANCELED') {
+                  setError('Apple sign-in failed');
+                }
+              }
+            }}
+          />
+        )}
+
         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
           <Text style={styles.link}>Don't have an account? <Text style={styles.linkAccent}>Sign up</Text></Text>
         </TouchableOpacity>
@@ -106,6 +161,12 @@ const styles = StyleSheet.create({
   buttonText: { color: colors.bgPrimary, fontWeight: '600', fontSize: 16 },
   error: { color: colors.statusDanger, fontSize: 13, marginBottom: spacing.lg, textAlign: 'center' },
   forgotLink: { color: colors.accentGold, fontSize: 13, textAlign: 'right', marginTop: -8, marginBottom: spacing.lg },
-  link: { color: colors.textMuted, fontSize: 13, textAlign: 'center' },
+  divider: { textAlign: 'center', color: colors.textMuted, fontSize: 13, marginVertical: spacing.md },
+  oauthButton: {
+    backgroundColor: '#4285F4', borderRadius: radius.sm,
+    padding: spacing.lg, alignItems: 'center',
+  },
+  oauthButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  link: { color: colors.textMuted, fontSize: 13, textAlign: 'center', marginTop: spacing.lg },
   linkAccent: { color: colors.accentGold },
 });
