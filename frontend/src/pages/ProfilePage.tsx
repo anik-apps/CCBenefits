@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { updateProfile, changePassword, getOAuthProviders, unlinkOAuthProvider } from '../services/api';
+import { updateProfile, changePassword, getOAuthProviders, linkOAuthProvider, unlinkOAuthProvider } from '../services/api';
 import { GoogleLogin } from '@react-oauth/google';
 import { extractApiError } from '../utils/apiError';
 import { inputStyle, labelStyle, primaryButtonStyle } from '../styles/form';
