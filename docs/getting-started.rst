@@ -217,7 +217,7 @@ Integration tests run against a Docker Compose stack (app + postgres):
    cd backend && poetry run pytest tests/integration/ -v --no-cov
 
    # Playwright E2E tests (3 flows)
-   cd tests/e2e && npm ci && npx playwright install chromium && npx playwright test
+   cd tests/e2e && npm ci && npx playwright install chromium --with-deps && npx playwright test
 
    # Tear down
    docker compose -f docker-compose.test.yml down -v

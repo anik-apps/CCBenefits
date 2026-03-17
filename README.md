@@ -11,29 +11,35 @@ Track utilization of credit card benefits (monthly, quarterly, semiannual, annua
 
 ## Features
 
-- **Multi-user authentication**: Email/password registration, JWT access/refresh tokens, user profiles
+- **Multi-user authentication**: Email/password + Google OAuth (Apple coming soon), JWT access/refresh tokens
 - **Email verification**: Verification emails via Resend, unverified users blocked until verified
+- **Forgot password**: Reset via email link (web + mobile)
 - **11 pre-seeded cards**: Amex Platinum, Amex Business Platinum, Amex Gold, Hilton Surpass, Hilton Aspire, Chase Sapphire Reserve, CSR for Business, Capital One Venture X, Citi Strata Elite, Bilt Palladium, BofA Premium Rewards Elite
 - **Perceived value tracking**: Set your own valuation per benefit (e.g., value a $25 Equinox credit at $10 if you rarely go)
 - **Period segments**: Visual grid showing usage across all months/quarters/halves of the year
 - **Binary vs continuous benefits**: Toggle for all-or-nothing credits, dollar input for partial-use credits
-- **ROI dashboard**: Net value = perceived value redeemed - annual fee
-- **All Credits view**: See every benefit across all your cards in one place
+- **Analytics dashboard**: SVG donut/bar charts, summary stats, per-card utilization
+- **All Credits view**: By Period / By Card / Sheet tabs with collapsible sections and issuer color coding
+- **Notifications**: 5 types (expiring credits, period start, unused recap, fee approaching, utilization summary) via email + push
+- **Notification inbox**: Bell icon with unread count on web and mobile
 - **Feedback system**: Submit feedback via modal, admin API to review
-- **Mobile app**: React Native (Expo) Android app with full feature parity
+- **Mobile app**: React Native (Expo SDK 55) Android app with full feature parity
 - **Observability**: Structured logging + metrics via OpenTelemetry → Grafana Cloud
+- **Integration tests**: API smoke tests + Playwright E2E with deploy approval gate
 - **Data isolation**: Each user sees only their own cards and benefits
 
 ## Tech Stack
 
-- **Backend**: Python 3.12+ / FastAPI / SQLAlchemy 2.0 / PostgreSQL (SQLite for dev)
-- **Auth**: bcrypt / PyJWT / OAuth2 Bearer tokens / Resend (email verification)
-- **Frontend**: React / Vite / TypeScript / TanStack Query
-- **Mobile**: React Native / Expo SDK 54 / React Navigation v7
+- **Backend**: Python 3.13 / FastAPI / SQLAlchemy 2.0 / PostgreSQL (SQLite for dev)
+- **Auth**: bcrypt / PyJWT / Google OAuth (google-auth) / Resend (email)
+- **Frontend**: React / Vite 8 / TypeScript / TanStack Query
+- **Mobile**: React Native / Expo SDK 55 / React Navigation v7
+- **Notifications**: APScheduler / Resend (email) / Expo Push API (mobile)
 - **Observability**: OpenTelemetry SDK → Grafana Cloud (Loki + Prometheus via OTLP)
+- **Testing**: pytest (190+) / vitest (55+) / Playwright E2E / ruff + ESLint
 - **Deployment**: Docker / Docker Compose / Caddy (HTTPS) / Oracle Cloud VM
-- **CI/CD**: GitHub Actions → GHCR → SSH deploy
-- **Package management**: Poetry (backend), npm (frontend)
+- **CI/CD**: GitHub Actions → integration tests → manual approval → GHCR → SSH deploy
+- **Package management**: Poetry (backend), npm (frontend/mobile)
 
 ## Quick Start
 
@@ -83,13 +89,22 @@ Scan the QR code with Expo Go on your Android phone. The app connects to the liv
 ### Run Tests
 
 ```bash
-# Backend (105 tests, 96% coverage)
+# Backend lint + tests (190+ tests, 87%+ coverage)
 cd backend
+poetry run ruff check ccbenefits/ tests/
 poetry run pytest -v
 
-# Frontend (52 tests)
+# Frontend lint + tests (55+ tests)
 cd frontend
-npm test -- --run
+npm run lint
+npx vitest run
+
+# Integration tests (requires Docker)
+docker build -t ccbenefits:test .
+docker compose -f docker-compose.test.yml up -d
+cd backend && poetry run pytest tests/integration/ -v --no-cov
+cd tests/e2e && npx playwright install chromium --with-deps && npx playwright test
+docker compose -f docker-compose.test.yml down -v
 ```
 
 ### Environment Variables
@@ -108,6 +123,9 @@ npm test -- --run
 | `GRAFANA_INSTANCE_ID` | _(empty)_ | Grafana Cloud instance ID. |
 | `GRAFANA_OTLP_TOKEN` | _(empty)_ | Grafana Cloud API token. |
 | `CCB_SCHEDULER_ENABLED` | `false` | Enable APScheduler for notification jobs. Set `true` in production. |
+| `GOOGLE_CLIENT_ID` | _(empty)_ | Google OAuth web client ID. |
+| `GOOGLE_CLIENT_ID_ANDROID` | _(empty)_ | Google OAuth Android client ID. |
+| `GOOGLE_CLIENT_ID_IOS` | _(empty)_ | Google OAuth iOS client ID. |
 
 ## Project Structure
 
@@ -126,18 +144,21 @@ CCBenefits/
 │   │   ├── observability.py    # OpenTelemetry setup for Grafana Cloud
 │   │   ├── metrics.py          # Business metric counters
 │   │   ├── middleware.py        # Request logging with PII masking
-│   │   ├── models.py           # 7 ORM models (User, Feedback, CardTemplate, etc.)
+│   │   ├── models.py           # 8 ORM models (User, UserOAuthAccount, CardTemplate, etc.)
+│   │   ├── oauth.py            # Google/Apple token verification
+│   │   ├── oauth_helpers.py    # Shared OAuth account resolution
 │   │   ├── schemas.py          # Pydantic request/response schemas
 │   │   ├── seed.py             # 11 pre-seeded cards with benefits
 │   │   ├── utils.py            # Period calculation helpers
 │   │   └── routers/
-│   │       ├── auth.py         # Register, login, verify, refresh, password reset
+│   │       ├── auth.py         # Register, login, verify, refresh, password reset, OAuth
 │   │       ├── users.py        # User profile CRUD
 │   │       ├── feedback.py     # Feedback submit + admin list
 │   │       ├── card_templates.py
 │   │       ├── user_cards.py
 │   │       └── usage.py
-│   └── tests/                  # 105 tests (96% coverage)
+│   └── tests/                  # 190+ tests (87%+ coverage)
+│       └── integration/        # API smoke tests (run against Docker stack)
 ├── frontend/
 │   ├── package.json
 │   ├── vite.config.ts
@@ -182,8 +203,10 @@ CCBenefits/
 │       │                       # CardDetail, AddCard, AllCredits, Profile, Feedback
 │       ├── components/         # UsageModal, ScreenWrapper, LoadingScreen
 │       └── theme.ts            # Dark theme colors/spacing
+├── tests/e2e/                  # Playwright E2E tests
 ├── Dockerfile                  # Multi-stage (Node build + Python slim)
-├── docker-compose.prod.yml     # App + Postgres + Caddy
+├── docker-compose.prod.yml     # App + Postgres + Caddy (production)
+├── docker-compose.test.yml     # App + Postgres (integration tests)
 ├── .env.example                # Production env var template
 └── README.md
 ```
@@ -201,6 +224,10 @@ CCBenefits/
 | POST | `/api/auth/resend-verification` | Resend verification email (auth required) |
 | POST | `/api/auth/password-reset-request` | Request password reset email |
 | POST | `/api/auth/password-reset` | Reset password with token |
+| POST | `/api/auth/oauth` | OAuth sign-in (Google/Apple) |
+| GET | `/api/auth/oauth/providers` | List linked OAuth providers |
+| POST | `/api/auth/oauth/link` | Link OAuth provider to account |
+| DELETE | `/api/auth/oauth/link/{provider}` | Unlink OAuth provider |
 
 ### User Profile (authenticated)
 
@@ -228,6 +255,7 @@ CCBenefits/
 | DELETE | `/api/user-cards/{id}` | Remove a card |
 | POST | `/api/user-cards/{id}/usage` | Log benefit usage |
 | PUT | `/api/user-cards/{id}/benefits/{bid}/setting` | Set perceived value |
+| GET | `/api/user-cards/details` | Batch detail (all cards + benefits) |
 | GET | `/api/user-cards/{id}/summary` | ROI summary |
 | PUT | `/api/usage/{id}` | Update usage |
 | DELETE | `/api/usage/{id}` | Delete usage |
@@ -247,7 +275,10 @@ Deployed on Oracle Cloud Always Free tier with Docker Compose:
 Caddy (HTTPS) → FastAPI (app) → PostgreSQL
 ```
 
-CI/CD: Push to master → GitHub Actions builds Docker image → pushes to GHCR → SSH deploys to Oracle VM.
+CI/CD pipeline:
+1. Push to master → integration tests (Docker stack + API smoke + Playwright E2E)
+2. Manual approval via GitHub Environments → build + push to GHCR → SSH deploy to Oracle VM
+3. Emergency deploys available via "Deploy (Emergency)" workflow (manual trigger)
 
 See `.env.example` for production configuration.
 
@@ -268,9 +299,9 @@ job dedup (see `backend/ccbenefits/scheduler.py`).
 
 ## Mobile App
 
-React Native (Expo SDK 54) Android app with full feature parity:
+React Native (Expo SDK 55) Android app with full feature parity:
 
-- **8 screens**: Login, Register, Verify Pending, Dashboard, Card Detail, Add Card, All Credits, Feedback, Profile
+- **10+ screens**: Login, Register, Verify Pending, Dashboard, Card Detail, Add Card, All Credits (3 tabs), Notifications, Feedback, Profile
 - **Usage logging**: Tap any benefit to log/update/delete usage with period selector and binary/continuous support
 - **Dark theme**: Matches web frontend with gold accents
 - **Safe area handling**: Content properly inset for notch/status bar on all devices
