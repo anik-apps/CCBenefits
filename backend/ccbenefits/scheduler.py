@@ -8,7 +8,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 from . import config
 from .database import SessionLocal
-from .metrics import notification_jobs_counter
+from .metrics import notification_jobs_counter, notification_users_gauge
 from .models import User
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,8 @@ def hourly_notification_check():
         check_expiring_credits(db, users)
         check_period_transitions(db, users)
         check_fee_approaching(db, users)
-        notification_jobs_counter.add(1, {"job": "hourly", "users": str(len(users))})
+        notification_jobs_counter.add(1, {"job": "hourly"})
+        notification_users_gauge.set(len(users), {"job": "hourly"})
     except Exception:
         logger.exception("Error in hourly notification check")
         db.rollback()
@@ -81,7 +82,8 @@ def weekly_utilization_check():
         users = get_users_for_notification_hour(db, utc_hour)
         if users:
             send_utilization_summary(db, users)
-        notification_jobs_counter.add(1, {"job": "weekly", "users": str(len(users))})
+        notification_jobs_counter.add(1, {"job": "weekly"})
+        notification_users_gauge.set(len(users), {"job": "weekly"})
     except Exception:
         logger.exception("Error in weekly utilization check")
         db.rollback()
@@ -89,17 +91,43 @@ def weekly_utilization_check():
         db.close()
 
 
-def cleanup_old_notifications():
+def cleanup_expired_data():
+    """Weekly cleanup of old notifications and expired tokens."""
     db = SessionLocal()
     try:
-        from .models import Notification
+        from .models import Notification, UnsubscribeToken, User
 
-        cutoff = datetime.now(dt_timezone.utc) - timedelta(days=90)
-        deleted = db.query(Notification).filter(Notification.created_at < cutoff).delete()
+        # All DateTime columns use DateTime without timezone=True, so compare with naive UTC
+        now = datetime.now(dt_timezone.utc).replace(tzinfo=None)
+
+        # Clean old notifications (90+ days)
+        cutoff = now - timedelta(days=90)
+        notif_deleted = db.query(Notification).filter(Notification.created_at < cutoff).delete()
+
+        # Clean expired verification tokens
+        verif_cleared = (
+            db.query(User)
+            .filter(User.verification_token.isnot(None), User.verification_token_expires < now)
+            .update({"verification_token": None, "verification_token_expires": None})
+        )
+
+        # Clean expired password reset tokens
+        reset_cleared = (
+            db.query(User)
+            .filter(User.password_reset_token.isnot(None), User.password_reset_expires < now)
+            .update({"password_reset_token": None, "password_reset_expires": None})
+        )
+
+        # Clean expired unsubscribe tokens
+        unsub_deleted = db.query(UnsubscribeToken).filter(UnsubscribeToken.expires_at < now).delete()
+
         db.commit()
-        logger.info("Cleaned up %d old notifications", deleted)
+        logger.info(
+            "Cleanup: %d notifications, %d verification tokens, %d reset tokens, %d unsubscribe tokens",
+            notif_deleted, verif_cleared, reset_cleared, unsub_deleted,
+        )
     except Exception:
-        logger.exception("Error cleaning up old notifications")
+        logger.exception("Error in cleanup_expired_data")
         db.rollback()
     finally:
         db.close()
@@ -122,9 +150,9 @@ def start_scheduler():
         replace_existing=True,
     )
     scheduler.add_job(
-        cleanup_old_notifications,
+        cleanup_expired_data,
         CronTrigger(day_of_week="sun", hour=3),
-        id="cleanup_notifications",
+        id="cleanup_expired_data",
         replace_existing=True,
     )
     scheduler.start()
