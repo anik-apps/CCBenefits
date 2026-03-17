@@ -95,29 +95,29 @@ def cleanup_expired_data():
     try:
         from .models import Notification, UnsubscribeToken, User
 
-        now_aware = datetime.now(dt_timezone.utc)
-        now_naive = now_aware.replace(tzinfo=None)
+        # All DateTime columns use DateTime without timezone=True, so compare with naive UTC
+        now = datetime.now(dt_timezone.utc).replace(tzinfo=None)
 
         # Clean old notifications (90+ days)
-        cutoff = now_aware - timedelta(days=90)
+        cutoff = now - timedelta(days=90)
         notif_deleted = db.query(Notification).filter(Notification.created_at < cutoff).delete()
 
-        # Clean expired verification tokens (User fields, naive datetimes)
+        # Clean expired verification tokens
         verif_cleared = (
             db.query(User)
-            .filter(User.verification_token.isnot(None), User.verification_token_expires < now_naive)
+            .filter(User.verification_token.isnot(None), User.verification_token_expires < now)
             .update({"verification_token": None, "verification_token_expires": None})
         )
 
-        # Clean expired password reset tokens (User fields, naive datetimes)
+        # Clean expired password reset tokens
         reset_cleared = (
             db.query(User)
-            .filter(User.password_reset_token.isnot(None), User.password_reset_expires < now_naive)
+            .filter(User.password_reset_token.isnot(None), User.password_reset_expires < now)
             .update({"password_reset_token": None, "password_reset_expires": None})
         )
 
-        # Clean expired unsubscribe tokens (aware datetimes)
-        unsub_deleted = db.query(UnsubscribeToken).filter(UnsubscribeToken.expires_at < now_aware).delete()
+        # Clean expired unsubscribe tokens
+        unsub_deleted = db.query(UnsubscribeToken).filter(UnsubscribeToken.expires_at < now).delete()
 
         db.commit()
         logger.info(
