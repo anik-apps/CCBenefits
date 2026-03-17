@@ -196,3 +196,38 @@ Running Tests
 
 Backend tests include coverage reporting with an 80% minimum threshold.
 Ruff (Python) and ESLint (TypeScript) are enforced in CI — lint failures block PRs.
+
+Integration Tests
+~~~~~~~~~~~~~~~~~
+
+Integration tests run against a Docker Compose stack (app + postgres):
+
+.. code-block:: bash
+
+   # Build test image
+   docker build -t ccbenefits:test .
+
+   # Start test stack
+   docker compose -f docker-compose.test.yml up -d
+
+   # Wait for health
+   for i in $(seq 1 20); do curl -sf http://localhost:8080/api/health && break; sleep 3; done
+
+   # API smoke tests (5 tests)
+   cd backend && poetry run pytest tests/integration/ -v --no-cov
+
+   # Playwright E2E tests (3 flows)
+   cd tests/e2e && npm ci && npx playwright install chromium && npx playwright test
+
+   # Tear down
+   docker compose -f docker-compose.test.yml down -v
+
+Deploy Pipeline
+~~~~~~~~~~~~~~~
+
+Deploys are gated behind integration tests + manual approval:
+
+1. Push to master triggers integration tests (Docker build → API smoke → Playwright E2E)
+2. If tests pass, a **"Review pending"** approval button appears in GitHub Actions
+3. Click approve to deploy to production (GHCR push → SSH deploy to Oracle VM)
+4. Emergency deploys available via the "Deploy (Emergency)" workflow (manual trigger)

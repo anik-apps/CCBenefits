@@ -150,7 +150,8 @@ Production runs on Oracle Cloud Always Free tier (E2.1.Micro VM, 1 OCPU, 1GB RAM
    Cloudflare (DNS + SSL) → FastAPI app (1 worker) → PostgreSQL
 
    GitHub Actions CI/CD:
-   Push to master → build Docker image → push to GHCR → SSH deploy to VM
+   Push to master → integration tests (Docker stack + API smoke + Playwright E2E)
+     → manual approval via GitHub Environments → push to GHCR → SSH deploy to VM
 
    Grafana dashboards:
    Push to master (grafana/**) → grafanactl push → Grafana Cloud

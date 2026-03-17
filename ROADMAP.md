@@ -65,6 +65,12 @@
 - [x] Collapsible sections (first expanded, rest collapsed by default)
 - [x] Batch detail endpoint `GET /api/user-cards/details` (fixes N+1 fetch)
 
+### Testing & CI/CD
+- [x] Integration tests: 5 API smoke tests + 3 Playwright E2E tests
+- [x] Docker Compose test stack (app + postgres) for CI
+- [x] Deploy approval gate via GitHub Environments (manual approve after integration tests pass)
+- [x] Emergency deploy escape hatch via workflow_dispatch
+
 ### Code Quality
 - [x] 190+ backend tests with 87%+ coverage
 - [x] Ruff (Python) + ESLint (TypeScript) enforced in CI
