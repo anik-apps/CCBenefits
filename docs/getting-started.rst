@@ -189,7 +189,7 @@ Running Tests
    cd backend
    poetry run pytest -v
 
-   # Frontend lint + tests (55+ tests)
+   # Frontend lint + tests (70+ tests)
    cd frontend
    npm run lint
    npx vitest run

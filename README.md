@@ -30,13 +30,13 @@ Track utilization of credit card benefits (monthly, quarterly, semiannual, annua
 
 ## Tech Stack
 
-- **Backend**: Python 3.13 / FastAPI / SQLAlchemy 2.0 / PostgreSQL (SQLite for dev)
+- **Backend**: Python 3.12+ / FastAPI / SQLAlchemy 2.0 / PostgreSQL (SQLite for dev)
 - **Auth**: bcrypt / PyJWT / Google OAuth (google-auth) / Resend (email)
 - **Frontend**: React / Vite 8 / TypeScript / TanStack Query
 - **Mobile**: React Native / Expo SDK 55 / React Navigation v7
 - **Notifications**: APScheduler / Resend (email) / Expo Push API (mobile)
 - **Observability**: OpenTelemetry SDK → Grafana Cloud (Loki + Prometheus via OTLP)
-- **Testing**: pytest (190+) / vitest (55+) / Playwright E2E / ruff + ESLint
+- **Testing**: pytest (190+) / vitest (70+) / Playwright E2E / ruff + ESLint
 - **Deployment**: Docker / Docker Compose / Caddy (HTTPS) / Oracle Cloud VM
 - **CI/CD**: GitHub Actions → integration tests → manual approval → GHCR → SSH deploy
 - **Package management**: Poetry (backend), npm (frontend/mobile)
@@ -94,7 +94,7 @@ cd backend
 poetry run ruff check ccbenefits/ tests/
 poetry run pytest -v
 
-# Frontend lint + tests (55+ tests)
+# Frontend lint + tests (70+ tests)
 cd frontend
 npm run lint
 npx vitest run
