@@ -54,6 +54,7 @@ GRAFANA_INSTANCE_ID = os.environ.get("GRAFANA_INSTANCE_ID", "")
 GRAFANA_OTLP_TOKEN = os.environ.get("GRAFANA_OTLP_TOKEN", "")
 
 SCHEDULER_ENABLED: bool = os.getenv("CCB_SCHEDULER_ENABLED", "false").lower() in ("true", "1", "yes")
+AUTO_VERIFY = os.environ.get("CCB_AUTO_VERIFY", "false").lower() in ("true", "1", "yes")
 
 ALLOWED_ORIGINS = [
     origin.strip()

@@ -38,7 +38,7 @@ freezegun = "^1.5.5"
 ruff = "^0.15.6"
 
 [tool.pytest.ini_options]
-addopts = "--cov=ccbenefits --cov-report=term-missing --cov-report=html"
+addopts = "--cov=ccbenefits --cov-report=term-missing --cov-report=html --ignore=tests/integration"
 
 [tool.coverage.run]
 source = ["ccbenefits"]

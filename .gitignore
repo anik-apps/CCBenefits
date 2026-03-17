@@ -44,5 +44,10 @@ frontend/coverage/
 # Firebase
 google-services.json
 
+# Playwright E2E
+tests/e2e/node_modules/
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+
 # Claude
 .claude/
