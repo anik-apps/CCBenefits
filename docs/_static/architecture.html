@@ -95,40 +95,37 @@
 
   <!-- ═══════════ CONNECTIONS (all orthogonal) ═══════════ -->
 
-  <!-- Browser → Cloudflare: down from Browser left edge, then left, then down into Cloudflare -->
-  <polyline class="conn" stroke="#8b5cf6" marker-end="url(#ap)" points="340,75 180,75 180,185"/>
-  <text class="conn-label" fill="#8b5cf6" x="240" y="68">HTTPS</text>
-
-  <!-- Android App → Cloudflare: down from App, left along row, then down -->
-  <polyline class="conn" stroke="#8b5cf6" marker-end="url(#ap)" points="540,110 540,130 180,130 180,185"/>
-  <text class="conn-label" fill="#8b5cf6" x="340" y="125">HTTPS + OAuth</text>
+  <!-- Clients → Cloudflare: single arrow down from center of Clients box, left, then down -->
+  <polyline class="conn" stroke="#8b5cf6" marker-end="url(#ap)" points="320,75 180,75 180,185"/>
+  <text class="conn-label" fill="#8b5cf6" x="230" y="68">HTTPS</text>
 
   <!-- Cloudflare → Oracle VM: horizontal right -->
   <polyline class="conn" stroke="#f90" marker-end="url(#ao)" points="240,215 320,215"/>
   <text class="conn-label" fill="#f90" x="255" y="230">proxy</text>
 
-  <!-- FastAPI → Expo Push: horizontal right at y=260 -->
-  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="760,260 870,260"/>
-  <text class="conn-label" fill="#22c55e" x="800" y="254">push</text>
+  <!-- 4 parallel horizontal arrows from FastAPI right edge to API boxes -->
+  <!-- FastAPI → Google OAuth: y=210 -->
+  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="760,275 820,275 820,210 870,210"/>
+  <text class="conn-label" fill="#22c55e" x="825" y="204">OAuth</text>
 
-  <!-- FastAPI → Resend: right from FastAPI at y=300, bend down to Resend center y=321 -->
-  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="760,300 830,300 830,321 870,321"/>
-  <text class="conn-label" fill="#22c55e" x="838" y="312">email</text>
+  <!-- FastAPI → Expo Push: y=260 -->
+  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="760,285 840,285 840,260 870,260"/>
+  <text class="conn-label" fill="#22c55e" x="845" y="254">push</text>
 
-  <!-- FastAPI → Grafana Cloud: right from FastAPI, bend down to Grafana (dashed) -->
-  <polyline class="conn dashed" stroke="#22c55e" marker-end="url(#ag)" points="760,320 810,320 810,379 870,379"/>
-  <text class="conn-label" fill="#22c55e" x="818" y="364">telemetry</text>
+  <!-- FastAPI → Resend: y=310 -->
+  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="760,295 840,295 840,310 870,310"/>
+  <text class="conn-label" fill="#22c55e" x="845" y="304">email</text>
 
-  <!-- FastAPI → Google OAuth: right from FastAPI top area, up, then right to Google OAuth -->
-  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="760,270 790,270 790,196 870,196"/>
-  <text class="conn-label" fill="#22c55e" x="796" y="232">OAuth</text>
+  <!-- FastAPI → Grafana Cloud: y=358 (dashed) -->
+  <polyline class="conn dashed" stroke="#22c55e" marker-end="url(#ag)" points="760,305 820,305 820,358 870,358"/>
+  <text class="conn-label" fill="#22c55e" x="825" y="348">telemetry</text>
 
   <!-- Expo Push → Firebase FCM: horizontal right -->
   <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="1030,260 1090,260"/>
   <text class="conn-label" fill="#22c55e" x="1045" y="254">routes</text>
 
   <!-- Firebase FCM → Android App: up from Firebase, then left to App -->
-  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="1155,237 1155,55 740,55"/>
+  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="1155,239 1155,55 740,55"/>
   <text class="conn-label" fill="#22c55e" x="890" y="48">deliver push</text>
 
   <!-- Scheduler → FastAPI: vertical down -->
@@ -205,39 +202,41 @@
 
   <!-- ── EXTERNAL APIs (right column) ── -->
 
-  <!-- Google OAuth: y=175, h=42 -->
+  <!-- External APIs: 4 boxes equidistant, centered with Oracle VM (y=170 to y=340) -->
+
+  <!-- Google OAuth: y=170, h=38 -->
   <g class="node" data-id="google_oauth" onclick="showDetail('google_oauth')">
-    <rect x="870" y="175" width="160" height="42" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
-    <svg x="890" y="186" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-    <text x="960" y="200" text-anchor="middle" fill="#bbf7d0" font-size="11" font-weight="600">Google OAuth</text>
+    <rect x="870" y="191" width="160" height="38" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
+    <svg x="890" y="200" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+    <text x="960" y="215" text-anchor="middle" fill="#bbf7d0" font-size="11" font-weight="600">Google OAuth</text>
   </g>
 
-  <!-- Expo Push: y=237, h=48 -->
+  <!-- Expo Push: y=239, h=42 -->
   <g class="node" data-id="expo_push" onclick="showDetail('expo_push')">
-    <rect x="870" y="237" width="160" height="48" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
+    <rect x="870" y="239" width="160" height="42" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
     <svg x="890" y="250" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
     <text x="960" y="265" text-anchor="middle" fill="#bbf7d0" font-size="11" font-weight="600">Expo Push</text>
   </g>
 
   <!-- Firebase FCM: right of Expo Push -->
   <g class="node" data-id="firebase" onclick="showDetail('firebase')">
-    <rect x="1090" y="237" width="130" height="48" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
+    <rect x="1090" y="239" width="130" height="42" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
     <svg x="1108" y="250" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
     <text x="1163" y="265" text-anchor="middle" fill="#bbf7d0" font-size="11" font-weight="600">Firebase FCM</text>
   </g>
 
-  <!-- Resend: y=300, h=42 -->
+  <!-- Resend: y=291, h=38 -->
   <g class="node" data-id="resend" onclick="showDetail('resend')">
-    <rect x="870" y="300" width="160" height="42" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
-    <svg x="890" y="311" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-    <text x="960" y="325" text-anchor="middle" fill="#bbf7d0" font-size="11" font-weight="600">Resend</text>
+    <rect x="870" y="291" width="160" height="38" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
+    <svg x="890" y="300" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    <text x="960" y="315" text-anchor="middle" fill="#bbf7d0" font-size="11" font-weight="600">Resend</text>
   </g>
 
-  <!-- Grafana Cloud: y=358, h=42 -->
+  <!-- Grafana Cloud: y=339, h=38 -->
   <g class="node" data-id="grafana" onclick="showDetail('grafana')">
-    <rect x="870" y="358" width="160" height="42" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
-    <svg x="890" y="369" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-    <text x="960" y="383" text-anchor="middle" fill="#bbf7d0" font-size="10" font-weight="600">Grafana Cloud</text>
+    <rect x="870" y="339" width="160" height="38" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
+    <svg x="890" y="348" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <text x="960" y="363" text-anchor="middle" fill="#bbf7d0" font-size="10" font-weight="600">Grafana Cloud</text>
   </g>
 
   <!-- ── ROW 2: GITHUB y=400 h=90 ── -->
