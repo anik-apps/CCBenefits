@@ -1,8 +1,7 @@
-name: Deploy
+name: Deploy (Emergency)
 
 on:
-  push:
-    branches: [master]
+  workflow_dispatch:  # Manual trigger only — use Integration Tests & Deploy for normal deploys
 
 env:
   REGISTRY: ghcr.io

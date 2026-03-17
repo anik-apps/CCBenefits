@@ -1,8 +1,9 @@
-name: Integration Tests
+name: Integration Tests & Deploy
 
 on:
   push:
     branches: [master]
+  workflow_dispatch:  # Emergency escape hatch
 
 env:
   REGISTRY: ghcr.io
@@ -97,3 +98,50 @@ jobs:
       - name: Tear down test stack
         if: always()
         run: docker compose -f docker-compose.test.yml down -v
+
+  deploy:
+    name: Deploy to Production
+    needs: integration-tests
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set image name
+        run: echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag SHA image as latest
+        run: |
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Deploy to Oracle VM
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.ORACLE_VM_IP }}
+          username: ${{ secrets.ORACLE_SSH_USER }}
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          envs: GHCR_TOKEN,GHCR_USER
+          script: |
+            cd ~/ccbenefits
+            echo "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USER" --password-stdin
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
+            # Health check with retry
+            for i in $(seq 1 10); do curl -sf http://localhost/api/health && exit 0; sleep 3; done
+            echo "Health check failed"; docker compose -f docker-compose.prod.yml logs app --tail 50; exit 1
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
