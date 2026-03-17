@@ -37,6 +37,20 @@ Optional — email verification (requires Resend account):
    export CCB_EMAIL_FROM="noreply@yourdomain.com"
    export CCB_FRONTEND_URL="https://yourdomain.com"
 
+Optional — Google OAuth:
+
+.. code-block:: bash
+
+   export GOOGLE_CLIENT_ID="your-web-client-id"
+   export GOOGLE_CLIENT_ID_ANDROID="your-android-client-id"
+   export GOOGLE_CLIENT_ID_IOS="your-ios-client-id"
+
+For the frontend, create ``frontend/.env.local``:
+
+.. code-block:: bash
+
+   VITE_GOOGLE_CLIENT_ID="your-web-client-id"
+
 Optional — observability (requires Grafana Cloud account):
 
 .. code-block:: bash
@@ -167,12 +181,18 @@ Running Tests
 
 .. code-block:: bash
 
-   # Backend (105 tests, 96% coverage)
+   # Backend lint
+   cd backend
+   poetry run ruff check ccbenefits/ tests/
+
+   # Backend tests (190+ tests, 87%+ coverage)
    cd backend
    poetry run pytest -v
 
-   # Frontend (52 tests)
+   # Frontend lint + tests (55+ tests)
    cd frontend
-   npm test -- --run
+   npm run lint
+   npx vitest run
 
 Backend tests include coverage reporting with an 80% minimum threshold.
+Ruff (Python) and ESLint (TypeScript) are enforced in CI — lint failures block PRs.
