@@ -60,7 +60,7 @@
 </head>
 <body>
 
-<svg viewBox="0 0 1220 500" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 1260 580" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.25"/></filter>
     <linearGradient id="gp" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3d2b79"/><stop offset="100%" stop-color="#2d1b69"/></linearGradient>
@@ -75,186 +75,208 @@
     <marker id="ag" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse"><polygon points="0 0, 10 3.5, 0 7" fill="#22c55e"/></marker>
     <marker id="ab" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse"><polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6"/></marker>
     <marker id="ay" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse"><polygon points="0 0, 10 3.5, 0 7" fill="#666"/></marker>
+    <marker id="ao" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse"><polygon points="0 0, 10 3.5, 0 7" fill="#f90"/></marker>
     <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="12" cy="12" r="0.6" fill="#1a1a22"/></pattern>
   </defs>
 
   <rect width="100%" height="100%" fill="url(#dots)"/>
 
   <!--
-    LAYOUT v5: 50px gaps, parallel API lines, all labels visible
-    Users:  y=20  h=85
-    Oracle: y=155 h=175  (gap=50)
-    GitHub: y=380 h=85   (gap=50 from Oracle bottom 330)
-    APIs right column at x=860, centered on FastAPI output Y values
-    3 parallel horizontal lines from FastAPI to APIs (no bends)
+    GRID LAYOUT (all orthogonal connections)
+    =========================================
+    Row 0  y=20   h=90   CLIENTS (Browser + Android App)
+    Row 1  y=160  h=190  ORACLE CLOUD VM (Scheduler, Postgres, FastAPI)
+    Row 2  y=400  h=90   GITHUB (Source, CI/CD, Registry)
+
+    Left column   x=120  Cloudflare / EAS Build
+    Center column x=320  Main content (w=440)
+    Right column  x=870  External APIs
   -->
 
-  <!-- ═══ CONNECTIONS ═══ -->
+  <!-- ═══════════ CONNECTIONS (all orthogonal) ═══════════ -->
 
-  <!-- Users → Cloudflare: left then down into Cloudflare top at center x=180 -->
-  <path class="conn" stroke="#8b5cf6" marker-end="url(#ap)" d="M 330,75 L 180,75 L 180,180"/>
-  <text class="conn-label" fill="#8b5cf6" x="250" y="68">HTTPS</text>
+  <!-- Browser → Cloudflare: down from Browser left edge, then left, then down into Cloudflare -->
+  <polyline class="conn" stroke="#8b5cf6" marker-end="url(#ap)" points="340,75 180,75 180,185"/>
+  <text class="conn-label" fill="#8b5cf6" x="240" y="68">HTTPS</text>
 
-  <!-- Cloudflare → Oracle VM: right from Cloudflare to Oracle -->
-  <path class="conn" stroke="#8b5cf6" marker-end="url(#ap)" d="M 240,207 L 310,207"/>
-  <text class="conn-label" fill="#8b5cf6" x="262" y="222">proxy</text>
+  <!-- Android App → Cloudflare: down from App, left along row, then down -->
+  <polyline class="conn" stroke="#8b5cf6" marker-end="url(#ap)" points="540,110 540,130 180,130 180,185"/>
+  <text class="conn-label" fill="#8b5cf6" x="340" y="125">HTTPS + OAuth</text>
 
-  <!-- FastAPI → Expo Push: STRAIGHT horizontal at y=180 -->
-  <path class="conn" stroke="#22c55e" marker-end="url(#ag)" d="M 750,180 L 860,180"/>
-  <text class="conn-label" fill="#22c55e" x="790" y="174">push</text>
+  <!-- Cloudflare → Oracle VM: horizontal right -->
+  <polyline class="conn" stroke="#f90" marker-end="url(#ao)" points="240,215 320,215"/>
+  <text class="conn-label" fill="#f90" x="255" y="230">proxy</text>
 
-  <!-- FastAPI → Resend: STRAIGHT horizontal at y=243 -->
-  <path class="conn" stroke="#22c55e" marker-end="url(#ag)" d="M 750,243 L 860,243"/>
-  <text class="conn-label" fill="#22c55e" x="790" y="237">email</text>
+  <!-- FastAPI → Expo Push: horizontal right at y=260 -->
+  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="760,260 870,260"/>
+  <text class="conn-label" fill="#22c55e" x="800" y="254">push</text>
 
-  <!-- FastAPI → Grafana: STRAIGHT horizontal at y=305 -->
-  <path class="conn dashed" stroke="#22c55e" marker-end="url(#ag)" d="M 750,305 L 860,305"/>
-  <text class="conn-label" fill="#22c55e" x="786" y="319">telemetry</text>
+  <!-- FastAPI → Resend: right from FastAPI at y=300, bend down to Resend center y=321 -->
+  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="760,300 830,300 830,321 870,321"/>
+  <text class="conn-label" fill="#22c55e" x="838" y="312">email</text>
 
-  <!-- Firebase → Expo Push: horizontal left at y=180 -->
-  <path class="conn" stroke="#22c55e" marker-end="url(#ag)" d="M 1070,180 L 1020,180"/>
-  <text class="conn-label" fill="#22c55e" x="1033" y="173">routes</text>
+  <!-- FastAPI → Grafana Cloud: right from FastAPI, bend down to Grafana (dashed) -->
+  <polyline class="conn dashed" stroke="#22c55e" marker-end="url(#ag)" points="760,320 810,320 810,379 870,379"/>
+  <text class="conn-label" fill="#22c55e" x="818" y="364">telemetry</text>
 
-  <!-- Expo Push → Android App: up then left (green) -->
-  <path class="conn" stroke="#22c55e" marker-end="url(#ag)" d="M 940,155 L 940,42 L 750,42"/>
-  <text class="conn-label" fill="#22c55e" x="835" y="35">deliver push</text>
+  <!-- FastAPI → Google OAuth: right from FastAPI top area, up, then right to Google OAuth -->
+  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="760,270 790,270 790,196 870,196"/>
+  <text class="conn-label" fill="#22c55e" x="796" y="232">OAuth</text>
 
-  <!-- Android App → Oracle VM: vertical down at center x=530 (green) -->
-  <path class="conn" stroke="#22c55e" marker-end="url(#ag)" d="M 530,105 L 530,155"/>
-  <text class="conn-label" fill="#22c55e" x="538" y="135">register token</text>
+  <!-- Expo Push → Firebase FCM: horizontal right -->
+  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="1030,260 1090,260"/>
+  <text class="conn-label" fill="#22c55e" x="1045" y="254">routes</text>
 
-  <!-- Scheduler → FastAPI: vertical down (gold, longer now) -->
-  <path class="conn" stroke="#c9a84c" stroke-width="1.5" marker-end="url(#ay)" d="M 430,225 L 430,243"/>
+  <!-- Firebase FCM → Android App: up from Firebase, then left to App -->
+  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="1155,237 1155,55 740,55"/>
+  <text class="conn-label" fill="#22c55e" x="890" y="48">deliver push</text>
 
-  <!-- GitHub CI → Oracle VM: vertical up at 1/3 x=457 (blue dashed) -->
-  <path class="conn dashed" stroke="#3b82f6" marker-end="url(#ab)" d="M 457,380 L 457,330"/>
-  <text class="conn-label" fill="#3b82f6" x="418" y="360">deploy</text>
+  <!-- Scheduler → FastAPI: vertical down -->
+  <polyline class="conn" stroke="#c9a84c" stroke-width="1.5" marker-end="url(#ay)" points="430,240 430,258"/>
 
-  <!-- GitHub GHCR → Oracle VM: vertical up at 2/3 x=603 (blue dashed) -->
-  <path class="conn dashed" stroke="#3b82f6" marker-end="url(#ab)" d="M 603,380 L 603,330"/>
-  <text class="conn-label" fill="#3b82f6" x="558" y="360">pull image</text>
+  <!-- PostgreSQL ↔ FastAPI: vertical down -->
+  <polyline class="conn" stroke="#c9a84c" stroke-width="1.5" marker-end="url(#ay)" points="640,240 640,258"/>
 
-  <!-- Source → EAS: horizontal left (gray) -->
-  <path class="conn" stroke="#666" marker-end="url(#ay)" d="M 330,415 L 230,415"/>
-  <text class="conn-label" fill="#666" x="265" y="408">build</text>
+  <!-- GitHub CI → Oracle VM: vertical up (dashed) -->
+  <polyline class="conn dashed" stroke="#3b82f6" marker-end="url(#ab)" points="470,400 470,350"/>
+  <text class="conn-label" fill="#3b82f6" x="430" y="380">deploy</text>
 
-  <!-- EAS → Android App: straight up from EAS top at x=100, then right to Users -->
-  <path class="conn" stroke="#666" marker-end="url(#ay)" d="M 100,393 L 100,42 L 310,42"/>
-  <text class="conn-label" fill="#666" x="108" y="310">APK</text>
+  <!-- GitHub GHCR → Oracle VM: vertical up (dashed) -->
+  <polyline class="conn dashed" stroke="#3b82f6" marker-end="url(#ab)" points="630,400 630,350"/>
+  <text class="conn-label" fill="#3b82f6" x="585" y="380">pull image</text>
 
-  <!-- ═══ NODES ═══ -->
+  <!-- Source → EAS Build: horizontal left -->
+  <polyline class="conn" stroke="#666" marker-end="url(#ay)" points="340,440 240,440"/>
+  <text class="conn-label" fill="#666" x="270" y="433">build</text>
 
-  <!-- ── ROW 0: USERS y=20 h=85 ── -->
-  <rect x="310" y="20" width="440" height="85" fill="url(#gpc)" stroke="#8b5cf6" stroke-width="2" rx="12" ry="12" filter="url(#sh)"/>
-  <text x="530" y="38" text-anchor="middle" fill="#8b5cf6" font-size="10" font-weight="700" letter-spacing="1">USERS</text>
+  <!-- EAS Build → Android App: up from EAS, then right to App -->
+  <polyline class="conn" stroke="#666" marker-end="url(#ay)" points="120,408 120,55 340,55"/>
+  <text class="conn-label" fill="#666" x="128" y="240">APK</text>
+
+  <!-- ═══════════ NODES ═══════════ -->
+
+  <!-- ── ROW 0: CLIENTS y=20 h=90 ── -->
+  <rect x="320" y="20" width="440" height="90" fill="url(#gpc)" stroke="#8b5cf6" stroke-width="2" rx="12" ry="12" filter="url(#sh)"/>
+  <text x="540" y="38" text-anchor="middle" fill="#8b5cf6" font-size="10" font-weight="700" letter-spacing="1">CLIENTS</text>
 
   <g class="node" data-id="browser" onclick="showDetail('browser')">
-    <rect x="330" y="48" width="190" height="46" fill="url(#gp)" stroke="#8b5cf6" stroke-width="1.5" rx="8" ry="8" filter="url(#sh)"/>
-    <svg x="348" y="61" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4c4ff" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-    <text x="430" y="77" text-anchor="middle" fill="#e8e0ff" font-size="13" font-weight="600">Browser</text>
+    <rect x="340" y="48" width="190" height="52" fill="url(#gp)" stroke="#8b5cf6" stroke-width="1.5" rx="8" ry="8" filter="url(#sh)"/>
+    <svg x="358" y="58" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4c4ff" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    <text x="440" y="72" text-anchor="middle" fill="#e8e0ff" font-size="13" font-weight="600">Browser</text>
+    <text x="440" y="88" text-anchor="middle" fill="#a08de0" font-size="9">React + Vite</text>
   </g>
   <g class="node" data-id="phone" onclick="showDetail('phone')">
-    <rect x="540" y="48" width="190" height="46" fill="url(#gp)" stroke="#8b5cf6" stroke-width="1.5" rx="8" ry="8" filter="url(#sh)"/>
-    <svg x="558" y="61" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4c4ff" stroke-width="2" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-    <text x="645" y="77" text-anchor="middle" fill="#e8e0ff" font-size="13" font-weight="600">Android App</text>
+    <rect x="550" y="48" width="190" height="52" fill="url(#gp)" stroke="#8b5cf6" stroke-width="1.5" rx="8" ry="8" filter="url(#sh)"/>
+    <svg x="568" y="58" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4c4ff" stroke-width="2" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+    <text x="650" y="72" text-anchor="middle" fill="#e8e0ff" font-size="13" font-weight="600">Android App</text>
+    <text x="650" y="88" text-anchor="middle" fill="#a08de0" font-size="9">Expo SDK 54</text>
   </g>
 
-  <!-- ── Cloudflare (left) ── -->
+  <!-- ── Cloudflare (left of Oracle VM row) ── -->
   <g class="node" data-id="cloudflare" onclick="showDetail('cloudflare')">
-    <rect x="120" y="180" width="120" height="55" fill="url(#gn)" stroke="#888" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
-    <svg x="133" y="197" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f90" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    <text x="190" y="210" text-anchor="middle" fill="#ddd" font-size="12" font-weight="600">Cloudflare</text>
-    <text x="190" y="225" text-anchor="middle" fill="#888" font-size="9">DNS + SSL</text>
+    <rect x="120" y="185" width="120" height="60" fill="url(#gn)" stroke="#f90" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
+    <svg x="133" y="200" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f90" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <text x="190" y="213" text-anchor="middle" fill="#ddd" font-size="12" font-weight="600">Cloudflare</text>
+    <text x="190" y="228" text-anchor="middle" fill="#888" font-size="9">DNS + SSL proxy</text>
   </g>
 
-  <!-- ── ROW 1: ORACLE VM y=155 h=175 (gap=50 from Users) ── -->
-  <rect x="310" y="155" width="440" height="175" fill="url(#ggc)" stroke="#c9a84c" stroke-width="2" rx="12" ry="12" filter="url(#sh)"/>
-  <text x="530" y="173" text-anchor="middle" fill="#c9a84c" font-size="10" font-weight="700" letter-spacing="1">ORACLE CLOUD VM</text>
+  <!-- ── ROW 1: ORACLE CLOUD VM y=160 h=190 ── -->
+  <rect x="320" y="160" width="440" height="190" fill="url(#ggc)" stroke="#c9a84c" stroke-width="2" rx="12" ry="12" filter="url(#sh)"/>
+  <text x="540" y="178" text-anchor="middle" fill="#c9a84c" font-size="10" font-weight="700" letter-spacing="1">ORACLE CLOUD VM</text>
 
   <g class="node" data-id="scheduler" onclick="showDetail('scheduler')">
-    <rect x="330" y="183" width="190" height="45" fill="url(#gg)" stroke="#c9a84c" stroke-width="1.5" rx="6" ry="6" filter="url(#sh)"/>
-    <svg x="348" y="196" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f5e6b8" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-    <text x="430" y="207" text-anchor="middle" fill="#f5e6b8" font-size="11" font-weight="600">Scheduler</text>
-    <text x="430" y="221" text-anchor="middle" fill="#b09848" font-size="9">hourly jobs</text>
+    <rect x="340" y="190" width="190" height="50" fill="url(#gg)" stroke="#c9a84c" stroke-width="1.5" rx="6" ry="6" filter="url(#sh)"/>
+    <svg x="358" y="204" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f5e6b8" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    <text x="440" y="215" text-anchor="middle" fill="#f5e6b8" font-size="11" font-weight="600">APScheduler</text>
+    <text x="440" y="231" text-anchor="middle" fill="#b09848" font-size="9">hourly + weekly jobs</text>
   </g>
   <g class="node" data-id="postgres" onclick="showDetail('postgres')">
-    <rect x="540" y="183" width="190" height="45" fill="url(#gg)" stroke="#c9a84c" stroke-width="1.5" rx="6" ry="6" filter="url(#sh)"/>
-    <svg x="558" y="196" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f5e6b8" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 5v14a3 9 0 0 1-18 0V5"/><path d="M3 12a3 9 0 0 0 18 0"/></svg>
-    <text x="645" y="211" text-anchor="middle" fill="#f5e6b8" font-size="11" font-weight="600">PostgreSQL</text>
+    <rect x="550" y="190" width="190" height="50" fill="url(#gg)" stroke="#c9a84c" stroke-width="1.5" rx="6" ry="6" filter="url(#sh)"/>
+    <svg x="568" y="204" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f5e6b8" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 5v14a3 9 0 0 1-18 0V5"/><path d="M3 12a3 9 0 0 0 18 0"/></svg>
+    <text x="650" y="219" text-anchor="middle" fill="#f5e6b8" font-size="11" font-weight="600">PostgreSQL 16</text>
   </g>
   <g class="node" data-id="fastapi" onclick="showDetail('fastapi')">
-    <rect x="330" y="243" width="400" height="55" fill="url(#gg)" stroke="#c9a84c" stroke-width="1.5" rx="6" ry="6" filter="url(#sh)"/>
-    <svg x="350" y="260" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f5e6b8" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-    <text x="530" y="270" text-anchor="middle" fill="#f5e6b8" font-size="14" font-weight="700">FastAPI</text>
-    <text x="530" y="286" text-anchor="middle" fill="#b09848" font-size="10">1 worker</text>
+    <rect x="340" y="258" width="420" height="72" fill="url(#gg)" stroke="#c9a84c" stroke-width="1.5" rx="6" ry="6" filter="url(#sh)"/>
+    <svg x="360" y="272" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f5e6b8" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    <text x="550" y="282" text-anchor="middle" fill="#f5e6b8" font-size="14" font-weight="700">FastAPI</text>
+    <text x="550" y="298" text-anchor="middle" fill="#b09848" font-size="9.5">Auth (JWT + OAuth)  |  Cards  |  Benefits  |  Notifications  |  Analytics</text>
+    <text x="550" y="314" text-anchor="middle" fill="#8a7838" font-size="9">1 worker  |  Python 3.13  |  uvicorn</text>
   </g>
 
-  <!-- ── APIs (right column — spanning same height as Oracle VM: y=155 to y=330) ── -->
-  <!-- Expo Push: y=155, h=50 -->
+  <!-- ── EXTERNAL APIs (right column) ── -->
+
+  <!-- Google OAuth: y=175, h=42 -->
+  <g class="node" data-id="google_oauth" onclick="showDetail('google_oauth')">
+    <rect x="870" y="175" width="160" height="42" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
+    <svg x="890" y="186" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+    <text x="960" y="200" text-anchor="middle" fill="#bbf7d0" font-size="11" font-weight="600">Google OAuth</text>
+  </g>
+
+  <!-- Expo Push: y=237, h=48 -->
   <g class="node" data-id="expo_push" onclick="showDetail('expo_push')">
-    <rect x="860" y="155" width="160" height="50" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
-    <svg x="880" y="170" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-    <text x="950" y="183" text-anchor="middle" fill="#bbf7d0" font-size="12" font-weight="600">Expo Push</text>
-    <text x="950" y="197" text-anchor="middle" fill="#66bb88" font-size="9">API</text>
-  </g>
-  <!-- Firebase next to Expo Push -->
-  <g class="node" data-id="firebase" onclick="showDetail('firebase')">
-    <rect x="1070" y="155" width="120" height="50" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
-    <svg x="1088" y="170" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
-    <text x="1138" y="183" text-anchor="middle" fill="#bbf7d0" font-size="12" font-weight="600">Firebase</text>
-    <text x="1138" y="197" text-anchor="middle" fill="#66bb88" font-size="9">FCM</text>
-  </g>
-  <!-- Resend: y=218, h=50 -->
-  <g class="node" data-id="resend" onclick="showDetail('resend')">
-    <rect x="860" y="218" width="160" height="50" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
-    <svg x="880" y="233" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-    <text x="950" y="246" text-anchor="middle" fill="#bbf7d0" font-size="12" font-weight="600">Resend</text>
-    <text x="950" y="260" text-anchor="middle" fill="#66bb88" font-size="9">Email</text>
-  </g>
-  <!-- Grafana: y=280, h=50 -->
-  <g class="node" data-id="grafana" onclick="showDetail('grafana')">
-    <rect x="860" y="280" width="160" height="50" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
-    <svg x="880" y="295" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-    <text x="950" y="308" text-anchor="middle" fill="#bbf7d0" font-size="11" font-weight="600">Grafana Cloud</text>
-    <text x="950" y="322" text-anchor="middle" fill="#66bb88" font-size="9">Observability</text>
+    <rect x="870" y="237" width="160" height="48" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
+    <svg x="890" y="250" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <text x="960" y="265" text-anchor="middle" fill="#bbf7d0" font-size="11" font-weight="600">Expo Push</text>
   </g>
 
-  <!-- ── ROW 2: GITHUB y=380 h=85 (gap=50 from Oracle bottom at 330) ── -->
-  <rect x="310" y="380" width="440" height="85" fill="url(#gbc)" stroke="#3b82f6" stroke-width="2" rx="12" ry="12" filter="url(#sh)"/>
-  <text x="530" y="398" text-anchor="middle" fill="#3b82f6" font-size="10" font-weight="700" letter-spacing="1">GITHUB</text>
+  <!-- Firebase FCM: right of Expo Push -->
+  <g class="node" data-id="firebase" onclick="showDetail('firebase')">
+    <rect x="1090" y="237" width="130" height="48" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
+    <svg x="1108" y="250" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+    <text x="1163" y="265" text-anchor="middle" fill="#bbf7d0" font-size="11" font-weight="600">Firebase FCM</text>
+  </g>
+
+  <!-- Resend: y=300, h=42 -->
+  <g class="node" data-id="resend" onclick="showDetail('resend')">
+    <rect x="870" y="300" width="160" height="42" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
+    <svg x="890" y="311" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    <text x="960" y="325" text-anchor="middle" fill="#bbf7d0" font-size="11" font-weight="600">Resend</text>
+  </g>
+
+  <!-- Grafana Cloud: y=358, h=42 -->
+  <g class="node" data-id="grafana" onclick="showDetail('grafana')">
+    <rect x="870" y="358" width="160" height="42" fill="url(#ge)" stroke="#22c55e" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
+    <svg x="890" y="369" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <text x="960" y="383" text-anchor="middle" fill="#bbf7d0" font-size="10" font-weight="600">Grafana Cloud</text>
+  </g>
+
+  <!-- ── ROW 2: GITHUB y=400 h=90 ── -->
+  <rect x="320" y="400" width="440" height="90" fill="url(#gbc)" stroke="#3b82f6" stroke-width="2" rx="12" ry="12" filter="url(#sh)"/>
+  <text x="540" y="418" text-anchor="middle" fill="#3b82f6" font-size="10" font-weight="700" letter-spacing="1">GITHUB</text>
 
   <g class="node" data-id="github_repo" onclick="showDetail('github_repo')">
-    <rect x="330" y="406" width="120" height="43" fill="url(#gb)" stroke="#3b82f6" stroke-width="1.5" rx="6" ry="6" filter="url(#sh)"/>
-    <svg x="348" y="419" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bfdbfe" stroke-width="2" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-    <text x="400" y="433" text-anchor="middle" fill="#bfdbfe" font-size="11" font-weight="600">Source</text>
+    <rect x="340" y="428" width="120" height="46" fill="url(#gb)" stroke="#3b82f6" stroke-width="1.5" rx="6" ry="6" filter="url(#sh)"/>
+    <svg x="358" y="441" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bfdbfe" stroke-width="2" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+    <text x="410" y="456" text-anchor="middle" fill="#bfdbfe" font-size="11" font-weight="600">Source</text>
   </g>
   <g class="node" data-id="github_ci" onclick="showDetail('github_ci')">
-    <rect x="470" y="406" width="100" height="43" fill="url(#gb)" stroke="#3b82f6" stroke-width="1.5" rx="6" ry="6" filter="url(#sh)"/>
-    <svg x="488" y="419" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bfdbfe" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
-    <text x="528" y="433" text-anchor="middle" fill="#bfdbfe" font-size="11" font-weight="600">CI/CD</text>
+    <rect x="480" y="428" width="120" height="46" fill="url(#gb)" stroke="#3b82f6" stroke-width="1.5" rx="6" ry="6" filter="url(#sh)"/>
+    <svg x="498" y="441" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bfdbfe" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
+    <text x="548" y="456" text-anchor="middle" fill="#bfdbfe" font-size="11" font-weight="600">CI/CD</text>
   </g>
   <g class="node" data-id="github_ghcr" onclick="showDetail('github_ghcr')">
-    <rect x="590" y="406" width="120" height="43" fill="url(#gb)" stroke="#3b82f6" stroke-width="1.5" rx="6" ry="6" filter="url(#sh)"/>
-    <svg x="608" y="419" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bfdbfe" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-    <text x="660" y="433" text-anchor="middle" fill="#bfdbfe" font-size="11" font-weight="600">Registry</text>
+    <rect x="620" y="428" width="120" height="46" fill="url(#gb)" stroke="#3b82f6" stroke-width="1.5" rx="6" ry="6" filter="url(#sh)"/>
+    <svg x="638" y="441" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#bfdbfe" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+    <text x="688" y="456" text-anchor="middle" fill="#bfdbfe" font-size="11" font-weight="600">Registry</text>
   </g>
-  <path class="conn" stroke="#3b82f6" stroke-width="1" marker-end="url(#ab)" d="M 450,427 L 470,427" opacity="0.5"/>
-  <path class="conn" stroke="#3b82f6" stroke-width="1" marker-end="url(#ab)" d="M 570,427 L 590,427" opacity="0.5"/>
+  <!-- Arrows between GitHub sub-nodes -->
+  <polyline class="conn" stroke="#3b82f6" stroke-width="1" marker-end="url(#ab)" points="460,451 480,451" opacity="0.5"/>
+  <polyline class="conn" stroke="#3b82f6" stroke-width="1" marker-end="url(#ab)" points="600,451 620,451" opacity="0.5"/>
 
   <!-- ── EAS Build (left, aligned with GitHub row) ── -->
   <g class="node" data-id="eas" onclick="showDetail('eas')">
-    <rect x="75" y="393" width="160" height="55" fill="url(#gn)" stroke="#888" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
-    <svg x="95" y="410" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-    <text x="165" y="423" text-anchor="middle" fill="#ddd" font-size="12" font-weight="600">EAS Build</text>
-    <text x="165" y="438" text-anchor="middle" fill="#888" font-size="9">Mobile APKs</text>
+    <rect x="80" y="418" width="160" height="55" fill="url(#gn)" stroke="#888" stroke-width="2" rx="8" ry="8" filter="url(#sh)"/>
+    <svg x="100" y="433" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    <text x="170" y="447" text-anchor="middle" fill="#ddd" font-size="12" font-weight="600">EAS Build</text>
+    <text x="170" y="462" text-anchor="middle" fill="#888" font-size="9">Mobile APKs</text>
   </g>
 
-  <text x="560" y="500" text-anchor="middle" fill="#444" font-size="11">Click any system to view details</text>
+  <text x="560" y="570" text-anchor="middle" fill="#444" font-size="11">Click any system to view details</text>
 </svg>
 
 <!-- Legend -->
 <div class="legend">
-  <div class="legend-item"><div class="legend-dot" style="background:url(#gp);border-color:#8b5cf6"></div>User-facing</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2d1b69;border-color:#8b5cf6"></div>User-facing</div>
   <div class="legend-item"><div class="legend-dot" style="background:#2a1f0a;border-color:#c9a84c"></div>Infrastructure</div>
   <div class="legend-item"><div class="legend-dot" style="background:#0a1a2e;border-color:#3b82f6"></div>CI/CD</div>
   <div class="legend-item"><div class="legend-dot" style="background:#0a2e1a;border-color:#22c55e"></div>External APIs</div>
@@ -271,14 +293,16 @@
 <script>
 const details = {
   browser: { title: "Web Browser", subtitle: "React + Vite + TypeScript", sections: [
-    { heading: "Stack", text: "React 19.2, Vite 7.3, TanStack Query, React Router, Axios" },
+    { heading: "Stack", text: "React 19, Vite, TanStack Query, React Router, Axios" },
     { heading: "URL", text: "https://ccb.kumaranik.com" },
-    { heading: "Features", text: "Dashboard, card management, benefit tracking, notification preferences, renewal date picker, feedback" },
+    { heading: "Features", text: "Dashboard with SVG charts, card management, benefit tracking, sheet view, notification preferences, renewal date picker, feedback modal" },
+    { heading: "Auth", text: "Email/password + Google OAuth (Apple coming soon)" },
     { heading: "Local Dev", code: "cd frontend\nnpm install\nnpm run dev\n# → http://localhost:5173" },
   ]},
   phone: { title: "Android App", subtitle: "React Native / Expo SDK 54", sections: [
-    { heading: "Stack", text: "React Native 0.81, Expo 54, TanStack Query, React Navigation, expo-notifications, expo-secure-store" },
+    { heading: "Stack", text: "React Native 0.81, Expo SDK 54, TanStack Query, React Navigation, expo-notifications, expo-secure-store" },
     { heading: "Package", text: "com.anikapps.ccbenefits" },
+    { heading: "Features", text: "Push notifications, Google OAuth, card management, benefit tracking, perceived value display, card icons" },
     { heading: "Local Dev", code: "cd mobile\nnpm install\nnpx expo start" },
     { heading: "Build APK", code: "eas build --profile preview --platform android" },
   ]},
@@ -289,8 +313,10 @@ const details = {
   ]},
   fastapi: { title: "FastAPI", subtitle: "Backend API Server", sections: [
     { heading: "Runtime", text: "Python 3.13, uvicorn (1 worker), Port 80" },
-    { heading: "Modules", text: "Auth (JWT+bcrypt), Cards, Benefits, Notifications, Feedback" },
-    { heading: "Env Vars", table: [["Var","Purpose"],["CCB_SECRET_KEY","JWT signing"],["DATABASE_URL","PostgreSQL"],["RESEND_API_KEY","Email"],["CCB_SCHEDULER_ENABLED","APScheduler"]] },
+    { heading: "Modules", text: "Auth (JWT + Google OAuth), Cards, Benefits, Notifications, Feedback, Analytics batch endpoint" },
+    { heading: "Auth", text: "JWT via PyJWT + raw bcrypt. Google OAuth via ID token verification (google-auth library). Apple OAuth coming soon." },
+    { heading: "Analytics", text: "GET /api/user-cards/details — batch endpoint returns all cards with benefit status in one request, fixing N+1 fetch." },
+    { heading: "Env Vars", table: [["Var","Purpose"],["CCB_SECRET_KEY","JWT signing"],["DATABASE_URL","PostgreSQL connection"],["RESEND_API_KEY","Email delivery"],["CCB_SCHEDULER_ENABLED","APScheduler toggle"],["GOOGLE_CLIENT_ID","Google OAuth (web)"],["GOOGLE_CLIENT_ID_ANDROID","Google OAuth (Android)"],["GOOGLE_CLIENT_ID_IOS","Google OAuth (iOS)"]] },
     { heading: "SSH Commands", code: "ssh ubuntu@192.9.151.139\ncd ~/ccbenefits\ndocker compose -f docker-compose.prod.yml logs app --since 5m\ndocker compose -f docker-compose.prod.yml restart app" },
   ]},
   scheduler: { title: "APScheduler", subtitle: "Background Job Scheduler", sections: [
@@ -298,23 +324,32 @@ const details = {
     { heading: "Jobs", table: [["Job","Schedule"],["hourly_notification_check","Every hour :00"],["weekly_utilization_check","Monday every hour"]] },
     { heading: "Check Logs", code: "docker compose -f docker-compose.prod.yml logs app 2>&1 | grep scheduler" },
   ]},
-  postgres: { title: "PostgreSQL", subtitle: "Primary Database", sections: [
-    { heading: "Version", text: "PostgreSQL 16 (Docker), pgdata volume" },
-    { heading: "Tables", table: [["Table","Purpose"],["users","Accounts + notification prefs"],["user_cards","Card instances + renewal_date"],["push_tokens","Expo push tokens"],["notification_logs","Dedup tracking"],["unsubscribe_tokens","One-click unsubscribe"]] },
+  postgres: { title: "PostgreSQL 16", subtitle: "Primary Database (Docker)", sections: [
+    { heading: "Version", text: "PostgreSQL 16 (Docker container), pgdata volume" },
+    { heading: "Tables", table: [["Table","Purpose"],["users","Accounts + notification prefs"],["user_oauth_accounts","OAuth provider links (Google/Apple)"],["user_cards","Card instances + renewal_date"],["notifications","In-app notification inbox"],["push_tokens","Expo push tokens"],["notification_logs","Dedup tracking"],["unsubscribe_tokens","One-click unsubscribe"]] },
+    { heading: "Dev", text: "SQLite for local dev/tests, PostgreSQL in production. database.py is conditionalized for both." },
     { heading: "Access", code: "docker compose -f docker-compose.prod.yml exec -T postgres \\\n  psql -U $(grep POSTGRES_USER .env | cut -d= -f2) \\\n       -d $(grep POSTGRES_DB .env | cut -d= -f2)" },
+  ]},
+  google_oauth: { title: "Google OAuth", subtitle: "OAuth 2.0 Identity Provider", sections: [
+    { heading: "Flows", text: "Web: Popup flow via @react-oauth/google → ID token → backend verifies\nMobile: expo-auth-session → ID token → backend verifies" },
+    { heading: "Backend", text: "Token verified server-side using google-auth library against Google's public certs. Auto-links accounts by verified email." },
+    { heading: "Env Vars", table: [["Var","Purpose"],["GOOGLE_CLIENT_ID","Web client ID"],["GOOGLE_CLIENT_ID_ANDROID","Android client ID"],["GOOGLE_CLIENT_ID_IOS","iOS client ID"]] },
+    { heading: "Coming Soon", text: "Apple OAuth (Sign in with Apple) for iOS/web" },
   ]},
   expo_push: { title: "Expo Push API", subtitle: "Push Notification Delivery", sections: [
     { heading: "Endpoint", text: "https://exp.host/--/api/v2/push/send" },
     { heading: "Token Format", text: "ExponentPushToken[...]" },
-    { heading: "Endpoints", table: [["Method","Path","Purpose"],["POST","/api/notifications/push-token","Register"],["POST","/api/notifications/push-token/unregister","Remove"]] },
+    { heading: "Endpoints", table: [["Method","Path","Purpose"],["POST","/api/notifications/push-token","Register token"],["POST","/api/notifications/push-token/unregister","Remove token"]] },
   ]},
   resend: { title: "Resend", subtitle: "Email Delivery API", sections: [
     { heading: "Dashboard", text: "https://resend.com/overview" },
     { heading: "Senders", table: [["Purpose","From"],["Transactional","CCBenefits <noreply@ccb.kumaranik.com>"],["Notifications","CCBenefits <notifications@ccb.kumaranik.com>"]] },
+    { heading: "Emails", text: "Email verification, password reset, benefit renewal reminders, weekly utilization digest" },
   ]},
   grafana: { title: "Grafana Cloud", subtitle: "Observability (Metrics + Logs)", sections: [
     { heading: "Dashboard", text: "https://anikapps.grafana.net" },
     { heading: "Metrics", table: [["Metric","Description"],["http.server.request.duration","API latency"],["notifications.sent","By type/channel/success"],["notifications.jobs_run","Scheduler jobs"]] },
+    { heading: "Logging", text: "Structured request logging with PII masking. Logs shipped to Grafana Loki." },
   ]},
   firebase: { title: "Firebase", subtitle: "FCM (Android Push Routing)", sections: [
     { heading: "Console", text: "https://console.firebase.google.com" },
@@ -323,19 +358,21 @@ const details = {
   ]},
   github_repo: { title: "GitHub Repository", subtitle: "Source Code", sections: [
     { heading: "Repo", text: "anik-apps/CCBenefits (master)" },
-    { heading: "Structure", text: "backend/ — FastAPI\nfrontend/ — React + Vite\nmobile/ — Expo\ndocs/ — Docs\n.github/ — CI/CD" },
+    { heading: "Structure", text: "backend/ — FastAPI + Python\nfrontend/ — React + Vite + TypeScript\nmobile/ — React Native / Expo\ndocs/ — Documentation\n.github/ — CI/CD workflows" },
   ]},
   github_ci: { title: "GitHub Actions", subtitle: "CI/CD Pipeline", sections: [
-    { heading: "Workflows", table: [["File","Trigger"],["ci.yml","PR to master"],["deploy.yml","Push to master"]] },
-    { heading: "Secrets", table: [["Secret","Purpose"],["ORACLE_VM_IP","VM IP"],["ORACLE_SSH_USER","SSH user"],["ORACLE_SSH_KEY","SSH key"]] },
+    { heading: "Workflows", table: [["File","Trigger","Steps"],["ci.yml","PR to master","ruff lint, pytest (190+ tests), vitest, ESLint"],["deploy.yml","Push to master","Build Docker image, push to GHCR, SSH deploy"]] },
+    { heading: "Linting", text: "ruff (Python) + ESLint (TypeScript) — enforced in CI" },
+    { heading: "Tests", text: "190+ tests across pytest (backend) and vitest (frontend)" },
+    { heading: "Secrets", table: [["Secret","Purpose"],["ORACLE_VM_IP","VM IP"],["ORACLE_SSH_USER","SSH user"],["ORACLE_SSH_KEY","SSH private key"]] },
   ]},
   github_ghcr: { title: "Container Registry", subtitle: "GHCR Docker Images", sections: [
     { heading: "Image", text: "ghcr.io/anik-apps/ccbenefits:latest" },
-    { heading: "Build", text: "Multi-stage: Node 22 → Python 3.13" },
+    { heading: "Build", text: "Multi-stage Dockerfile: Node 22 (frontend build) → Python 3.13 (backend runtime)" },
   ]},
   eas: { title: "EAS Build", subtitle: "Expo Application Services", sections: [
     { heading: "Dashboard", text: "https://expo.dev/accounts/kumaranik/projects/ccbenefits" },
-    { heading: "Profiles", table: [["Profile","Output"],["preview","APK"],["development","Dev client"],["production","Release"]] },
+    { heading: "Profiles", table: [["Profile","Output"],["preview","APK (sideload)"],["development","Dev client"],["production","Release AAB"]] },
     { heading: "Secrets", table: [["Name","Purpose"],["GOOGLE_SERVICES_JSON","Firebase FCM config"]] },
     { heading: "Build", code: "cd mobile\neas build --profile preview --platform android" },
   ]},
