@@ -1,10 +1,11 @@
 import logging
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from sqlalchemy.exc import SQLAlchemyError
 
 from . import config
 from .database import SessionLocal
@@ -19,15 +20,20 @@ scheduler = BackgroundScheduler()
 def get_users_for_notification_hour(db, utc_hour: int) -> list[User]:
     """Return verified, active users whose notification_hour matches the given UTC hour.
 
+    Uses DB-level filtering for active/verified, then timezone calculation in Python.
+
     NOTE: Fractional timezone limitation — timezones with non-integer UTC offsets
     (e.g., Asia/Kolkata UTC+5:30) are truncated to the nearest whole hour via int().
     Notifications may fire ~30 minutes early for half-hour offset zones.
     """
-    all_users = db.query(User).filter(
-        User.is_verified.is_(True), User.is_active.is_(True)
-    ).all()
-    matched = []
-    for user in all_users:
+    active_users = (
+        db.query(User)
+        .filter(User.is_verified.is_(True), User.is_active.is_(True))
+        .order_by(User.id)
+        .all()
+    )
+    matched: list[User] = []
+    for user in active_users:
         prefs = user.notification_preferences or {}
         user_hour = prefs.get("notification_hour", 9)
         user_tz = user.timezone or "UTC"
@@ -37,7 +43,7 @@ def get_users_for_notification_hour(db, utc_hour: int) -> list[User]:
             user_utc_hour = int((user_hour - utc_offset) % 24)
             if user_utc_hour == utc_hour:
                 matched.append(user)
-        except Exception:
+        except ZoneInfoNotFoundError:
             logger.warning("Invalid timezone for user %s: %s", user.id, user_tz)
     return matched
 
@@ -63,8 +69,8 @@ def hourly_notification_check():
         check_fee_approaching(db, users)
         notification_jobs_counter.add(1, {"job": "hourly"})
         notification_users_gauge.set(len(users), {"job": "hourly"})
-    except Exception:
-        logger.exception("Error in hourly notification check")
+    except (SQLAlchemyError, ImportError) as exc:
+        logger.exception("Error in hourly notification check: %s", exc)
         db.rollback()
     finally:
         db.close()
@@ -84,8 +90,8 @@ def weekly_utilization_check():
             send_utilization_summary(db, users)
         notification_jobs_counter.add(1, {"job": "weekly"})
         notification_users_gauge.set(len(users), {"job": "weekly"})
-    except Exception:
-        logger.exception("Error in weekly utilization check")
+    except (SQLAlchemyError, ImportError) as exc:
+        logger.exception("Error in weekly utilization check: %s", exc)
         db.rollback()
     finally:
         db.close()
@@ -126,8 +132,8 @@ def cleanup_expired_data():
             "Cleanup: %d notifications, %d verification tokens, %d reset tokens, %d unsubscribe tokens",
             notif_deleted, verif_cleared, reset_cleared, unsub_deleted,
         )
-    except Exception:
-        logger.exception("Error in cleanup_expired_data")
+    except SQLAlchemyError as exc:
+        logger.exception("Error in cleanup_expired_data: %s", exc)
         db.rollback()
     finally:
         db.close()
