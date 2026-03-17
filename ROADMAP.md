@@ -57,8 +57,17 @@
 - [x] Dashboards as code via grafanactl (Service Health + Business Metrics)
 - [x] CI sync: dashboards auto-pushed on merge, validated on PRs
 
+### Analytics & Visualization
+- [x] SVG donut chart (overall utilization) and bar chart (per-card) on web Dashboard
+- [x] Summary stats row on mobile Dashboard (total fees, YTD redeemed, utilization)
+- [x] All Credits: "By Period" / "By Card" / "Sheet" tab views (web + mobile)
+- [x] Compact sheet view with issuer color coding and progress indicators
+- [x] Collapsible sections (first expanded, rest collapsed by default)
+- [x] Batch detail endpoint `GET /api/user-cards/details` (fixes N+1 fetch)
+
 ### Code Quality
-- [x] 185+ backend tests with 87%+ coverage
+- [x] 190+ backend tests with 87%+ coverage
+- [x] Ruff (Python) + ESLint (TypeScript) enforced in CI
 - [x] Frontend TypeScript strict mode + Vite build
 - [x] Mobile TypeScript compilation checks
 - [x] Shared types drift check (CI enforced)
@@ -73,7 +82,7 @@
 - [ ] **Automated database backups**: `pg_dump` cron to OCI Object Storage (protects against highest-impact failure)
 - [ ] **Uptime monitoring**: External health check (UptimeRobot or similar) — lower effort than Grafana alerts, immediate value
 - [ ] **Expo receipt checking**: Poll Expo Push API for delivery receipts after 15 min (catches DeviceNotRegistered at receipt stage)
-- [ ] **In-app notification inbox**: Bell icon with notification history in the app (most visible gap in notification UX)
+- [x] **In-app notification inbox**: Bell icon with notification history (web + mobile)
 
 ### Medium Priority
 - [ ] **Apple Sign-In**: Requires Apple Developer account ($99/yr), Service ID, private key for web flow
