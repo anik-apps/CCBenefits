@@ -8,7 +8,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 from . import config
 from .database import SessionLocal
-from .metrics import notification_jobs_counter
+from .metrics import notification_jobs_counter, notification_users_gauge
 from .models import User
 
 logger = logging.getLogger(__name__)
@@ -62,6 +62,7 @@ def hourly_notification_check():
         check_period_transitions(db, users)
         check_fee_approaching(db, users)
         notification_jobs_counter.add(1, {"job": "hourly"})
+        notification_users_gauge.set(len(users), {"job": "hourly"})
     except Exception:
         logger.exception("Error in hourly notification check")
         db.rollback()
@@ -82,6 +83,7 @@ def weekly_utilization_check():
         if users:
             send_utilization_summary(db, users)
         notification_jobs_counter.add(1, {"job": "weekly"})
+        notification_users_gauge.set(len(users), {"job": "weekly"})
     except Exception:
         logger.exception("Error in weekly utilization check")
         db.rollback()

@@ -26,5 +26,9 @@ notification_jobs_counter = meter.create_counter(
     "notifications.jobs_run",
     description="Notification job invocations",
 )
+notification_users_gauge = meter.create_gauge(
+    "notifications.users_processed",
+    description="Number of users processed in the last notification job run",
+)
 oauth_login_counter = meter.create_counter("oauth.login", description="OAuth sign-ins")
 oauth_link_counter = meter.create_counter("oauth.link", description="OAuth link/unlink")
