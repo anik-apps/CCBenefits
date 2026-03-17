@@ -95,30 +95,32 @@
 
   <!-- ═══════════ CONNECTIONS (all orthogonal) ═══════════ -->
 
-  <!-- Clients → Cloudflare: single arrow down from center of Clients box, left, then down -->
+  <!-- Clients → Cloudflare: single arrow down from left of Clients box, then down -->
   <polyline class="conn" stroke="#8b5cf6" marker-end="url(#ap)" points="320,75 180,75 180,185"/>
-  <text class="conn-label" fill="#8b5cf6" x="230" y="68">HTTPS</text>
+  <text class="conn-label" fill="#8b5cf6" x="220" y="68">HTTPS + OAuth</text>
 
   <!-- Cloudflare → Oracle VM: horizontal right -->
   <polyline class="conn" stroke="#f90" marker-end="url(#ao)" points="240,215 320,215"/>
   <text class="conn-label" fill="#f90" x="255" y="230">proxy</text>
 
-  <!-- 4 parallel horizontal arrows from FastAPI right edge to API boxes -->
-  <!-- FastAPI → Google OAuth: y=210 -->
-  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="760,275 820,275 820,210 870,210"/>
-  <text class="conn-label" fill="#22c55e" x="825" y="204">OAuth</text>
+  <!-- 4 horizontal arrows from Oracle VM right edge to API boxes (parallel, equidistant) -->
+  <!-- Oracle VM right edge at x=760, API boxes left edge at x=870 -->
 
-  <!-- FastAPI → Expo Push: y=260 -->
-  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="760,285 840,285 840,260 870,260"/>
-  <text class="conn-label" fill="#22c55e" x="845" y="254">push</text>
+  <!-- → Google OAuth: straight at y=210 -->
+  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="760,210 870,210"/>
+  <text class="conn-label" fill="#22c55e" x="795" y="204">OAuth</text>
 
-  <!-- FastAPI → Resend: y=310 -->
-  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="760,295 840,295 840,310 870,310"/>
-  <text class="conn-label" fill="#22c55e" x="845" y="304">email</text>
+  <!-- → Expo Push: straight at y=260 -->
+  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="760,260 870,260"/>
+  <text class="conn-label" fill="#22c55e" x="800" y="254">push</text>
 
-  <!-- FastAPI → Grafana Cloud: y=358 (dashed) -->
-  <polyline class="conn dashed" stroke="#22c55e" marker-end="url(#ag)" points="760,305 820,305 820,358 870,358"/>
-  <text class="conn-label" fill="#22c55e" x="825" y="348">telemetry</text>
+  <!-- → Resend: straight at y=310 -->
+  <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="760,310 870,310"/>
+  <text class="conn-label" fill="#22c55e" x="800" y="304">email</text>
+
+  <!-- → Grafana Cloud: straight at y=358 (dashed) -->
+  <polyline class="conn dashed" stroke="#22c55e" marker-end="url(#ag)" points="760,358 870,358"/>
+  <text class="conn-label" fill="#22c55e" x="790" y="352">telemetry</text>
 
   <!-- Expo Push → Firebase FCM: horizontal right -->
   <polyline class="conn" stroke="#22c55e" marker-end="url(#ag)" points="1030,260 1090,260"/>
@@ -193,11 +195,11 @@
     <text x="650" y="219" text-anchor="middle" fill="#f5e6b8" font-size="11" font-weight="600">PostgreSQL 16</text>
   </g>
   <g class="node" data-id="fastapi" onclick="showDetail('fastapi')">
-    <rect x="340" y="258" width="420" height="72" fill="url(#gg)" stroke="#c9a84c" stroke-width="1.5" rx="6" ry="6" filter="url(#sh)"/>
+    <rect x="340" y="258" width="400" height="72" fill="url(#gg)" stroke="#c9a84c" stroke-width="1.5" rx="6" ry="6" filter="url(#sh)"/>
     <svg x="360" y="272" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f5e6b8" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-    <text x="550" y="282" text-anchor="middle" fill="#f5e6b8" font-size="14" font-weight="700">FastAPI</text>
-    <text x="550" y="298" text-anchor="middle" fill="#b09848" font-size="9.5">Auth (JWT + OAuth)  |  Cards  |  Benefits  |  Notifications  |  Analytics</text>
-    <text x="550" y="314" text-anchor="middle" fill="#8a7838" font-size="9">1 worker  |  Python 3.13  |  uvicorn</text>
+    <text x="540" y="282" text-anchor="middle" fill="#f5e6b8" font-size="14" font-weight="700">FastAPI</text>
+    <text x="540" y="298" text-anchor="middle" fill="#b09848" font-size="9.5">Auth (JWT + OAuth)  |  Cards  |  Benefits  |  Notifications  |  Analytics</text>
+    <text x="540" y="314" text-anchor="middle" fill="#8a7838" font-size="9">1 worker  |  Python 3.13  |  uvicorn</text>
   </g>
 
   <!-- ── EXTERNAL APIs (right column) ── -->
