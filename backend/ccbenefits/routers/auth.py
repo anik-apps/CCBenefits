@@ -18,6 +18,7 @@ from ..auth import (
     verify_password,
 )
 from ..config import (
+    AUTO_VERIFY,
     FRONTEND_URL,
     RESET_TOKEN_EXPIRE_HOURS,
     VERIFICATION_TOKEN_EXPIRE_HOURS,
@@ -77,7 +78,7 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
         email=email,
         display_name=data.display_name,
         hashed_password=hash_password(data.password),
-        is_verified=False,
+        is_verified=AUTO_VERIFY,
         verification_token=verification_hash,
         verification_token_expires=_now_naive() + timedelta(hours=VERIFICATION_TOKEN_EXPIRE_HOURS),
     )
