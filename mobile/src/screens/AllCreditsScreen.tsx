@@ -1,6 +1,6 @@
 import ScreenWrapper from '../components/ScreenWrapper';
 import LoadingScreen from '../components/LoadingScreen';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, SectionList, ScrollView, TouchableOpacity } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUserCardDetails, logUsage, updateUsage, deleteUsage } from '../services/api';
@@ -61,7 +61,7 @@ export default function AllCreditsScreen({ navigation }: Props) {
   }
 
   const allBenefits: BenefitWithCard[] = cardDetails.flatMap(card =>
-    card.benefits_status.map(b => ({ ...b, userCardId: card.id, cardName: card.card_name, issuer: card.issuer }))
+    card.benefits_status.map(b => ({ ...b, userCardId: card.id, cardName: card.nickname || card.card_name, issuer: card.issuer }))
   );
 
   const periodSections = PERIOD_ORDER
@@ -78,9 +78,9 @@ export default function AllCreditsScreen({ navigation }: Props) {
     .map(card => ({
       key: `card-${card.id}`,
       card,
-      title: card.card_name,
+      title: card.nickname || card.card_name,
       data: [...card.benefits_status]
-        .map(b => ({ ...b, userCardId: card.id, cardName: card.card_name, issuer: card.issuer }))
+        .map(b => ({ ...b, userCardId: card.id, cardName: card.nickname || card.card_name, issuer: card.issuer }))
         .sort((a, b) => b.remaining - a.remaining),
     }))
     .filter(s => s.data.length > 0);
@@ -107,11 +107,14 @@ export default function AllCreditsScreen({ navigation }: Props) {
     return !expandedSections.has(key);
   };
 
-  // Grand totals for sheet
-  const grandTotalFees = cardDetails.reduce((s, c) => s + c.annual_fee, 0);
-  const grandTotalMax = allBenefits.reduce((s, b) => s + b.max_value, 0);
-  const grandTotalUsed = allBenefits.reduce((s, b) => s + b.amount_used, 0);
-  const grandUtilization = grandTotalMax > 0 ? (grandTotalUsed / grandTotalMax) * 100 : 0;
+  // Grand totals for sheet (memoized to avoid recalculating on every render)
+  const { grandTotalFees, grandTotalMax, grandTotalUsed } = useMemo(() => {
+    const totalFees = cardDetails.reduce((s, c) => s + c.annual_fee, 0);
+    const totalMax = allBenefits.reduce((s, b) => s + b.max_value, 0);
+    const totalUsed = allBenefits.reduce((s, b) => s + b.amount_used, 0);
+    const utilization = totalMax > 0 ? (totalUsed / totalMax) * 100 : 0;
+    return { grandTotalFees: totalFees, grandTotalMax: totalMax, grandTotalUsed: totalUsed, grandUtilization: utilization };
+  }, [cardDetails, allBenefits]);
 
   const getStatusColor = (b: BenefitStatus) => {
     if (b.is_used && b.amount_used >= b.max_value) return colors.statusSuccess;
