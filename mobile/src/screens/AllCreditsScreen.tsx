@@ -108,7 +108,7 @@ export default function AllCreditsScreen({ navigation }: Props) {
   };
 
   // Grand totals for sheet (memoized to avoid recalculating on every render)
-  const { grandTotalFees, grandTotalMax, grandTotalUsed, grandUtilization } = useMemo(() => {
+  const { grandTotalFees, grandTotalMax, grandTotalUsed } = useMemo(() => {
     const totalFees = cardDetails.reduce((s, c) => s + c.annual_fee, 0);
     const totalMax = allBenefits.reduce((s, b) => s + b.max_value, 0);
     const totalUsed = allBenefits.reduce((s, b) => s + b.amount_used, 0);
