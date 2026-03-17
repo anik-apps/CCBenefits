@@ -3,7 +3,7 @@ import { Page } from '@playwright/test';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:8080';
 
 export async function registerUser(name: string): Promise<{ email: string; password: string; token: string }> {
-  const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2)}@e2e.test`;
+  const email = `e2e-${Date.now()}-${Math.random().toString(36).slice(2)}@e2etest.com`;
   const password = 'testpass123';
   const resp = await fetch(`${BASE_URL}/api/auth/register`, {
     method: 'POST',

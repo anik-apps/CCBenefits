@@ -65,7 +65,7 @@ jobs:
 
       - name: Run API smoke tests
         working-directory: backend
-        run: poetry run pytest tests/integration/ -v
+        run: poetry run pytest tests/integration/ -v --no-cov
         env:
           INTEGRATION_BASE_URL: http://localhost:8080
 

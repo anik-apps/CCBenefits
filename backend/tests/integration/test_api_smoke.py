@@ -8,7 +8,7 @@ def test_health(client):
 
 
 def test_register_and_login(client):
-    email = f"test-{uuid.uuid4().hex[:8]}@integration.test"
+    email = f"test-{uuid.uuid4().hex[:8]}@inttest.com"
     # Register
     resp = client.post("/api/auth/register", json={
         "email": email, "password": "testpass123", "display_name": "Integration Test",
@@ -24,7 +24,7 @@ def test_register_and_login(client):
 
 
 def test_card_crud(client):
-    email = f"test-{uuid.uuid4().hex[:8]}@integration.test"
+    email = f"test-{uuid.uuid4().hex[:8]}@inttest.com"
     # Register + get token
     resp = client.post("/api/auth/register", json={
         "email": email, "password": "testpass123", "display_name": "Card Test",
@@ -50,7 +50,7 @@ def test_card_crud(client):
 
 
 def test_benefit_usage(client):
-    email = f"test-{uuid.uuid4().hex[:8]}@integration.test"
+    email = f"test-{uuid.uuid4().hex[:8]}@inttest.com"
     resp = client.post("/api/auth/register", json={
         "email": email, "password": "testpass123", "display_name": "Usage Test",
     })
@@ -79,7 +79,7 @@ def test_benefit_usage(client):
 
 
 def test_batch_details(client):
-    email = f"test-{uuid.uuid4().hex[:8]}@integration.test"
+    email = f"test-{uuid.uuid4().hex[:8]}@inttest.com"
     resp = client.post("/api/auth/register", json={
         "email": email, "password": "testpass123", "display_name": "Batch Test",
     })
