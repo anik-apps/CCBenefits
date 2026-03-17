@@ -35,6 +35,14 @@ jobs:
       - name: Lint (ruff)
         run: poetry run ruff check ccbenefits/ tests/
 
+      - name: Test Alembic migrations (SQLite)
+        run: |
+          poetry run alembic upgrade head
+          poetry run alembic downgrade base
+          poetry run alembic upgrade head
+        env:
+          DATABASE_URL: "sqlite:///./test_migrations.db"
+
       - name: Run tests with coverage
         run: poetry run pytest -v
 

@@ -102,12 +102,11 @@
 - [ ] **Card recommendation engine**: Suggest cards based on spending patterns (depends on Plaid data — without it, recommendations are generic)
 
 ### Technical Debt
-- [ ] Fix `notifications.jobs_run` cardinality issue (`users` label should be a gauge, not a counter label)
-- [ ] Add composite index on `notification_logs` for `(user_id, notification_type, reference_key, channel)` — migration exists but verify in production
-- [ ] Migrate from deprecated OTel semantic conventions (old HTTP metric names) when updating `opentelemetry-instrumentation-fastapi`
-- [ ] Add Alembic `render_as_batch=True` test to CI to prevent SQLite migration failures
-- [ ] Generalize expired token cleanup: UnsubscribeToken + verification tokens + password reset tokens (scheduled job)
+- [x] Fix `notifications.jobs_run` cardinality issue — removed dynamic `users` label from counter
+- [x] Add composite index on `notification_logs` — migration 729e700f7e6b applied
+- [x] Generalize expired token cleanup — `cleanup_expired_data()` cleans notifications, verification tokens, reset tokens, unsubscribe tokens
+- [x] Add Alembic migration test to CI — upgrade/downgrade/upgrade on SQLite
+- [x] Periodic dependency audit — Dependabot for npm + GitHub Actions; Poetry deps managed manually
+- [ ] Migrate from deprecated OTel semantic conventions — auto-instrumentation handles it, defer until library update
 - [ ] Add mobile test runner (React Native has zero tests, only TypeScript compilation checks)
-- [ ] Migrate from raw bcrypt to a maintained password hashing library (passlib incompatible with bcrypt 5.x)
-- [ ] Periodic dependency audit (Expo SDK, Python, Node version upgrades)
 - [ ] Investigate SQLite vs PostgreSQL test parity (type coercion, constraint behavior differences)
