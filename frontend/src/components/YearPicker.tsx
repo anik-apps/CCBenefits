@@ -16,12 +16,11 @@ function persistYears(years: number[]) {
 }
 
 interface YearPickerProps {
-  years: number[];
   selectedYear: number;
   onChange: (year: number) => void;
 }
 
-export default function YearPicker({ years: _years, selectedYear, onChange }: YearPickerProps) {
+export default function YearPicker({ selectedYear, onChange }: YearPickerProps) {
   const currentYear = new Date().getFullYear();
   const [addedYears, setAddedYears] = useState<number[]>(getPersistedYears);
   const selectRef = useRef<HTMLSelectElement>(null);

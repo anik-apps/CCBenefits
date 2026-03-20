@@ -233,7 +233,7 @@ export default function CardDetail() {
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-          <YearPicker years={card.available_years || []} selectedYear={year} onChange={setYear} />
+          <YearPicker selectedYear={year} onChange={setYear} />
         </div>
 
         <PastYearBanner year={year} />

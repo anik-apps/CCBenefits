@@ -240,10 +240,6 @@ export default function AllCredits() {
     </div>
   );
 
-  const allYears = cardDetails
-    ? [...new Set(cardDetails.flatMap((c) => c.available_years || []))].sort((a, b) => b - a)
-    : [new Date().getFullYear()];
-
   return (
     <div>
       <div style={{
@@ -254,7 +250,7 @@ export default function AllCredits() {
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 600, margin: 0 }}>
             All Credits
           </h1>
-          <YearPicker years={allYears} selectedYear={year} onChange={setYear} />
+          <YearPicker selectedYear={year} onChange={setYear} />
         </div>
         <div style={{
           display: 'flex', gap: 4, background: 'var(--bg-card)',

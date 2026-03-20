@@ -78,11 +78,6 @@ export default function Dashboard() {
     value: c.utilization_pct,
   }));
 
-  // Compute available years from all cards
-  const allYears = cards
-    ? [...new Set(cards.flatMap((c) => c.available_years || []))].sort((a, b) => b - a)
-    : [new Date().getFullYear()];
-
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -93,7 +88,7 @@ export default function Dashboard() {
           }}>
             Your Cards
           </h1>
-          <YearPicker years={allYears} selectedYear={year} onChange={setYear} />
+          <YearPicker selectedYear={year} onChange={setYear} />
         </div>
         <Link to="/credits" className="mobile-credits-btn" style={{
           padding: '8px 16px', borderRadius: 'var(--radius-sm)',
