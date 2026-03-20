@@ -20,6 +20,7 @@ from ..schemas import (
     BenefitStatusOut,
     BenefitUsageCreate,
     BenefitUsageOut,
+    CardCloseRequest,
     PeriodSegment,
     UserCardCreate,
     UserCardDetailOut,
@@ -62,6 +63,7 @@ def create_user_card(
         nickname=user_card.nickname,
         member_since_date=user_card.member_since_date,
         renewal_date=user_card.renewal_date,
+        closed_date=user_card.closed_date,
         is_active=user_card.is_active,
         created_at=user_card.created_at,
     )
@@ -99,6 +101,7 @@ def update_user_card(
         is_active=uc.is_active,
         created_at=uc.created_at,
         renewal_date=uc.renewal_date,
+        closed_date=uc.closed_date,
     )
 
 
@@ -109,7 +112,7 @@ def list_user_cards(
 ):
     user_cards = (
         db.query(UserCard)
-        .filter(UserCard.user_id == current_user.id, UserCard.is_active.is_(True))
+        .filter(UserCard.user_id == current_user.id, UserCard.closed_date.is_(None))
         .options(
             joinedload(UserCard.card_template).joinedload(CardTemplate.benefits),
             joinedload(UserCard.usages),
@@ -132,7 +135,7 @@ def list_user_card_details(
 ):
     user_cards = (
         db.query(UserCard)
-        .filter(UserCard.user_id == current_user.id, UserCard.is_active.is_(True))
+        .filter(UserCard.user_id == current_user.id, UserCard.closed_date.is_(None))
         .options(
             joinedload(UserCard.card_template).joinedload(CardTemplate.benefits),
             joinedload(UserCard.usages),
@@ -155,6 +158,7 @@ def list_user_card_details(
                 nickname=uc.nickname,
                 member_since_date=uc.member_since_date,
                 renewal_date=uc.renewal_date,
+                closed_date=uc.closed_date,
                 is_active=uc.is_active,
                 ytd_actual_used=summary.ytd_actual_used,
                 utilization_pct=summary.utilization_pct,
@@ -197,6 +201,7 @@ def get_user_card_detail(
         nickname=uc.nickname,
         member_since_date=uc.member_since_date,
         renewal_date=uc.renewal_date,
+        closed_date=uc.closed_date,
         is_active=uc.is_active,
         ytd_actual_used=summary.ytd_actual_used,
         utilization_pct=summary.utilization_pct,
@@ -217,6 +222,83 @@ def delete_user_card(
     db.commit()
 
 
+@router.put("/{user_card_id}/close", response_model=UserCardOut)
+def close_user_card(
+    user_card_id: int,
+    data: CardCloseRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    uc = (
+        db.query(UserCard)
+        .options(joinedload(UserCard.card_template))
+        .filter(UserCard.id == user_card_id, UserCard.user_id == current_user.id)
+        .first()
+    )
+    if not uc:
+        raise HTTPException(status_code=404, detail="User card not found")
+    if uc.closed_date is not None:
+        raise HTTPException(status_code=400, detail="Card is already closed")
+    if uc.member_since_date and data.closed_date < uc.member_since_date:
+        raise HTTPException(status_code=400, detail="Close date cannot be before membership date")
+
+    uc.closed_date = data.closed_date
+    uc.is_active = False  # backward compat
+    db.commit()
+    db.refresh(uc)
+
+    return UserCardOut(
+        id=uc.id,
+        card_template_id=uc.card_template_id,
+        card_name=uc.card_template.name,
+        issuer=uc.card_template.issuer,
+        annual_fee=uc.card_template.annual_fee,
+        nickname=uc.nickname,
+        member_since_date=uc.member_since_date,
+        renewal_date=uc.renewal_date,
+        closed_date=uc.closed_date,
+        is_active=uc.is_active,
+        created_at=uc.created_at,
+    )
+
+
+@router.put("/{user_card_id}/reopen", response_model=UserCardOut)
+def reopen_user_card(
+    user_card_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    uc = (
+        db.query(UserCard)
+        .options(joinedload(UserCard.card_template))
+        .filter(UserCard.id == user_card_id, UserCard.user_id == current_user.id)
+        .first()
+    )
+    if not uc:
+        raise HTTPException(status_code=404, detail="User card not found")
+    if uc.closed_date is None:
+        raise HTTPException(status_code=400, detail="Card is not closed")
+
+    uc.closed_date = None
+    uc.is_active = True  # backward compat
+    db.commit()
+    db.refresh(uc)
+
+    return UserCardOut(
+        id=uc.id,
+        card_template_id=uc.card_template_id,
+        card_name=uc.card_template.name,
+        issuer=uc.card_template.issuer,
+        annual_fee=uc.card_template.annual_fee,
+        nickname=uc.nickname,
+        member_since_date=uc.member_since_date,
+        renewal_date=uc.renewal_date,
+        closed_date=uc.closed_date,
+        is_active=uc.is_active,
+        created_at=uc.created_at,
+    )
+
+
 @router.post("/{user_card_id}/usage", response_model=BenefitUsageOut, status_code=201)
 def log_usage(
     user_card_id: int,
@@ -227,8 +309,13 @@ def log_usage(
     uc = db.query(UserCard).filter(UserCard.id == user_card_id, UserCard.user_id == current_user.id).first()
     if not uc:
         raise HTTPException(status_code=404, detail="User card not found")
-    if not uc.is_active:
-        raise HTTPException(status_code=400, detail="Cannot log usage for inactive card")
+
+    # Date-range validation (replaces blanket is_active gate)
+    target = data.target_date or date.today()
+    if uc.member_since_date and target < uc.member_since_date:
+        raise HTTPException(status_code=400, detail="Cannot log usage before card membership date")
+    if uc.closed_date and target > uc.closed_date:
+        raise HTTPException(status_code=400, detail="Cannot log usage after card close date")
 
     benefit = db.query(BenefitTemplate).filter(BenefitTemplate.id == data.benefit_template_id).first()
     if not benefit:
@@ -247,7 +334,6 @@ def log_usage(
             detail=f"Amount {amount} exceeds max value {benefit.max_value}",
         )
 
-    target = data.target_date or date.today()
     period_start, period_end = get_current_period(benefit.period_type, target)
 
     # Check for existing usage in this period

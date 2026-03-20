@@ -62,12 +62,17 @@ class UserCardOut(BaseModel):
     nickname: str | None
     member_since_date: date | None
     renewal_date: date | None = None
+    closed_date: date | None = None
     is_active: bool
     created_at: datetime
 
 
 class UserCardUpdate(BaseModel):
     renewal_date: date | None = None
+
+
+class CardCloseRequest(BaseModel):
+    closed_date: date
 
 
 # --- Benefit Usage schemas ---
@@ -150,6 +155,7 @@ class UserCardDetailOut(BaseModel):
     nickname: str | None
     member_since_date: date | None
     renewal_date: date | None = None
+    closed_date: date | None = None
     is_active: bool
     ytd_actual_used: float = 0
     utilization_pct: float = 0
