@@ -147,8 +147,9 @@ export default function CardDetail() {
       setCloseDate('');
       refresh();
       queryClient.invalidateQueries({ queryKey: ['user-cards'] });
-    } catch {
-      // error
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to close card';
+      alert(msg);
     }
   };
 
@@ -159,8 +160,9 @@ export default function CardDetail() {
       await reopenCard(card.id);
       refresh();
       queryClient.invalidateQueries({ queryKey: ['user-cards'] });
-    } catch {
-      // error
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to reopen card';
+      alert(msg);
     }
   };
 
