@@ -243,10 +243,10 @@ export default function AllCredits() {
   return (
     <div>
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 16, animation: 'fadeInUp 0.4s ease-out both',
+        display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
+        gap: 8, marginBottom: 16, animation: 'fadeInUp 0.4s ease-out both',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 600, margin: 0 }}>
             All Credits
           </h1>
