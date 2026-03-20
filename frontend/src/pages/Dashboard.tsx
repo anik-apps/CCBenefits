@@ -80,26 +80,26 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div style={{
-        display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center',
-        gap: 8, marginBottom: 16,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          marginBottom: 8,
+        }}>
           <h1 style={{
             fontFamily: 'var(--font-display)', fontSize: '1.6rem', fontWeight: 600,
             animation: 'fadeInUp 0.4s ease-out both', margin: 0,
           }}>
             Your Cards
           </h1>
-          <YearPicker selectedYear={year} onChange={setYear} />
-        </div>
-        <Link to="/credits" className="mobile-credits-btn" style={{
-          padding: '8px 16px', borderRadius: 'var(--radius-sm)',
-          background: 'var(--bg-elevated)', border: '1px solid var(--border-medium)',
-          color: 'var(--accent-gold)', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none',
-        }}>
+          <Link to="/credits" className="mobile-credits-btn" style={{
+            padding: '8px 16px', borderRadius: 'var(--radius-sm)',
+            background: 'var(--bg-elevated)', border: '1px solid var(--border-medium)',
+            color: 'var(--accent-gold)', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none',
+          }}>
           All Credits →
         </Link>
+        </div>
+        <YearPicker selectedYear={year} onChange={setYear} />
       </div>
 
       <PastYearBanner year={year} />

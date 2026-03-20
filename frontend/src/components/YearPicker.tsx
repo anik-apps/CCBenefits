@@ -76,12 +76,9 @@ export default function YearPicker({ selectedYear, onChange }: YearPickerProps) 
         <option key={y} value={y}>{y}</option>
       ))}
       {nextAddableYear && (
-        <>
-          <option disabled>──────</option>
-          <option value={`add-${nextAddableYear}`} style={{ fontStyle: 'italic', color: 'gray' }}>
-            add {nextAddableYear}?
-          </option>
-        </>
+        <option value={`add-${nextAddableYear}`} style={{ fontStyle: 'italic', color: 'gray' }}>
+          add {nextAddableYear}?
+        </option>
       )}
     </select>
 
