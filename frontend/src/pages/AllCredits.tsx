@@ -242,30 +242,30 @@ export default function AllCredits() {
 
   return (
     <div>
-      <div style={{
-        display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
-        gap: 8, marginBottom: 16, animation: 'fadeInUp 0.4s ease-out both',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      <div style={{ marginBottom: 16, animation: 'fadeInUp 0.4s ease-out both' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          marginBottom: 8,
+        }}>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 600, margin: 0 }}>
             All Credits
           </h1>
-          <YearPicker selectedYear={year} onChange={setYear} />
+          <div style={{
+            display: 'flex', gap: 4, background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', padding: 3,
+          }}>
+            <button style={tabStyle(view === 'period')} onClick={() => { setView('period'); setExpandedSections(null); }}>
+              By Period
+            </button>
+            <button style={tabStyle(view === 'card')} onClick={() => { setView('card'); setExpandedSections(null); }}>
+              By Card
+            </button>
+            <button style={tabStyle(view === 'sheet')} onClick={() => setView('sheet')}>
+              Sheet
+            </button>
+          </div>
         </div>
-        <div style={{
-          display: 'flex', gap: 4, background: 'var(--bg-card)',
-          borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', padding: 3,
-        }}>
-          <button style={tabStyle(view === 'period')} onClick={() => { setView('period'); setExpandedSections(null); }}>
-            By Period
-          </button>
-          <button style={tabStyle(view === 'card')} onClick={() => { setView('card'); setExpandedSections(null); }}>
-            By Card
-          </button>
-          <button style={tabStyle(view === 'sheet')} onClick={() => setView('sheet')}>
-            Sheet
-          </button>
-        </div>
+        <YearPicker selectedYear={year} onChange={setYear} />
       </div>
 
       <PastYearBanner year={year} />
