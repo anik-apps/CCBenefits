@@ -80,11 +80,14 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center',
+        gap: 8, marginBottom: 16,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <h1 style={{
             fontFamily: 'var(--font-display)', fontSize: '1.6rem', fontWeight: 600,
-            animation: 'fadeInUp 0.4s ease-out both',
+            animation: 'fadeInUp 0.4s ease-out both', margin: 0,
           }}>
             Your Cards
           </h1>
