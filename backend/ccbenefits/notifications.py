@@ -260,7 +260,7 @@ def check_expiring_credits(db, users):
         # Get user's active cards with their benefits
         cards = db.query(UserCard).filter(
             UserCard.user_id == user.id,
-            UserCard.is_active.is_(True),
+            UserCard.closed_date.is_(None),
         ).all()
 
         expiring_items = []
@@ -353,7 +353,7 @@ def check_period_transitions(db, users):
     for user in users:
         cards = db.query(UserCard).filter(
             UserCard.user_id == user.id,
-            UserCard.is_active.is_(True),
+            UserCard.closed_date.is_(None),
         ).all()
 
         period_start_items = []
@@ -500,7 +500,7 @@ def check_fee_approaching(db, users):
     for user in users:
         cards = db.query(UserCard).filter(
             UserCard.user_id == user.id,
-            UserCard.is_active.is_(True),
+            UserCard.closed_date.is_(None),
             UserCard.renewal_date.isnot(None),
             UserCard.renewal_date == target_date,
         ).all()
@@ -575,7 +575,7 @@ def send_utilization_summary(db, users):
 
         cards = db.query(UserCard).filter(
             UserCard.user_id == user.id,
-            UserCard.is_active.is_(True),
+            UserCard.closed_date.is_(None),
         ).all()
 
         summary_items = []

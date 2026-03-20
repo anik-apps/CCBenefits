@@ -62,12 +62,17 @@ class UserCardOut(BaseModel):
     nickname: str | None
     member_since_date: date | None
     renewal_date: date | None = None
+    closed_date: date | None = None
     is_active: bool
     created_at: datetime
 
 
 class UserCardUpdate(BaseModel):
     renewal_date: date | None = None
+
+
+class CardCloseRequest(BaseModel):
+    closed_date: date
 
 
 # --- Benefit Usage schemas ---
@@ -150,7 +155,9 @@ class UserCardDetailOut(BaseModel):
     nickname: str | None
     member_since_date: date | None
     renewal_date: date | None = None
+    closed_date: date | None = None
     is_active: bool
+    available_years: list[int] = []
     ytd_actual_used: float = 0
     utilization_pct: float = 0
     benefits_status: list[BenefitStatusOut]
@@ -165,6 +172,7 @@ class UserCardSummaryOut(BaseModel):
     issuer: str
     nickname: str | None = None
     annual_fee: float
+    available_years: list[int] = []
     total_max_annual_value: float
     total_perceived_annual_value: float
     ytd_actual_used: float
