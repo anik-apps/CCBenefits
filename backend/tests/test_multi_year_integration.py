@@ -6,23 +6,6 @@ across years, close/reopen cards, switch years, and verify data isolation.
 from ccbenefits.models import CardTemplate
 
 
-def _register_and_get_header(client, db_session, suffix=""):
-    """Helper: create a card and return (card_id, auth_header, first_benefit_id)."""
-    template = db_session.query(CardTemplate).first()
-    from ccbenefits.auth import create_access_token, hash_password
-    from ccbenefits.models import User
-    user = User(
-        email=f"multiyear{suffix}@test.com",
-        display_name="Multi Year Tester",
-        hashed_password=hash_password("testpass123"),
-    )
-    db_session.add(user)
-    db_session.commit()
-    db_session.refresh(user)
-    token = create_access_token(subject=str(user.id))
-    return {"Authorization": f"Bearer {token}"}, template
-
-
 def test_full_multi_year_workflow(client, auth_header, db_session):
     """End-to-end: create card, log usage in multiple years, close, verify year filtering."""
     template = db_session.query(CardTemplate).first()

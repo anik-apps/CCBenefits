@@ -51,6 +51,7 @@ export default function YearPicker({ years, selectedYear, onChange }: YearPicker
     const updated = [...addedYears, confirmYear];
     setAddedYears(updated);
     persistYears(updated);
+    onChange(confirmYear);
     setConfirmYear(null);
   };
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUserCard, getUserCardSummary, logUsage, updateUsage, deleteUsage, deleteUserCard, updateBenefitSetting, updateUserCard, closeCard, reopenCard } from '../services/api';
 import type { BenefitStatus, PeriodSegment } from '../types';
@@ -7,11 +7,14 @@ import BenefitRow from '../components/BenefitRow';
 import UsageModal from '../components/UsageModal';
 import UtilizationBar from '../components/UtilizationBar';
 import LoadingSpinner from '../components/LoadingSpinner';
+import YearPicker from '../components/YearPicker';
+import PastYearBanner from '../components/PastYearBanner';
 import { PERIOD_ORDER, PERIOD_LABELS } from '../constants/periodLabels';
 
 export default function CardDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [modal, setModal] = useState<{ benefit: BenefitStatus; mode: 'usage' | 'perceived' } | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -19,16 +22,25 @@ export default function CardDetail() {
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [closeDate, setCloseDate] = useState('');
 
+  const currentYear = new Date().getFullYear();
+  const yearParam = searchParams.get('year');
+  const year = yearParam ? Number(yearParam) : currentYear;
+  const setYear = (y: number) => {
+    if (y === currentYear) searchParams.delete('year');
+    else searchParams.set('year', String(y));
+    setSearchParams(searchParams);
+  };
+
   const { data: card, isLoading, isError } = useQuery({
-    queryKey: ['user-card', id],
-    queryFn: () => getUserCard(Number(id)),
+    queryKey: ['user-card', id, year],
+    queryFn: () => getUserCard(Number(id), year),
     enabled: !!id,
     refetchOnMount: 'always',
   });
 
   const { data: summary } = useQuery({
-    queryKey: ['user-card-summary', id],
-    queryFn: () => getUserCardSummary(Number(id)),
+    queryKey: ['user-card-summary', id, year],
+    queryFn: () => getUserCardSummary(Number(id), year),
     enabled: !!id,
     refetchOnMount: 'always',
   });
@@ -219,6 +231,12 @@ export default function CardDetail() {
         >
           ← Back
         </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+          <YearPicker years={card.available_years || []} selectedYear={year} onChange={setYear} />
+        </div>
+
+        <PastYearBanner year={year} />
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
