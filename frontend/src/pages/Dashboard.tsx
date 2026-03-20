@@ -1,15 +1,20 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getUserCards } from '../services/api';
 import CardSummary from '../components/CardSummary';
 import DonutChart from '../components/DonutChart';
 import BarChart from '../components/BarChart';
 import LoadingSpinner from '../components/LoadingSpinner';
+import YearPicker from '../components/YearPicker';
+import PastYearBanner from '../components/PastYearBanner';
 import { Link } from 'react-router-dom';
 
 export default function Dashboard() {
+  const [year, setYear] = useState(new Date().getFullYear());
+
   const { data: cards, isLoading, isError } = useQuery({
-    queryKey: ['user-cards'],
-    queryFn: getUserCards,
+    queryKey: ['user-cards', year],
+    queryFn: () => getUserCards(year),
     refetchOnMount: 'always',
   });
 
@@ -73,15 +78,23 @@ export default function Dashboard() {
     value: c.utilization_pct,
   }));
 
+  // Compute available years from all cards
+  const allYears = cards
+    ? [...new Set(cards.flatMap((c) => c.available_years || []))].sort((a, b) => b - a)
+    : [new Date().getFullYear()];
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h1 style={{
-          fontFamily: 'var(--font-display)', fontSize: '1.6rem', fontWeight: 600,
-          animation: 'fadeInUp 0.4s ease-out both',
-        }}>
-          Your Cards
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <h1 style={{
+            fontFamily: 'var(--font-display)', fontSize: '1.6rem', fontWeight: 600,
+            animation: 'fadeInUp 0.4s ease-out both',
+          }}>
+            Your Cards
+          </h1>
+          <YearPicker years={allYears} selectedYear={year} onChange={setYear} />
+        </div>
         <Link to="/credits" className="mobile-credits-btn" style={{
           padding: '8px 16px', borderRadius: 'var(--radius-sm)',
           background: 'var(--bg-elevated)', border: '1px solid var(--border-medium)',
@@ -90,6 +103,8 @@ export default function Dashboard() {
           All Credits →
         </Link>
       </div>
+
+      <PastYearBanner year={year} />
 
       {/* Charts at top */}
       {totalMax > 0 && (

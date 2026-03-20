@@ -36,6 +36,7 @@ export interface UserCardOut {
   annual_fee: number;
   nickname: string | null;
   member_since_date: string | null;
+  closed_date: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -79,7 +80,9 @@ export interface UserCardDetail {
   annual_fee: number;
   nickname: string | null;
   member_since_date: string | null;
+  closed_date: string | null;
   is_active: boolean;
+  available_years: number[];
   ytd_actual_used: number;
   utilization_pct: number;
   benefits_status: BenefitStatus[];
@@ -92,6 +95,7 @@ export interface UserCardSummary {
   issuer: string;
   nickname: string | null;
   annual_fee: number;
+  available_years: number[];
   total_max_annual_value: number;
   total_perceived_annual_value: number;
   ytd_actual_used: number;

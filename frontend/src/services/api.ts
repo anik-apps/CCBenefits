@@ -96,23 +96,33 @@ export async function getCardTemplate(id: number): Promise<CardTemplateDetail> {
   return data;
 }
 
-export async function getUserCards(): Promise<UserCardSummary[]> {
-  const { data } = await api.get('/api/user-cards/');
+export async function getUserCards(year?: number): Promise<UserCardSummary[]> {
+  const { data } = await api.get('/api/user-cards/', { params: year ? { year } : {} });
   return data;
 }
 
-export async function getUserCard(id: number): Promise<UserCardDetail> {
-  const { data } = await api.get(`/api/user-cards/${id}`);
+export async function getUserCard(id: number, year?: number): Promise<UserCardDetail> {
+  const { data } = await api.get(`/api/user-cards/${id}`, { params: year ? { year } : {} });
   return data;
 }
 
-export async function getUserCardDetails(): Promise<UserCardDetail[]> {
-  const { data } = await api.get('/api/user-cards/details');
+export async function getUserCardDetails(year?: number): Promise<UserCardDetail[]> {
+  const { data } = await api.get('/api/user-cards/details', { params: year ? { year } : {} });
   return data;
 }
 
-export async function getUserCardSummary(id: number): Promise<UserCardSummary> {
-  const { data } = await api.get(`/api/user-cards/${id}/summary`);
+export async function getUserCardSummary(id: number, year?: number): Promise<UserCardSummary> {
+  const { data } = await api.get(`/api/user-cards/${id}/summary`, { params: year ? { year } : {} });
+  return data;
+}
+
+export async function closeCard(id: number, closedDate: string): Promise<UserCardOut> {
+  const { data } = await api.put(`/api/user-cards/${id}/close`, { closed_date: closedDate });
+  return data;
+}
+
+export async function reopenCard(id: number): Promise<UserCardOut> {
+  const { data } = await api.put(`/api/user-cards/${id}/reopen`);
   return data;
 }
 

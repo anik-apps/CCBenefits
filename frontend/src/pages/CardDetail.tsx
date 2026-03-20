@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getUserCard, getUserCardSummary, logUsage, updateUsage, deleteUsage, deleteUserCard, updateBenefitSetting, updateUserCard } from '../services/api';
+import { getUserCard, getUserCardSummary, logUsage, updateUsage, deleteUsage, deleteUserCard, updateBenefitSetting, updateUserCard, closeCard, reopenCard } from '../services/api';
 import type { BenefitStatus, PeriodSegment } from '../types';
 import BenefitRow from '../components/BenefitRow';
 import UsageModal from '../components/UsageModal';
@@ -16,6 +16,8 @@ export default function CardDetail() {
   const [modal, setModal] = useState<{ benefit: BenefitStatus; mode: 'usage' | 'perceived' } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [editingRenewal, setEditingRenewal] = useState(false);
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [closeDate, setCloseDate] = useState('');
 
   const { data: card, isLoading, isError } = useQuery({
     queryKey: ['user-card', id],
@@ -137,6 +139,31 @@ export default function CardDetail() {
     }
   };
 
+  const handleClose = async () => {
+    if (!card || !closeDate) return;
+    try {
+      await closeCard(card.id, closeDate);
+      setShowCloseModal(false);
+      setCloseDate('');
+      refresh();
+      queryClient.invalidateQueries({ queryKey: ['user-cards'] });
+    } catch {
+      // error
+    }
+  };
+
+  const handleReopen = async () => {
+    if (!card) return;
+    if (!confirm(`Reopen "${card.nickname || card.card_name}"?`)) return;
+    try {
+      await reopenCard(card.id);
+      refresh();
+      queryClient.invalidateQueries({ queryKey: ['user-cards'] });
+    } catch {
+      // error
+    }
+  };
+
   if (isError) {
     return (
       <div style={{ textAlign: 'center', paddingTop: 80, color: 'var(--accent-red)' }}>
@@ -207,22 +234,58 @@ export default function CardDetail() {
             {card.nickname && (
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{card.card_name}</div>
             )}
+            {card.closed_date && (
+              <div style={{
+                fontSize: '0.75rem', color: 'var(--accent-red)', fontWeight: 500, marginTop: 4,
+              }}>
+                Closed {new Date(card.closed_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+              </div>
+            )}
           </div>
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            style={{
-              fontSize: '0.8rem',
-              color: 'var(--accent-red)',
-              padding: '6px 12px',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid rgba(239, 68, 68, 0.2)',
-              opacity: deleting ? 0.5 : 1,
-              transition: 'opacity 0.2s',
-            }}
-          >
-            Delete
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {card.closed_date ? (
+              <button
+                onClick={handleReopen}
+                style={{
+                  fontSize: '0.8rem',
+                  color: 'var(--accent-emerald)',
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid rgba(16, 185, 129, 0.2)',
+                }}
+              >
+                Reopen
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowCloseModal(true)}
+                style={{
+                  fontSize: '0.8rem',
+                  color: 'var(--text-muted)',
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
+                Close
+              </button>
+            )}
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              style={{
+                fontSize: '0.8rem',
+                color: 'var(--accent-red)',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                opacity: deleting ? 0.5 : 1,
+                transition: 'opacity 0.2s',
+              }}
+            >
+              Delete
+            </button>
+          </div>
         </div>
 
         {/* Renewal date */}
@@ -386,6 +449,60 @@ export default function CardDetail() {
           onSave={handleModalSave}
           onClose={() => setModal(null)}
         />
+      )}
+
+      {/* Close card modal */}
+      {showCloseModal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
+        }} onClick={() => setShowCloseModal(false)}>
+          <div style={{
+            background: 'var(--bg-card)', borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-subtle)', padding: 24,
+            width: 340, maxWidth: '90vw',
+          }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 600, marginBottom: 12 }}>
+              Close Card
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
+              This will prevent usage logging after the close date. You can still view and edit past usage.
+            </p>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
+              Close date
+            </label>
+            <input
+              type="date"
+              value={closeDate}
+              onChange={(e) => setCloseDate(e.target.value)}
+              style={{
+                width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-sm)',
+                background: 'var(--bg-tertiary)', border: '1px solid var(--border-subtle)',
+                color: 'var(--text-primary)', fontSize: '0.85rem', marginBottom: 16,
+              }}
+            />
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowCloseModal(false)}
+                style={{ padding: '8px 16px', fontSize: '0.85rem', color: 'var(--text-muted)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClose}
+                disabled={!closeDate}
+                style={{
+                  padding: '8px 16px', fontSize: '0.85rem', fontWeight: 600,
+                  background: 'rgba(212, 175, 55, 0.15)', color: 'var(--accent-gold)',
+                  borderRadius: 'var(--radius-sm)', border: '1px solid rgba(212, 175, 55, 0.3)',
+                  opacity: closeDate ? 1 : 0.5,
+                }}
+              >
+                Close Card
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -15,7 +15,7 @@ vi.mock('../services/api', () => ({
   storeTokens: vi.fn(),
   getCardTemplates: () => Promise.resolve([]),
   getUserCards: () => Promise.resolve([]),
-  getUserCard: () => Promise.resolve({ id: 1, card_template_id: 1, card_name: 'Test', issuer: 'Test', annual_fee: 0, nickname: null, member_since_date: null, is_active: true, benefits_status: [], renewal_date: null }),
+  getUserCard: () => Promise.resolve({ id: 1, card_template_id: 1, card_name: 'Test', issuer: 'Test', annual_fee: 0, nickname: null, member_since_date: null, closed_date: null, is_active: true, available_years: [2026], benefits_status: [], renewal_date: null }),
   getUserCardDetails: () => Promise.resolve([]),
   getUserCardSummary: () => Promise.resolve({}),
   login: vi.fn(),
@@ -31,6 +31,8 @@ vi.mock('../services/api', () => ({
   getOAuthProviders: () => Promise.resolve([]),
   linkOAuthProvider: vi.fn(),
   unlinkOAuthProvider: vi.fn(),
+  closeCard: vi.fn(),
+  reopenCard: vi.fn(),
 }));
 
 // Disable splash animation in tests

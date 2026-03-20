@@ -5,6 +5,8 @@ import type { BenefitStatus, PeriodSegment, UserCardDetail } from '../types';
 import BenefitRow from '../components/BenefitRow';
 import UsageModal from '../components/UsageModal';
 import LoadingSpinner from '../components/LoadingSpinner';
+import YearPicker from '../components/YearPicker';
+import PastYearBanner from '../components/PastYearBanner';
 import { PERIOD_ORDER, PERIOD_LABELS } from '../constants/periodLabels';
 import { getIssuerColor } from '../constants/issuerTheme';
 
@@ -26,15 +28,16 @@ export default function AllCredits() {
   const [modal, setModal] = useState<{ benefit: BenefitWithCard; mode: 'usage' | 'perceived' } | null>(null);
   const [view, setView] = useState<'period' | 'card' | 'sheet'>('period');
   const [expandedSections, setExpandedSections] = useState<Set<string> | null>(null); // null = initial (first only)
+  const [year, setYear] = useState(new Date().getFullYear());
 
   const { data: cardDetails, isLoading } = useQuery({
-    queryKey: ['all-card-details'],
-    queryFn: getUserCardDetails,
+    queryKey: ['all-card-details', year],
+    queryFn: () => getUserCardDetails(year),
     refetchOnMount: 'always',
   });
 
   const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['all-card-details'] });
+    queryClient.invalidateQueries({ queryKey: ['all-card-details', year] });
   };
 
   if (isLoading) {
@@ -237,15 +240,22 @@ export default function AllCredits() {
     </div>
   );
 
+  const allYears = cardDetails
+    ? [...new Set(cardDetails.flatMap((c) => c.available_years || []))].sort((a, b) => b - a)
+    : [new Date().getFullYear()];
+
   return (
     <div>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 16, animation: 'fadeInUp 0.4s ease-out both',
       }}>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 600, margin: 0 }}>
-          All Credits
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 600, margin: 0 }}>
+            All Credits
+          </h1>
+          <YearPicker years={allYears} selectedYear={year} onChange={setYear} />
+        </div>
         <div style={{
           display: 'flex', gap: 4, background: 'var(--bg-card)',
           borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', padding: 3,
@@ -261,6 +271,8 @@ export default function AllCredits() {
           </button>
         </div>
       </div>
+
+      <PastYearBanner year={year} />
 
       {/* ===== PERIOD VIEW ===== */}
       {view === 'period' && (
