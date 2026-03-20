@@ -1,6 +1,7 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 from ..database import get_db
@@ -105,14 +106,31 @@ def update_user_card(
     )
 
 
-@router.get("/", response_model=list[UserCardSummaryOut])
-def list_user_cards(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    user_cards = (
+def _get_available_years(uc: UserCard) -> list[int]:
+    """Compute available years for a card based on member_since and closed_date."""
+    today = date.today()
+    start_year = uc.member_since_date.year if uc.member_since_date else uc.created_at.year
+    end_year = uc.closed_date.year if uc.closed_date else today.year
+    return list(range(start_year, end_year + 1))
+
+
+def _query_user_cards(db: Session, user_id: int, year: int):
+    """Query user cards with year-aware filtering (includes closed cards active in the given year)."""
+    return (
         db.query(UserCard)
-        .filter(UserCard.user_id == current_user.id, UserCard.closed_date.is_(None))
+        .filter(
+            UserCard.user_id == user_id,
+            # Show cards that were active at any point during the requested year
+            or_(
+                UserCard.closed_date.is_(None),
+                UserCard.closed_date >= date(year, 1, 1),
+            ),
+            # Exclude cards opened after the requested year
+            or_(
+                UserCard.member_since_date.is_(None),
+                UserCard.member_since_date <= date(year, 12, 31),
+            ),
+        )
         .options(
             joinedload(UserCard.card_template).joinedload(CardTemplate.benefits),
             joinedload(UserCard.usages),
@@ -121,9 +139,20 @@ def list_user_cards(
         .all()
     )
 
+
+@router.get("/", response_model=list[UserCardSummaryOut])
+def list_user_cards(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    year: int | None = Query(default=None, ge=2000, le=2100, description="Year to compute summary for"),
+):
+    year = year or date.today().year
+    user_cards = _query_user_cards(db, current_user.id, year)
+
     result = []
     for uc in user_cards:
-        summary = _compute_summary(uc)
+        summary = _compute_summary(uc, year)
+        summary.available_years = _get_available_years(uc)
         result.append(summary)
     return result
 
@@ -132,22 +161,15 @@ def list_user_cards(
 def list_user_card_details(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    year: int | None = Query(default=None, ge=2000, le=2100, description="Year to compute details for"),
 ):
-    user_cards = (
-        db.query(UserCard)
-        .filter(UserCard.user_id == current_user.id, UserCard.closed_date.is_(None))
-        .options(
-            joinedload(UserCard.card_template).joinedload(CardTemplate.benefits),
-            joinedload(UserCard.usages),
-            joinedload(UserCard.benefit_settings),
-        )
-        .all()
-    )
+    year = year or date.today().year
+    user_cards = _query_user_cards(db, current_user.id, year)
 
     result = []
     for uc in user_cards:
-        summary = _compute_summary(uc)
-        benefits_status = _compute_benefits_status(uc)
+        summary = _compute_summary(uc, year)
+        benefits_status = _compute_benefits_status(uc, year)
         result.append(
             UserCardDetailOut(
                 id=uc.id,
@@ -160,6 +182,7 @@ def list_user_card_details(
                 renewal_date=uc.renewal_date,
                 closed_date=uc.closed_date,
                 is_active=uc.is_active,
+                available_years=_get_available_years(uc),
                 ytd_actual_used=summary.ytd_actual_used,
                 utilization_pct=summary.utilization_pct,
                 benefits_status=benefits_status,
@@ -175,7 +198,9 @@ def get_user_card_detail(
     user_card_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    year: int | None = Query(default=None, ge=2000, le=2100, description="Year to compute details for"),
 ):
+    year = year or date.today().year
     uc = (
         db.query(UserCard)
         .options(
@@ -189,8 +214,8 @@ def get_user_card_detail(
     if not uc:
         raise HTTPException(status_code=404, detail="User card not found")
 
-    summary = _compute_summary(uc)
-    benefits_status = _compute_benefits_status(uc)
+    summary = _compute_summary(uc, year)
+    benefits_status = _compute_benefits_status(uc, year)
 
     return UserCardDetailOut(
         id=uc.id,
@@ -203,6 +228,7 @@ def get_user_card_detail(
         renewal_date=uc.renewal_date,
         closed_date=uc.closed_date,
         is_active=uc.is_active,
+        available_years=_get_available_years(uc),
         ytd_actual_used=summary.ytd_actual_used,
         utilization_pct=summary.utilization_pct,
         benefits_status=benefits_status,
@@ -425,7 +451,9 @@ def get_card_summary(
     user_card_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    year: int | None = Query(default=None, ge=2000, le=2100, description="Year to compute summary for"),
 ):
+    year = year or date.today().year
     uc = (
         db.query(UserCard)
         .options(
@@ -439,13 +467,18 @@ def get_card_summary(
     if not uc:
         raise HTTPException(status_code=404, detail="User card not found")
 
-    return _compute_summary(uc)
+    summary = _compute_summary(uc, year)
+    summary.available_years = _get_available_years(uc)
+    return summary
 
 
-def _compute_benefits_status(uc: UserCard) -> list[BenefitStatusOut]:
+def _compute_benefits_status(uc: UserCard, year: int) -> list[BenefitStatusOut]:
     settings_map = {s.benefit_template_id: s.perceived_max_value for s in uc.benefit_settings}
     today = date.today()
-    current_year = today.year
+    is_current_year = year == today.year
+
+    # For past/future years, use last day of year as reference for "current period"
+    reference_date = today if is_current_year else date(year, 12, 31)
 
     # Index usages by (benefit_id, period_start)
     usage_map: dict[tuple[int, date], "BenefitUsage"] = {}
@@ -455,8 +488,8 @@ def _compute_benefits_status(uc: UserCard) -> list[BenefitStatusOut]:
     result = []
 
     for benefit in uc.card_template.benefits:
-        period_start, period_end = get_current_period(benefit.period_type, today)
-        days_remaining = max(0, (period_end - today).days)
+        period_start, period_end = get_current_period(benefit.period_type, reference_date)
+        days_remaining = max(0, (period_end - today).days) if is_current_year else 0
 
         usage = usage_map.get((benefit.id, period_start))
 
@@ -469,7 +502,7 @@ def _compute_benefits_status(uc: UserCard) -> list[BenefitStatusOut]:
             utilized_perceived = 0.0
 
         # Build period segments for the year
-        all_periods = get_all_periods_in_year(benefit.period_type, current_year)
+        all_periods = get_all_periods_in_year(benefit.period_type, year)
         segments = []
         for p_start, p_end, label in all_periods:
             p_usage = usage_map.get((benefit.id, p_start))
@@ -512,10 +545,11 @@ def _compute_benefits_status(uc: UserCard) -> list[BenefitStatusOut]:
     return result
 
 
-def _compute_summary(uc: UserCard) -> UserCardSummaryOut:
+def _compute_summary(uc: UserCard, year: int) -> UserCardSummaryOut:
     settings_map = {s.benefit_template_id: s.perceived_max_value for s in uc.benefit_settings}
     today = date.today()
-    current_year = today.year
+    is_current_year = year == today.year
+    is_past_year = year < today.year
 
     total_annual_max = sum(
         compute_annual_max(b.max_value, b.period_type) for b in uc.card_template.benefits
@@ -525,43 +559,53 @@ def _compute_summary(uc: UserCard) -> UserCardSummaryOut:
         for b in uc.card_template.benefits
     )
 
-    # YTD: sum all usage in the current calendar year
+    # YTD: sum all usage in the requested year
     ytd_actual = 0.0
     ytd_perceived = 0.0
     benefits_used_ids = set()
     benefits_by_id = {b.id: b for b in uc.card_template.benefits}
 
     for usage in uc.usages:
-        if usage.period_start_date.year == current_year:
+        if usage.period_start_date.year == year:
             ytd_actual += usage.amount_used
             benefit = benefits_by_id.get(usage.benefit_template_id)
             if benefit and benefit.max_value > 0:
                 perceived_max = settings_map.get(benefit.id, benefit.max_value)
                 ytd_perceived += usage.amount_used * (perceived_max / benefit.max_value)
 
-            # Check if benefit is used in current period
-            period_start, _ = get_current_period(
-                benefit.period_type if benefit else "annual", today
-            )
-            if usage.period_start_date == period_start and usage.amount_used > 0:
-                benefits_used_ids.add(usage.benefit_template_id)
+            if is_current_year:
+                # Check if benefit is used in current period
+                period_start, _ = get_current_period(
+                    benefit.period_type if benefit else "annual", today
+                )
+                if usage.period_start_date == period_start and usage.amount_used > 0:
+                    benefits_used_ids.add(usage.benefit_template_id)
+            else:
+                # For past/future years, count any benefit with usage as "used"
+                if usage.amount_used > 0:
+                    benefits_used_ids.add(usage.benefit_template_id)
 
     # Prorated max: only count periods that have started
     prorated_max = 0.0
     for benefit in uc.card_template.benefits:
         annual_max = compute_annual_max(benefit.max_value, benefit.period_type)
-        # How many periods have elapsed or are current this year?
-        if benefit.period_type == "monthly":
-            periods_elapsed = today.month
-            prorated_max += benefit.max_value * periods_elapsed
-        elif benefit.period_type == "quarterly":
-            quarters_elapsed = ((today.month - 1) // 3) + 1
-            prorated_max += benefit.max_value * quarters_elapsed
-        elif benefit.period_type == "semiannual":
-            halves_elapsed = 1 if today.month <= 6 else 2
-            prorated_max += benefit.max_value * halves_elapsed
-        else:  # annual
+        if is_past_year:
+            # Past year: all periods have elapsed
             prorated_max += annual_max
+        elif is_current_year:
+            # Current year: count periods that have started
+            if benefit.period_type == "monthly":
+                periods_elapsed = today.month
+                prorated_max += benefit.max_value * periods_elapsed
+            elif benefit.period_type == "quarterly":
+                quarters_elapsed = ((today.month - 1) // 3) + 1
+                prorated_max += benefit.max_value * quarters_elapsed
+            elif benefit.period_type == "semiannual":
+                halves_elapsed = 1 if today.month <= 6 else 2
+                prorated_max += benefit.max_value * halves_elapsed
+            else:  # annual
+                prorated_max += annual_max
+        # Future year: prorated_max stays 0
 
     utilization_pct = (ytd_actual / prorated_max * 100) if prorated_max > 0 else 0.0
 

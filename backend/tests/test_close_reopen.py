@@ -150,36 +150,48 @@ def test_log_usage_before_member_since(client, auth_header, db_session):
     assert "before card membership date" in resp.json()["detail"]
 
 
-def test_closed_card_hidden_from_list(client, auth_header, db_session):
-    """Closed cards should not appear in the card list."""
+def test_closed_card_visible_in_close_year(client, auth_header, db_session):
+    """Closed cards should still appear when viewing the year they were closed."""
     card_id = _create_card(client, auth_header, db_session)
-    # Verify card appears in list
-    resp = client.get("/api/user-cards/", headers=auth_header)
+    client.put(
+        f"/api/user-cards/{card_id}/close",
+        json={"closed_date": "2026-03-01"},
+        headers=auth_header,
+    )
+    # Card closed in 2026 should still appear in 2026 list
+    resp = client.get("/api/user-cards/?year=2026", headers=auth_header)
     card_ids = [c["id"] for c in resp.json()]
     assert card_id in card_ids
 
-    # Close it
-    client.put(
-        f"/api/user-cards/{card_id}/close",
-        json={"closed_date": "2026-03-01"},
-        headers=auth_header,
-    )
 
-    # Verify card no longer in list
-    resp = client.get("/api/user-cards/", headers=auth_header)
-    card_ids = [c["id"] for c in resp.json()]
-    assert card_id not in card_ids
-
-
-def test_closed_card_hidden_from_details(client, auth_header, db_session):
-    """Closed cards should not appear in the details list."""
+def test_closed_card_hidden_from_future_year(client, auth_header, db_session):
+    """Closed cards should not appear when viewing a year after they were closed."""
     card_id = _create_card(client, auth_header, db_session)
     client.put(
         f"/api/user-cards/{card_id}/close",
-        json={"closed_date": "2026-03-01"},
+        json={"closed_date": "2024-12-31"},
         headers=auth_header,
     )
-    resp = client.get("/api/user-cards/details", headers=auth_header)
+    # Card closed in 2024 should NOT appear in 2026 list
+    resp = client.get("/api/user-cards/?year=2026", headers=auth_header)
+    card_ids = [c["id"] for c in resp.json()]
+    assert card_id not in card_ids
+
+    # But should appear in 2024
+    resp = client.get("/api/user-cards/?year=2024", headers=auth_header)
+    card_ids = [c["id"] for c in resp.json()]
+    assert card_id in card_ids
+
+
+def test_closed_card_hidden_from_details_future_year(client, auth_header, db_session):
+    """Closed cards should not appear in details for year after close."""
+    card_id = _create_card(client, auth_header, db_session)
+    client.put(
+        f"/api/user-cards/{card_id}/close",
+        json={"closed_date": "2024-12-31"},
+        headers=auth_header,
+    )
+    resp = client.get("/api/user-cards/details?year=2026", headers=auth_header)
     card_ids = [c["id"] for c in resp.json()]
     assert card_id not in card_ids
 
