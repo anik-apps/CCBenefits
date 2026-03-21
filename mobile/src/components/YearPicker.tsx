@@ -1,22 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
 import { colors, spacing, radius } from '../theme';
 
-const STORAGE_KEY = 'ccb_added_years';
-
-async function getPersistedYears(): Promise<number[]> {
-  try {
-    const raw = await SecureStore.getItemAsync(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-async function persistYears(years: number[]) {
-  await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(years));
-}
+// Module-level cache — persists for the app session.
+// Added years are non-sensitive UI state, no need for SecureStore.
+let _addedYearsCache: number[] = [];
 
 interface YearPickerProps {
   selectedYear: number;
@@ -25,13 +13,9 @@ interface YearPickerProps {
 
 export default function YearPicker({ selectedYear, onChange }: YearPickerProps) {
   const currentYear = new Date().getFullYear();
-  const [addedYears, setAddedYears] = useState<number[]>([]);
+  const [addedYears, setAddedYears] = useState<number[]>(_addedYearsCache);
   const [showPicker, setShowPicker] = useState(false);
   const [confirmYear, setConfirmYear] = useState<number | null>(null);
-
-  useEffect(() => {
-    getPersistedYears().then(setAddedYears);
-  }, []);
 
   const visibleYears = [...new Set([currentYear, currentYear - 1, ...addedYears])]
     .filter(y => y >= 2020)
@@ -50,11 +34,11 @@ export default function YearPicker({ selectedYear, onChange }: YearPickerProps) 
     setConfirmYear(year);
   };
 
-  const confirmAdd = async () => {
+  const confirmAdd = () => {
     if (confirmYear === null) return;
     const updated = [...addedYears, confirmYear];
     setAddedYears(updated);
-    await persistYears(updated);
+    _addedYearsCache = updated;
     onChange(confirmYear);
     setConfirmYear(null);
   };

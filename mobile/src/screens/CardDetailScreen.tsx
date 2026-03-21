@@ -3,7 +3,7 @@ import LoadingScreen from '../components/LoadingScreen';
 import YearPicker from '../components/YearPicker';
 import PastYearBanner from '../components/PastYearBanner';
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUserCard, logUsage, updateUsage, deleteUsage, deleteUserCard, updateBenefitSetting, updateUserCard, closeCard, reopenCard } from '../services/api';
 import UsageModal from '../components/UsageModal';
@@ -26,8 +26,6 @@ export default function CardDetailScreen({ route, navigation }: Props) {
   const [perceivedBenefit, setPerceivedBenefit] = useState<BenefitStatus | null>(null);
   const [editingRenewal, setEditingRenewal] = useState(false);
   const [renewalInput, setRenewalInput] = useState('');
-  const [closeInput, setCloseInput] = useState('');
-
   const { data: card, isLoading, isError, refetch } = useQuery({
     queryKey: ['user-card', id, year],
     queryFn: () => getUserCard(id, year),
@@ -71,39 +69,50 @@ export default function CardDetailScreen({ route, navigation }: Props) {
     ]);
   };
 
+  const [showCloseInput, setShowCloseInput] = useState(false);
+  const [closeDateInput, setCloseDateInput] = useState('');
+
   const handleClose = () => {
     const today = new Date().toISOString().split('T')[0];
-    Alert.prompt?.(
-      'Close Card',
-      'Enter close date (YYYY-MM-DD):',
-      async (input) => {
-        const dateStr = input?.trim() || today;
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-          Alert.alert('Invalid Date', 'Please use YYYY-MM-DD format.');
-          return;
-        }
-        try {
-          await closeCard(id, dateStr);
-          await refreshAllCardData(queryClient);
-        } catch (e: any) {
-          Alert.alert('Error', e.response?.data?.detail || 'Failed to close card.');
-        }
-      },
-      'plain-text',
-      today,
-    ) ?? Alert.alert('Close Card', `Close this card as of today (${today})?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Close', style: 'destructive', onPress: async () => {
+    if (Platform.OS === 'ios') {
+      Alert.prompt(
+        'Close Card',
+        'Enter close date (YYYY-MM-DD):',
+        async (input) => {
+          const dateStr = input?.trim() || today;
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            Alert.alert('Invalid Date', 'Please use YYYY-MM-DD format.');
+            return;
+          }
           try {
-            await closeCard(id, today);
+            await closeCard(id, dateStr);
             await refreshAllCardData(queryClient);
           } catch (e: any) {
             Alert.alert('Error', e.response?.data?.detail || 'Failed to close card.');
           }
         },
-      },
-    ]);
+        'plain-text',
+        today,
+      );
+    } else {
+      setCloseDateInput(today);
+      setShowCloseInput(true);
+    }
+  };
+
+  const handleCloseConfirm = async () => {
+    const dateStr = closeDateInput.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      Alert.alert('Invalid Date', 'Please use YYYY-MM-DD format.');
+      return;
+    }
+    try {
+      await closeCard(id, dateStr);
+      setShowCloseInput(false);
+      await refreshAllCardData(queryClient);
+    } catch (e: any) {
+      Alert.alert('Error', e.response?.data?.detail || 'Failed to close card.');
+    }
   };
 
   const handleReopen = () => {
@@ -301,6 +310,27 @@ export default function CardDetailScreen({ route, navigation }: Props) {
           );
         })}
 
+        {showCloseInput && (
+          <View style={styles.closeInputRow}>
+            <Text style={styles.closeInputLabel}>Close date:</Text>
+            <TextInput
+              style={styles.closeInputField}
+              value={closeDateInput}
+              onChangeText={setCloseDateInput}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={colors.textMuted}
+              maxLength={10}
+              keyboardType="numbers-and-punctuation"
+            />
+            <TouchableOpacity onPress={handleCloseConfirm}>
+              <Text style={styles.closeInputConfirm}>Close</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowCloseInput(false)}>
+              <Text style={styles.closeInputCancel}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View style={styles.cardActions}>
           {card.closed_date ? (
             <TouchableOpacity style={styles.reopenBtn} onPress={handleReopen}>
@@ -370,6 +400,21 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   closedBadgeText: { fontSize: 10, fontWeight: '600', color: colors.accentGold },
+  closeInputRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    marginTop: spacing.lg, padding: spacing.md,
+    backgroundColor: colors.bgTertiary, borderRadius: radius.sm,
+    borderWidth: 1, borderColor: colors.borderMedium,
+  },
+  closeInputLabel: { fontSize: 13, color: colors.textSecondary },
+  closeInputField: {
+    flex: 1, backgroundColor: colors.bgSecondary, borderRadius: radius.sm,
+    borderWidth: 1, borderColor: colors.borderSubtle,
+    paddingHorizontal: 10, paddingVertical: 6,
+    fontSize: 13, color: colors.textPrimary,
+  },
+  closeInputConfirm: { fontSize: 13, fontWeight: '600', color: colors.accentGold },
+  closeInputCancel: { fontSize: 13, color: colors.textMuted },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'center' },
   cardName: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
   issuer: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
