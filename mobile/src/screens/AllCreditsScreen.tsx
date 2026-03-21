@@ -40,14 +40,16 @@ export default function AllCreditsScreen({ navigation }: Props) {
     queryFn: getUserCardDetails,
   });
 
-  // Grand totals for sheet — must be before early return to keep hook order stable
-  const { grandTotalFees, grandTotalMax, grandTotalUsed } = useMemo(() => {
-    if (!cardDetails) return { grandTotalFees: 0, grandTotalMax: 0, grandTotalUsed: 0 };
-    const allB = cardDetails.flatMap(card => card.benefits_status);
+  // Derived data — must be before early return to keep hook order stable
+  const { allBenefits, grandTotalFees, grandTotalMax, grandTotalUsed } = useMemo(() => {
+    if (!cardDetails) return { allBenefits: [] as BenefitWithCard[], grandTotalFees: 0, grandTotalMax: 0, grandTotalUsed: 0 };
+    const benefits: BenefitWithCard[] = cardDetails.flatMap(card =>
+      card.benefits_status.map(b => ({ ...b, userCardId: card.id, cardName: card.nickname || card.card_name, issuer: card.issuer }))
+    );
     const totalFees = cardDetails.reduce((s, c) => s + c.annual_fee, 0);
-    const totalMax = allB.reduce((s, b) => s + b.max_value, 0);
-    const totalUsed = allB.reduce((s, b) => s + b.amount_used, 0);
-    return { grandTotalFees: totalFees, grandTotalMax: totalMax, grandTotalUsed: totalUsed };
+    const totalMax = benefits.reduce((s, b) => s + b.max_value, 0);
+    const totalUsed = benefits.reduce((s, b) => s + b.amount_used, 0);
+    return { allBenefits: benefits, grandTotalFees: totalFees, grandTotalMax: totalMax, grandTotalUsed: totalUsed };
   }, [cardDetails]);
 
   const handleLogUsage = async (amount: number, notes?: string, targetDate?: string) => {
@@ -69,10 +71,6 @@ export default function AllCreditsScreen({ navigation }: Props) {
   if (isLoading || !cardDetails) {
     return <LoadingScreen />;
   }
-
-  const allBenefits: BenefitWithCard[] = cardDetails.flatMap(card =>
-    card.benefits_status.map(b => ({ ...b, userCardId: card.id, cardName: card.nickname || card.card_name, issuer: card.issuer }))
-  );
 
   const periodSections = PERIOD_ORDER
     .map(period => ({
