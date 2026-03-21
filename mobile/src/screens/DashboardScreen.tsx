@@ -1,7 +1,9 @@
 import ScreenWrapper from '../components/ScreenWrapper';
 import LoadingScreen from '../components/LoadingScreen';
 import CardIcon from '../components/CardIcon';
-import React, { useRef, useEffect, useMemo } from 'react';
+import YearPicker from '../components/YearPicker';
+import PastYearBanner from '../components/PastYearBanner';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, Animated } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { getUserCards, getUnreadCount } from '../services/api';
@@ -66,9 +68,10 @@ function AnimatedCard({ item, index, appReady, navigation }: { item: any; index:
 
 export default function DashboardScreen({ navigation }: Props) {
   const { user, logout } = useAuth();
+  const [year, setYear] = useState(new Date().getFullYear());
   const { data: cards, isLoading, isError, refetch } = useQuery({
-    queryKey: ['user-cards'],
-    queryFn: getUserCards,
+    queryKey: ['user-cards', year],
+    queryFn: () => getUserCards(year),
   });
   const { data: unreadData } = useQuery({
     queryKey: ['unread-count'],
@@ -99,15 +102,9 @@ export default function DashboardScreen({ navigation }: Props) {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Image source={require('../../assets/icon.png')} style={{ width: 32, height: 32, borderRadius: 6 }} />
-          <View style={{ marginLeft: spacing.sm }}>
-            <Text style={styles.greeting}>Hello, {user?.display_name}</Text>
-            <Text style={styles.subtitle}>Your credit cards</Text>
-          </View>
+          <Text style={[styles.greeting, { marginLeft: spacing.sm }]}>Hello, {user?.display_name}</Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.allCreditsBtn} onPress={() => navigation.navigate('AllCredits')}>
-            <Text style={styles.allCreditsText}>All Credits</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
             <Text style={styles.bellIcon}>{'\u{1F514}'}</Text>
             {unreadCount > 0 && (
@@ -121,6 +118,15 @@ export default function DashboardScreen({ navigation }: Props) {
           </TouchableOpacity>
         </View>
       </View>
+
+      <View style={styles.filterRow}>
+        <YearPicker selectedYear={year} onChange={setYear} />
+        <TouchableOpacity style={styles.allCreditsBtn} onPress={() => navigation.navigate('AllCredits')}>
+          <Text style={styles.allCreditsText}>All Credits →</Text>
+        </TouchableOpacity>
+      </View>
+
+      <PastYearBanner year={year} />
 
       {isError ? (
         <View style={styles.center}>
@@ -183,7 +189,10 @@ const styles = StyleSheet.create({
   headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl, marginTop: spacing.xl },
   greeting: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
-  subtitle: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
+  filterRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: spacing.md, paddingHorizontal: spacing.lg,
+  },
   profileText: {
     color: colors.bgPrimary, fontSize: 14, fontWeight: '700',
     backgroundColor: colors.accentGold, width: 32, height: 32, borderRadius: 16,

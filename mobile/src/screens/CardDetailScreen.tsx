@@ -1,9 +1,11 @@
 import ScreenWrapper from '../components/ScreenWrapper';
 import LoadingScreen from '../components/LoadingScreen';
+import YearPicker from '../components/YearPicker';
+import PastYearBanner from '../components/PastYearBanner';
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getUserCard, logUsage, updateUsage, deleteUsage, deleteUserCard, updateBenefitSetting, updateUserCard } from '../services/api';
+import { getUserCard, logUsage, updateUsage, deleteUsage, deleteUserCard, updateBenefitSetting, updateUserCard, closeCard, reopenCard } from '../services/api';
 import UsageModal from '../components/UsageModal';
 import PerceivedValueModal from '../components/PerceivedValueModal';
 import CardIcon from '../components/CardIcon';
@@ -19,14 +21,14 @@ type Props = NativeStackScreenProps<any, 'CardDetail'>;
 export default function CardDetailScreen({ route, navigation }: Props) {
   const { id } = route.params as { id: number };
   const queryClient = useQueryClient();
+  const [year, setYear] = useState(new Date().getFullYear());
   const [selectedBenefit, setSelectedBenefit] = useState<BenefitStatus | null>(null);
   const [perceivedBenefit, setPerceivedBenefit] = useState<BenefitStatus | null>(null);
   const [editingRenewal, setEditingRenewal] = useState(false);
   const [renewalInput, setRenewalInput] = useState('');
-
   const { data: card, isLoading, isError, refetch } = useQuery({
-    queryKey: ['user-card', id],
-    queryFn: () => getUserCard(id),
+    queryKey: ['user-card', id, year],
+    queryFn: () => getUserCard(id, year),
   });
 
   const handleLogUsage = async (amount: number, notes?: string, targetDate?: string) => {
@@ -67,6 +69,68 @@ export default function CardDetailScreen({ route, navigation }: Props) {
     ]);
   };
 
+  const [showCloseInput, setShowCloseInput] = useState(false);
+  const [closeDateInput, setCloseDateInput] = useState('');
+
+  const handleClose = () => {
+    const today = new Date().toISOString().split('T')[0];
+    if (Platform.OS === 'ios') {
+      Alert.prompt(
+        'Close Card',
+        'Enter close date (YYYY-MM-DD):',
+        async (input) => {
+          const dateStr = input?.trim() || today;
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            Alert.alert('Invalid Date', 'Please use YYYY-MM-DD format.');
+            return;
+          }
+          try {
+            await closeCard(id, dateStr);
+            await refreshAllCardData(queryClient);
+          } catch (e: any) {
+            Alert.alert('Error', e.response?.data?.detail || 'Failed to close card.');
+          }
+        },
+        'plain-text',
+        today,
+      );
+    } else {
+      setCloseDateInput(today);
+      setShowCloseInput(true);
+    }
+  };
+
+  const handleCloseConfirm = async () => {
+    const dateStr = closeDateInput.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      Alert.alert('Invalid Date', 'Please use YYYY-MM-DD format.');
+      return;
+    }
+    try {
+      await closeCard(id, dateStr);
+      setShowCloseInput(false);
+      await refreshAllCardData(queryClient);
+    } catch (e: any) {
+      Alert.alert('Error', e.response?.data?.detail || 'Failed to close card.');
+    }
+  };
+
+  const handleReopen = () => {
+    Alert.alert('Reopen Card', `Reopen ${card?.card_name}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Reopen', onPress: async () => {
+          try {
+            await reopenCard(id);
+            await refreshAllCardData(queryClient);
+          } catch (e: any) {
+            Alert.alert('Error', e.response?.data?.detail || 'Failed to reopen card.');
+          }
+        },
+      },
+    ]);
+  };
+
   if (isLoading) {
     return <LoadingScreen />;
   }
@@ -89,12 +153,20 @@ export default function CardDetailScreen({ route, navigation }: Props) {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={styles.backText}>← Back</Text>
           </TouchableOpacity>
+          <YearPicker selectedYear={year} onChange={setYear} />
         </View>
         <View style={styles.cardHeaderRow}>
           <CardIcon issuer={card.issuer} />
           <View style={{ flex: 1, marginLeft: spacing.md }}>
             <Text style={styles.cardName}>{card.card_name}</Text>
-            <Text style={styles.issuer}>{card.issuer} · ${card.annual_fee}/yr</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <Text style={styles.issuer}>{card.issuer} · ${card.annual_fee}/yr</Text>
+              {card.closed_date && (
+                <View style={styles.closedBadge}>
+                  <Text style={styles.closedBadgeText}>Closed</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
 
@@ -157,6 +229,8 @@ export default function CardDetailScreen({ route, navigation }: Props) {
           )}
         </View>
       </View>
+
+      <PastYearBanner year={year} />
 
       <ScrollView contentContainerStyle={styles.scroll}>
         {card.benefits_status.length === 0 && (
@@ -236,9 +310,41 @@ export default function CardDetailScreen({ route, navigation }: Props) {
           );
         })}
 
-        <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteCard}>
-          <Text style={styles.deleteBtnText}>Delete Card</Text>
-        </TouchableOpacity>
+        {showCloseInput && (
+          <View style={styles.closeInputRow}>
+            <Text style={styles.closeInputLabel}>Close date:</Text>
+            <TextInput
+              style={styles.closeInputField}
+              value={closeDateInput}
+              onChangeText={setCloseDateInput}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={colors.textMuted}
+              maxLength={10}
+              keyboardType="numbers-and-punctuation"
+            />
+            <TouchableOpacity onPress={handleCloseConfirm}>
+              <Text style={styles.closeInputConfirm}>Close</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowCloseInput(false)}>
+              <Text style={styles.closeInputCancel}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <View style={styles.cardActions}>
+          {card.closed_date ? (
+            <TouchableOpacity style={styles.reopenBtn} onPress={handleReopen}>
+              <Text style={styles.reopenBtnText}>Reopen Card</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
+              <Text style={styles.closeBtnText}>Close Card</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteCard}>
+            <Text style={styles.deleteBtnText}>Delete Card</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       {selectedBenefit && (
@@ -269,11 +375,46 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.xxl, paddingBottom: spacing.md },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
   backText: { color: colors.accentGold, fontSize: 14 },
+  cardActions: { marginTop: spacing.xl, gap: spacing.md },
+  closeBtn: {
+    padding: spacing.md, borderRadius: radius.sm,
+    borderWidth: 1, borderColor: colors.accentGoldDim, alignItems: 'center',
+    backgroundColor: 'rgba(201,168,76,0.08)',
+  },
+  closeBtnText: { color: colors.accentGold, fontWeight: '600', fontSize: 13 },
+  reopenBtn: {
+    padding: spacing.md, borderRadius: radius.sm,
+    borderWidth: 1, borderColor: colors.statusSuccess, alignItems: 'center',
+    backgroundColor: 'rgba(34,197,94,0.08)',
+  },
+  reopenBtnText: { color: colors.statusSuccess, fontWeight: '600', fontSize: 13 },
   deleteBtn: {
-    marginTop: spacing.xl, padding: spacing.md, borderRadius: radius.sm,
+    padding: spacing.md, borderRadius: radius.sm,
     borderWidth: 1, borderColor: colors.statusDanger, alignItems: 'center',
   },
   deleteBtnText: { color: colors.statusDanger, fontWeight: '600', fontSize: 13 },
+  closedBadge: {
+    backgroundColor: 'rgba(201,168,76,0.15)',
+    borderRadius: radius.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  closedBadgeText: { fontSize: 10, fontWeight: '600', color: colors.accentGold },
+  closeInputRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    marginTop: spacing.lg, padding: spacing.md,
+    backgroundColor: colors.bgTertiary, borderRadius: radius.sm,
+    borderWidth: 1, borderColor: colors.borderMedium,
+  },
+  closeInputLabel: { fontSize: 13, color: colors.textSecondary },
+  closeInputField: {
+    flex: 1, backgroundColor: colors.bgSecondary, borderRadius: radius.sm,
+    borderWidth: 1, borderColor: colors.borderSubtle,
+    paddingHorizontal: 10, paddingVertical: 6,
+    fontSize: 13, color: colors.textPrimary,
+  },
+  closeInputConfirm: { fontSize: 13, fontWeight: '600', color: colors.accentGold },
+  closeInputCancel: { fontSize: 13, color: colors.textMuted },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'center' },
   cardName: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
   issuer: { fontSize: 13, color: colors.textMuted, marginTop: 2 },

@@ -1,5 +1,7 @@
 import ScreenWrapper from '../components/ScreenWrapper';
 import LoadingScreen from '../components/LoadingScreen';
+import YearPicker from '../components/YearPicker';
+import PastYearBanner from '../components/PastYearBanner';
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, SectionList, ScrollView, TouchableOpacity } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -31,13 +33,14 @@ interface BenefitWithCard extends BenefitStatus {
 
 export default function AllCreditsScreen({ navigation }: Props) {
   const queryClient = useQueryClient();
+  const [year, setYear] = useState(new Date().getFullYear());
   const [selectedBenefit, setSelectedBenefit] = useState<BenefitWithCard | null>(null);
   const [activeTab, setActiveTab] = useState<TabMode>('period');
   const [expandedSections, setExpandedSections] = useState<Set<string> | null>(null); // null = initial (first only)
 
   const { data: cardDetails, isLoading } = useQuery({
-    queryKey: ['all-card-details'],
-    queryFn: getUserCardDetails,
+    queryKey: ['all-card-details', year],
+    queryFn: () => getUserCardDetails(year),
   });
 
   // Derived data — must be before early return to keep hook order stable
@@ -127,9 +130,14 @@ export default function AllCreditsScreen({ navigation }: Props) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>All Credits</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={styles.title}>All Credits</Text>
+          <YearPicker selectedYear={year} onChange={setYear} />
+        </View>
         <Text style={styles.subtitle}>{allBenefits.length} benefits across {cardDetails.length} cards</Text>
       </View>
+
+      <PastYearBanner year={year} />
 
       <View style={styles.tabRow}>
         {(['period', 'card', 'sheet'] as TabMode[]).map(tab => (
