@@ -519,7 +519,7 @@ screenshot "01_dashboard" "$dest"
 
 # --- 2. All Credits - By Period ---
 echo "[2/8] All Credits — By Period"
-if find_and_tap "All Credits"; then
+if find_and_tap "All Credits →" || find_and_tap "All Credits"; then
   wait_for_screen 3
   screenshot "02_allcredits_byperiod" "$dest"
 else
