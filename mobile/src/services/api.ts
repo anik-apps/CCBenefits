@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import type {
   AuthResponse,
@@ -12,7 +13,11 @@ import type {
   UserCardSummary,
 } from '../types';
 
-const API_URL = Constants.expoConfig?.extra?.apiUrl || 'https://ccb.kumaranik.com';
+// In dev: use local backend. Android emulator uses 10.0.2.2 to reach host localhost.
+// In prod: use the production URL. Override via app.config.js extra.apiUrl if needed.
+const DEV_API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:8000' : 'http://localhost:8000';
+const PROD_API_URL = 'https://ccb.kumaranik.com';
+const API_URL = Constants.expoConfig?.extra?.apiUrl || (__DEV__ ? DEV_API_URL : PROD_API_URL);
 
 const api = axios.create({ baseURL: API_URL });
 // Separate instance for token refresh — no interceptors, prevents infinite 401 loop

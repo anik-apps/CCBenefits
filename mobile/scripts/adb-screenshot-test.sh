@@ -10,8 +10,8 @@
 #   ./scripts/adb-screenshot-test.sh --update      # Update baseline screenshots
 #
 # Exit codes:
-#   0 — all screens captured successfully
-#   1 — a screen failed to load or navigation failed
+#   0 — all screens captured and (in compare mode) match baselines
+#   non-zero — number of failures (navigation, content assertions, or baseline mismatches)
 
 set -euo pipefail
 
@@ -92,10 +92,122 @@ tap_back() {
   find_and_tap "← Back" || find_and_tap "Back" || $ADB shell input tap 100 210
 }
 
+ui_contains() {
+  # Check if the current UI dump contains an element with the given text.
+  # Returns 0 (true) if found, 1 (false) if not. Does NOT dump_ui — caller must do that.
+  local text="$1"
+  $ADB shell cat /sdcard/ui.xml | python3 -c "
+import sys, xml.etree.ElementTree as ET
+tree = ET.parse(sys.stdin)
+for node in tree.iter():
+    t = node.get('text') or ''
+    cd = node.get('content-desc') or ''
+    if '$text' in t or '$text' in cd:
+        print('found')
+        break
+" 2>/dev/null | grep -q 'found'
+}
+
+assert_ui_contains() {
+  # Assert that the current screen contains the given text. Fails the test if not found.
+  local text="$1"
+  local context="${2:-}"
+  dump_ui
+  if ! ui_contains "$text"; then
+    echo "  ASSERT FAILED: expected '$text' on screen${context:+ ($context)}" >&2
+    FAILED=$((FAILED + 1))
+    return 1
+  fi
+  return 0
+}
+
 type_text() {
   # Type text via adb — must quote the string to preserve @ and special chars
   local text="$1"
   $ADB shell "input text '${text}'"
+}
+
+seed_test_data() {
+  # Ensure the test account has cards with usage so screenshots show real data.
+  # Idempotent: skips card creation if user already has cards.
+  local api="${API_URL:-http://localhost:8000}"
+  local email="${TEST_EMAIL:-ccbtest_auto@test.com}"
+  local password="${TEST_PASSWORD:-TestPass1234}"
+
+  # Login to get token
+  local token
+  token=$(curl -s -X POST "$api/api/auth/login" \
+    -H "Content-Type: application/json" \
+    -d "{\"email\":\"$email\",\"password\":\"$password\"}" 2>/dev/null \
+    | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null)
+
+  if [[ -z "$token" ]]; then
+    echo "ERROR: Could not get token for seeding data." >&2
+    exit 1
+  fi
+
+  # Check if user already has cards
+  local card_count
+  card_count=$(curl -s "$api/api/user-cards/" \
+    -H "Authorization: Bearer $token" 2>/dev/null \
+    | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
+
+  if [[ "$card_count" -gt 0 ]]; then
+    echo "  Test data already seeded ($card_count cards)."
+    return
+  fi
+
+  echo "  Seeding test data..."
+
+  # Add Amex Platinum (template 1) and Chase Sapphire Reserve (template 6)
+  local card1_id card2_id
+  card1_id=$(curl -s -X POST "$api/api/user-cards/" \
+    -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
+    -d '{"card_template_id": 1}' 2>/dev/null \
+    | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])" 2>/dev/null)
+
+  card2_id=$(curl -s -X POST "$api/api/user-cards/" \
+    -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
+    -d '{"card_template_id": 6}' 2>/dev/null \
+    | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])" 2>/dev/null)
+
+  if [[ -z "$card1_id" || -z "$card2_id" ]]; then
+    echo "ERROR: Failed to create test cards." >&2
+    exit 1
+  fi
+
+  # Get current year/month for realistic dates
+  local year month
+  year=$(date +%Y)
+  month=$(date +%m)
+
+  # Helper to log usage silently
+  _log() {
+    curl -s -o /dev/null -X POST "$api/api/user-cards/$1/usage" \
+      -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
+      -d "{\"benefit_template_id\": $2, \"amount_used\": $3, \"target_date\": \"$4\"}"
+  }
+
+  # Amex Platinum: Uber Cash (BT 1, $15/mo) — Jan through current month
+  for m in $(seq 1 "$((10#$month))"); do
+    _log "$card1_id" 1 15 "$(printf '%s-%02d-15' "$year" "$m")"
+  done
+  # Amex Platinum: Saks (BT 3, $50/semi) — H1
+  _log "$card1_id" 3 50 "${year}-01-20"
+  # Amex Platinum: Airline Fee (BT 5, $200/annual) — partial
+  _log "$card1_id" 5 100 "${year}-02-10"
+
+  # CSR: DoorDash (BT 31, $25/mo) — Jan through current month
+  for m in $(seq 1 "$((10#$month))"); do
+    _log "$card2_id" 31 25 "$(printf '%s-%02d-10' "$year" "$m")"
+  done
+  # CSR: Travel Credit (BT 37, $300/annual) — partial
+  _log "$card2_id" 37 200 "${year}-02-15"
+  # CSR: Lyft (BT 29, $10/mo) — Jan & Feb
+  _log "$card2_id" 29 10 "${year}-01-05"
+  _log "$card2_id" 29 10 "${year}-02-05"
+
+  echo "  Seeded 2 cards with usage (Amex Platinum + Chase Sapphire Reserve)."
 }
 
 ensure_test_account() {
@@ -154,9 +266,11 @@ ensure_test_account() {
   login_status=$(echo "$login_response" | tail -1)
 
   if [[ "$login_status" != "200" ]]; then
-    echo "  WARNING: API login failed (HTTP $login_status). Account may need email verification."
-    echo "  Verify the email manually or set CCB_REQUIRE_EMAIL_VERIFICATION=false."
+    echo "ERROR: API login failed (HTTP $login_status). Account may need email verification." >&2
+    echo "  Verify the email manually or set CCB_REQUIRE_EMAIL_VERIFICATION=false." >&2
+    exit 1
   fi
+  echo "  API login verified."
 }
 
 fill_field_after_label() {
@@ -222,9 +336,6 @@ for node in tree.iter():
     sleep 2
     dump_ui
   fi
-
-  # Ensure test account exists via API
-  ensure_test_account
 
   echo "  Logging in as $email..."
 
@@ -326,7 +437,10 @@ for node in tree.iter():
   if [[ "$on_dashboard" == "yes" ]]; then
     echo "  Login successful."
   else
-    echo "  WARNING: May not have reached dashboard. Check emulator." >&2
+    echo "ERROR: Login failed — did not reach dashboard. Check emulator." >&2
+    $ADB exec-out screencap -p > "$PROJECT_DIR/screenshots/login_failure.png" 2>/dev/null || true
+    echo "  Saved failure screenshot to screenshots/login_failure.png" >&2
+    exit 1
   fi
 }
 
@@ -341,10 +455,13 @@ if [[ "$device_count" -eq 0 ]]; then
 fi
 echo "Device connected."
 
-# Check backend
+# Check backend — required for seeding and realistic screenshots
 if ! curl -sf http://localhost:8000/api/card-templates/ > /dev/null 2>&1; then
-  echo "WARNING: Backend not reachable at localhost:8000. Screens may show errors."
+  echo "ERROR: Backend not reachable at localhost:8000." >&2
+  echo "  Start it: cd backend && poetry run uvicorn ccbenefits.main:app --reload --port 8000" >&2
+  exit 1
 fi
+echo "Backend reachable."
 
 # --- Set up output directory ---
 dest="$OUTPUT_DIR"
@@ -357,15 +474,19 @@ fi
 rm -rf "$dest"
 mkdir -p "$dest"
 
-# --- Launch app ---
+# --- Ensure test account + seed data before launch ---
+ensure_test_account
+seed_test_data
+
+# --- Launch app from logged-out state ---
 echo ""
 echo "Launching app..."
-$ADB shell am force-stop "$PACKAGE"
+$ADB shell pm clear "$PACKAGE" > /dev/null 2>&1   # wipe app data (tokens, cache)
 sleep 1
 $ADB shell am start -n "$ACTIVITY" > /dev/null 2>&1
 wait_for_screen 7
 
-# Check if we need to log in
+# Log in through the UI
 check_and_login
 
 FAILED=0
@@ -373,6 +494,9 @@ FAILED=0
 # --- 1. Dashboard ---
 echo ""
 echo "[1/8] Dashboard"
+# Assert seeded cards are visible
+assert_ui_contains "American Express Platinum" "dashboard" || true
+assert_ui_contains "Chase Sapphire Reserve" "dashboard" || true
 screenshot "01_dashboard" "$dest"
 
 # --- 2. All Credits - By Period ---
@@ -409,10 +533,15 @@ fi
 echo "[5/8] Card Detail"
 tap_back
 sleep 2
-# Tap first card (Bilt Palladium area)
-$ADB shell input tap 540 750
-wait_for_screen 2
-screenshot "05_card_detail" "$dest"
+# Tap first card by name instead of blind coordinates
+if find_and_tap "American Express Platinum"; then
+  wait_for_screen 2
+  assert_ui_contains "Uber Cash" "card detail" || true
+  screenshot "05_card_detail" "$dest"
+else
+  echo "  FAILED: Could not find card to tap for detail view" >&2
+  FAILED=$((FAILED + 1))
+fi
 
 # --- 6. Notifications ---
 echo "[6/8] Notifications"
@@ -442,11 +571,12 @@ fi
 echo "[8/8] Profile"
 tap_back
 sleep 2
-# Profile avatar is the last letter of display name
+# Profile avatar is the first letter of display name
 dump_ui
-# Try to find the avatar element (single letter like "A")
-if find_and_tap "A"; then
+AVATAR_LETTER="$(echo "${TEST_NAME:-CCB Tester}" | cut -c1)"
+if find_and_tap "$AVATAR_LETTER"; then
   wait_for_screen 2
+  assert_ui_contains "${TEST_NAME:-CCB Tester}" "profile" || true
   screenshot "08_profile" "$dest"
 else
   echo "  FAILED: Could not find profile avatar" >&2
@@ -469,45 +599,48 @@ if $UPDATE_MODE; then
 else
   echo "Output saved to: $OUTPUT_DIR"
 
-  # Compare with baselines if they exist
-  if [[ -d "$BASELINE_DIR" ]]; then
+  # Compare with baselines — required in compare mode
+  if [[ ! -d "$BASELINE_DIR" ]] || ! ls "$BASELINE_DIR"/*.png &>/dev/null; then
     echo ""
-    echo "Comparing against baselines..."
-    mismatches=0
-    for baseline in "$BASELINE_DIR"/*.png; do
-      name=$(basename "$baseline")
-      output="$OUTPUT_DIR/$name"
-      if [[ ! -f "$output" ]]; then
-        echo "  MISSING: $name (not captured this run)"
-        mismatches=$((mismatches + 1))
-        continue
-      fi
+    echo "ERROR: No baselines found. Create them first:" >&2
+    echo "  ./scripts/adb-screenshot-test.sh --update" >&2
+    exit 1
+  fi
 
-      # Simple file-size comparison (pixel-perfect diff requires ImageMagick)
-      baseline_size=$(wc -c < "$baseline" | tr -d ' ')
-      output_size=$(wc -c < "$output" | tr -d ' ')
-      diff_pct=$(python3 -c "print(abs($baseline_size - $output_size) * 100 // max($baseline_size, 1))")
-
-      if [[ "$diff_pct" -gt 20 ]]; then
-        echo "  CHANGED: $name (size diff ${diff_pct}%)"
-        mismatches=$((mismatches + 1))
-      else
-        echo "  OK: $name"
-      fi
-    done
-
-    if [[ $mismatches -gt 0 ]]; then
-      echo ""
-      echo "$mismatches screen(s) changed. Review screenshots in $OUTPUT_DIR."
-      echo "Run with --update to accept new baselines."
-    else
-      echo ""
-      echo "All screens match baselines."
+  echo ""
+  echo "Comparing against baselines..."
+  mismatches=0
+  for baseline in "$BASELINE_DIR"/*.png; do
+    name=$(basename "$baseline")
+    output="$OUTPUT_DIR/$name"
+    if [[ ! -f "$output" ]]; then
+      echo "  MISSING: $name (not captured this run)"
+      mismatches=$((mismatches + 1))
+      continue
     fi
+
+    # Simple file-size comparison (pixel-perfect diff requires ImageMagick)
+    baseline_size=$(wc -c < "$baseline" | tr -d ' ')
+    output_size=$(wc -c < "$output" | tr -d ' ')
+    diff_pct=$(python3 -c "print(abs($baseline_size - $output_size) * 100 // max($baseline_size, 1))")
+
+    if [[ "$diff_pct" -gt 20 ]]; then
+      echo "  CHANGED: $name (size diff ${diff_pct}%)"
+      mismatches=$((mismatches + 1))
+    else
+      echo "  OK: $name"
+    fi
+  done
+
+  FAILED=$((FAILED + mismatches))
+
+  if [[ $mismatches -gt 0 ]]; then
+    echo ""
+    echo "$mismatches screen(s) changed. Review screenshots in $OUTPUT_DIR."
+    echo "Run with --update to accept new baselines."
   else
     echo ""
-    echo "No baselines found. Run with --update to create them:"
-    echo "  ./scripts/adb-screenshot-test.sh --update"
+    echo "All screens match baselines."
   fi
 fi
 

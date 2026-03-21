@@ -100,7 +100,7 @@ poetry run uvicorn ccbenefits.main:app --reload --port 8000
 
 ## ADB Screenshot Tests
 
-Automated visual smoke tests that navigate through every screen and capture screenshots.
+Automated end-to-end smoke tests that start from a logged-out state, seed test data, navigate through every screen, verify content, and capture screenshots.
 
 ### First Run — Create Baselines
 
@@ -118,52 +118,80 @@ Commit these baselines to track visual changes over time.
 ./scripts/adb-screenshot-test.sh
 ```
 
-The script will:
-1. Launch the app on the connected emulator
-2. Auto-detect login/register screen — if found, register a test account via the API and log in through the UI
-3. Navigate through: Dashboard, All Credits (3 tabs), Card Detail, Notifications, Add Card, Profile
-4. Capture a screenshot of each screen
-5. Compare file sizes against baselines and report changes
+Exit code 0 means all checks passed. Non-zero = number of failures.
 
-### What the Script Checks
+### What the Script Does
 
-| Screen | Navigation | What to Verify |
-|--------|-----------|----------------|
-| Dashboard | App launch | Cards load, summary stats visible |
-| All Credits — By Period | Tap "All Credits" | Benefits grouped by period, "Log" buttons |
-| All Credits — By Card | Tap "By Card" tab | Cards with fees/utilization |
-| All Credits — Sheet | Tap "Sheet" tab | Table with readable column widths |
-| Card Detail | Tap first card | Benefits, period dots, Delete at bottom |
-| Notifications | Tap bell icon | Notification cards with icons |
-| Add Card | Tap "+" FAB | Search bar, card template list |
-| Profile | Tap avatar | Settings, notification toggles |
+**Setup (before app launch):**
+
+1. **Pre-flight checks** — verifies emulator connected and backend reachable (fails hard if not)
+2. **Ensure test account** — registers test user via API, verifies API login works
+3. **Seed test data** — creates 2 cards (Amex Platinum + Chase Sapphire Reserve) with usage across multiple months. Idempotent: skips if user already has cards.
+
+**App launch (from clean state):**
+
+4. **Clear app data** — `pm clear` wipes tokens/cache so every run starts logged out
+5. **Launch app** — starts the activity, waits for UI
+6. **Login via UI** — detects Sign In screen, types credentials, taps Sign In, verifies dashboard loads (fails hard if login doesn't succeed, saves `login_failure.png`)
+
+**Screenshot capture + content assertions (8 screens):**
+
+| # | Screen | Navigation | Content Assertions |
+|---|--------|-----------|-------------------|
+| 1 | Dashboard | App launch | "American Express Platinum", "Chase Sapphire Reserve" visible |
+| 2 | All Credits — By Period | Tap "All Credits" | — |
+| 3 | All Credits — By Card | Tap "By Card" tab | — |
+| 4 | All Credits — Sheet | Tap "Sheet" tab | — |
+| 5 | Card Detail | Tap card by name | "Uber Cash" visible |
+| 6 | Notifications | Tap bell icon | — |
+| 7 | Add Card | Tap "+" FAB | — |
+| 8 | Profile | Tap avatar letter | Display name visible |
+
+**Comparison (non-update mode):**
+
+- Compares file sizes against baselines (>20% diff = CHANGED)
+- Baseline mismatches count toward exit code
+- Missing baselines in compare mode = hard error
 
 ### Options
 
 | Flag | Description |
 |------|-------------|
 | `--update` | Overwrite baselines with current screenshots |
-| (none) | Capture and compare against baselines |
+| (none) | Capture, assert content, compare against baselines |
 
 ### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `ADB_PATH` | auto-detect | Path to `adb` binary |
-| `TEST_EMAIL` | `ccbtest@test.com` | Email for auto-register/login |
+| `TEST_EMAIL` | `ccbtest_auto@test.com` | Email for auto-register/login |
 | `TEST_PASSWORD` | `TestPass1234` | Password for auto-register/login |
 | `TEST_NAME` | `CCB Tester` | Display name for auto-registration |
-| `API_URL` | `http://localhost:8000` | Backend API URL for account creation |
+| `API_URL` | `http://localhost:8000` | Backend API URL for account creation and data seeding |
 
 ### Requirements
 
 - Running Android emulator with the app installed
 - Metro dev server on port 8081
-- Backend API on port 8000 (for data to display)
+- Backend API on port 8000 (required — test fails if unreachable)
 - Python 3 (for UI element coordinate parsing)
+
+### Failure Modes
+
+| Failure | Behavior |
+|---------|----------|
+| Backend unreachable | Hard exit before launch |
+| Account creation/login fails | Hard exit before launch |
+| UI login doesn't reach dashboard | Hard exit, saves `login_failure.png` |
+| Content assertion fails | Increments failure count, continues |
+| Navigation fails (can't find element) | Increments failure count, continues |
+| Baseline mismatch (compare mode) | Increments failure count |
+| No baselines in compare mode | Hard exit |
 
 ## Architecture Notes
 
 - The test uses `uiautomator dump` to find UI elements by text, making it resilient to layout changes
+- Card Detail navigates by card name (not blind coordinates)
 - Screenshots are compared by file size (quick heuristic); for pixel-perfect diff, install ImageMagick and use `compare`
 - The `screenshots/` directory is gitignored except for `baseline/`
