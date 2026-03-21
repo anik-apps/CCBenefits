@@ -40,6 +40,16 @@ export default function AllCreditsScreen({ navigation }: Props) {
     queryFn: getUserCardDetails,
   });
 
+  // Grand totals for sheet — must be before early return to keep hook order stable
+  const { grandTotalFees, grandTotalMax, grandTotalUsed } = useMemo(() => {
+    if (!cardDetails) return { grandTotalFees: 0, grandTotalMax: 0, grandTotalUsed: 0 };
+    const allB = cardDetails.flatMap(card => card.benefits_status);
+    const totalFees = cardDetails.reduce((s, c) => s + c.annual_fee, 0);
+    const totalMax = allB.reduce((s, b) => s + b.max_value, 0);
+    const totalUsed = allB.reduce((s, b) => s + b.amount_used, 0);
+    return { grandTotalFees: totalFees, grandTotalMax: totalMax, grandTotalUsed: totalUsed };
+  }, [cardDetails]);
+
   const handleLogUsage = async (amount: number, notes?: string, targetDate?: string) => {
     if (!selectedBenefit) return;
     await logUsage(selectedBenefit.userCardId, selectedBenefit.benefit_template_id, amount, notes, targetDate);
@@ -106,15 +116,6 @@ export default function AllCreditsScreen({ navigation }: Props) {
     if (expandedSections === null) return index > 0;
     return !expandedSections.has(key);
   };
-
-  // Grand totals for sheet (memoized to avoid recalculating on every render)
-  const { grandTotalFees, grandTotalMax, grandTotalUsed } = useMemo(() => {
-    const totalFees = cardDetails.reduce((s, c) => s + c.annual_fee, 0);
-    const totalMax = allBenefits.reduce((s, b) => s + b.max_value, 0);
-    const totalUsed = allBenefits.reduce((s, b) => s + b.amount_used, 0);
-    const utilization = totalMax > 0 ? (totalUsed / totalMax) * 100 : 0;
-    return { grandTotalFees: totalFees, grandTotalMax: totalMax, grandTotalUsed: totalUsed, grandUtilization: utilization };
-  }, [cardDetails, allBenefits]);
 
   const getStatusColor = (b: BenefitStatus) => {
     if (b.is_used && b.amount_used >= b.max_value) return colors.statusSuccess;
