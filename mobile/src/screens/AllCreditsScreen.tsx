@@ -301,7 +301,7 @@ export default function AllCreditsScreen({ navigation }: Props) {
                       ${item.amount_used} / ${item.max_value}
                     </Text>
                     <View style={[styles.tapHintBtn, item.is_used && styles.tapHintBtnUsed]}>
-                      <Text style={styles.tapHintText}>
+                      <Text style={[styles.tapHintText, item.is_used && styles.tapHintTextUsed]}>
                         {item.is_used ? 'Edit' : 'Log'}
                       </Text>
                     </View>
@@ -401,6 +401,7 @@ const styles = StyleSheet.create({
   },
   tapHintBtnUsed: { borderColor: colors.textMuted, backgroundColor: 'transparent' },
   tapHintText: { fontSize: 11, color: colors.accentGold, fontWeight: '600' },
+  tapHintTextUsed: { color: colors.textMuted },
   benefitMax: { fontSize: 13, fontWeight: '600', color: colors.textPrimary },
   benefitUsedLabel: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: spacing.sm, marginTop: 6 },

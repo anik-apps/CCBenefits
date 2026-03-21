@@ -231,7 +231,7 @@ export default function ProfileScreen({ navigation }: Props) {
               <Switch
                 value={prefs.email[notif.key]}
                 onValueChange={(v) => handleToggle('email', notif.key, v)}
-                trackColor={{ false: '#3a3a3a', true: colors.accentGoldDim }}
+                trackColor={{ false: colors.switchTrackOff, true: colors.accentGoldDim }}
                 thumbColor={prefs.email[notif.key] ? colors.accentGold : colors.textMuted}
               />
             </View>
@@ -240,7 +240,7 @@ export default function ProfileScreen({ navigation }: Props) {
               <Switch
                 value={prefs.push[notif.key]}
                 onValueChange={(v) => handleToggle('push', notif.key, v)}
-                trackColor={{ false: '#3a3a3a', true: colors.accentGoldDim }}
+                trackColor={{ false: colors.switchTrackOff, true: colors.accentGoldDim }}
                 thumbColor={prefs.push[notif.key] ? colors.accentGold : colors.textMuted}
               />
             </View>
