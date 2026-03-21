@@ -3,7 +3,7 @@ import LoadingScreen from '../components/LoadingScreen';
 import YearPicker from '../components/YearPicker';
 import PastYearBanner from '../components/PastYearBanner';
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUserCard, logUsage, updateUsage, deleteUsage, deleteUserCard, updateBenefitSetting, updateUserCard, closeCard, reopenCard } from '../services/api';
 import UsageModal from '../components/UsageModal';
