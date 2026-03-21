@@ -98,21 +98,30 @@ ui_contains() {
   local text="$1"
   $ADB shell cat /sdcard/ui.xml | python3 -c "
 import sys, xml.etree.ElementTree as ET
+target = sys.argv[1]
 tree = ET.parse(sys.stdin)
 for node in tree.iter():
     t = node.get('text') or ''
     cd = node.get('content-desc') or ''
-    if '$text' in t or '$text' in cd:
+    if target in t or target in cd:
         print('found')
         break
-" 2>/dev/null | grep -q 'found'
+" "$text" 2>/dev/null | grep -q 'found'
 }
 
 assert_ui_contains() {
   # Assert that the current screen contains the given text. Fails the test if not found.
+  # Pass --no-dump as first arg to skip dump_ui (reuse previous dump).
+  local skip_dump=false
+  if [[ "${1:-}" == "--no-dump" ]]; then
+    skip_dump=true
+    shift
+  fi
   local text="$1"
   local context="${2:-}"
-  dump_ui
+  if ! $skip_dump; then
+    dump_ui
+  fi
   if ! ui_contains "$text"; then
     echo "  ASSERT FAILED: expected '$text' on screen${context:+ ($context)}" >&2
     FAILED=$((FAILED + 1))
@@ -181,11 +190,17 @@ seed_test_data() {
   year=$(date +%Y)
   month=$(date +%m)
 
-  # Helper to log usage silently
+  # Helper to log usage — tracks failures
+  local seed_errors=0
   _log() {
-    curl -s -o /dev/null -X POST "$api/api/user-cards/$1/usage" \
+    local status
+    status=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$api/api/user-cards/$1/usage" \
       -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
-      -d "{\"benefit_template_id\": $2, \"amount_used\": $3, \"target_date\": \"$4\"}"
+      -d "{\"benefit_template_id\": $2, \"amount_used\": $3, \"target_date\": \"$4\"}")
+    if [[ "$status" != "200" && "$status" != "201" ]]; then
+      echo "  WARNING: usage log failed (card=$1 bt=$2 date=$4 → HTTP $status)" >&2
+      seed_errors=$((seed_errors + 1))
+    fi
   }
 
   # Amex Platinum: Uber Cash (BT 1, $15/mo) — Jan through current month
@@ -207,6 +222,9 @@ seed_test_data() {
   _log "$card2_id" 29 10 "${year}-01-05"
   _log "$card2_id" 29 10 "${year}-02-05"
 
+  if [[ "$seed_errors" -gt 0 ]]; then
+    echo "  WARNING: $seed_errors usage log(s) failed during seeding." >&2
+  fi
   echo "  Seeded 2 cards with usage (Amex Platinum + Chase Sapphire Reserve)."
 }
 
@@ -444,6 +462,8 @@ for node in tree.iter():
   fi
 }
 
+FAILED=0
+
 # --- Pre-flight checks ---
 echo "=== CCBenefits ADB Screenshot Test ==="
 
@@ -489,14 +509,12 @@ wait_for_screen 7
 # Log in through the UI
 check_and_login
 
-FAILED=0
-
 # --- 1. Dashboard ---
 echo ""
 echo "[1/8] Dashboard"
 # Assert seeded cards are visible
 assert_ui_contains "American Express Platinum" "dashboard" || true
-assert_ui_contains "Chase Sapphire Reserve" "dashboard" || true
+assert_ui_contains --no-dump "Chase Sapphire Reserve" "dashboard" || true
 screenshot "01_dashboard" "$dest"
 
 # --- 2. All Credits - By Period ---
@@ -644,4 +662,4 @@ else
   fi
 fi
 
-exit $FAILED
+exit $((FAILED > 125 ? 125 : FAILED))
