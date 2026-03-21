@@ -49,5 +49,12 @@ tests/e2e/node_modules/
 tests/e2e/test-results/
 tests/e2e/playwright-report/
 
+# Mobile screenshots (output/diff are ephemeral, baseline is committed)
+mobile/screenshots/output/
+mobile/screenshots/diff/
+
+# Mobile build artifacts
+mobile/android/local.properties
+
 # Claude
 .claude/

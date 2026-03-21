@@ -231,7 +231,7 @@ export default function ProfileScreen({ navigation }: Props) {
               <Switch
                 value={prefs.email[notif.key]}
                 onValueChange={(v) => handleToggle('email', notif.key, v)}
-                trackColor={{ false: colors.bgTertiary, true: colors.accentGoldDim }}
+                trackColor={{ false: colors.switchTrackOff, true: colors.accentGoldDim }}
                 thumbColor={prefs.email[notif.key] ? colors.accentGold : colors.textMuted}
               />
             </View>
@@ -240,7 +240,7 @@ export default function ProfileScreen({ navigation }: Props) {
               <Switch
                 value={prefs.push[notif.key]}
                 onValueChange={(v) => handleToggle('push', notif.key, v)}
-                trackColor={{ false: colors.bgTertiary, true: colors.accentGoldDim }}
+                trackColor={{ false: colors.switchTrackOff, true: colors.accentGoldDim }}
                 thumbColor={prefs.push[notif.key] ? colors.accentGold : colors.textMuted}
               />
             </View>
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, gap: spacing.lg,
   },
   hourBtn: {
-    width: 36, height: 36, borderRadius: radius.sm, borderWidth: 1,
+    width: 48, height: 48, borderRadius: radius.sm, borderWidth: 1,
     borderColor: colors.borderMedium, backgroundColor: colors.bgTertiary,
     alignItems: 'center', justifyContent: 'center',
   },

@@ -152,10 +152,9 @@ export default function AllCreditsScreen({ navigation }: Props) {
           <View>
             {/* Header row */}
             <View style={styles.sheetRow}>
-              <Text style={[styles.sheetHeader, { width: 90 }]}>Card</Text>
-              <Text style={[styles.sheetHeader, { width: 120 }]}>Benefit</Text>
-              <Text style={[styles.sheetHeader, styles.sheetRight, { width: 90, paddingLeft: 0 }]}>Used / Max</Text>
-              <View style={{ width: 24 }} />
+              <Text style={[styles.sheetHeader, { width: 120 }]}>Card</Text>
+              <Text style={[styles.sheetHeader, { width: 160 }]}>Benefit</Text>
+              <Text style={[styles.sheetHeader, styles.sheetRight, { width: 100, paddingLeft: 0 }]}>Used / Max</Text>
             </View>
             {/* Data rows */}
             {sortedCards.map(card => {
@@ -166,44 +165,26 @@ export default function AllCreditsScreen({ navigation }: Props) {
                 const statusColor = getStatusColor(b);
                 return (
                   <View key={`${card.id}-${b.benefit_template_id}`} style={[styles.sheetRow, { borderLeftWidth: 3, borderLeftColor: issuerColor, backgroundColor: issuerColor + '0A' }]}>
-                    <Text style={[styles.sheetCell, { width: 90, color: colors.textSecondary }]} numberOfLines={1}>
+                    <Text style={[styles.sheetCell, { width: 120, color: colors.textSecondary }]} numberOfLines={1}>
                       {i === 0 ? (card.nickname || card.card_name) : ''}
                     </Text>
-                    <Text style={[styles.sheetCell, { width: 120 }]} numberOfLines={1}>{b.name}</Text>
-                    <Text style={[styles.sheetCell, styles.sheetRight, { width: 90, paddingLeft: 0 }]}>
+                    <Text style={[styles.sheetCell, { width: 160 }]} numberOfLines={1}>{b.name}</Text>
+                    <Text style={[styles.sheetCell, styles.sheetRight, { width: 100, paddingLeft: 0 }]}>
                       <Text style={{ color: colors.accentGold }}>${b.amount_used}</Text>
                       <Text style={{ color: colors.textMuted }}> / ${b.max_value}</Text>
                     </Text>
-                    <View style={{ width: 24, alignItems: 'center', justifyContent: 'center' }}>
-                      <View style={{
-                        width: 18, height: 18, borderRadius: 9,
-                        borderWidth: 2.5, borderColor: colors.borderMedium,
-                      }}>
-                        <View style={{
-                          position: 'absolute', top: -2.5, left: -2.5,
-                          width: 18, height: 18, borderRadius: 9,
-                          borderWidth: 2.5, borderColor: statusColor,
-                          borderTopColor: pct >= 25 ? statusColor : 'transparent',
-                          borderRightColor: pct >= 50 ? statusColor : 'transparent',
-                          borderBottomColor: pct >= 75 ? statusColor : 'transparent',
-                          borderLeftColor: pct >= 100 ? statusColor : 'transparent',
-                          transform: [{ rotate: '-45deg' }],
-                        }} />
-                      </View>
-                    </View>
                   </View>
                 );
               });
             })}
             {/* Grand total */}
             <View style={[styles.sheetRow, { borderTopWidth: 2, borderTopColor: colors.borderMedium }]}>
-              <Text style={[styles.sheetCell, { width: 90, fontWeight: '700' }]}>Total</Text>
-              <Text style={[styles.sheetCell, { width: 120, color: colors.textMuted }]}>Fees: ${grandTotalFees}</Text>
-              <Text style={[styles.sheetCell, styles.sheetRight, { width: 90, paddingLeft: 0, fontWeight: '700' }]}>
+              <Text style={[styles.sheetCell, { width: 120, fontWeight: '700' }]}>Total</Text>
+              <Text style={[styles.sheetCell, { width: 160, color: colors.textMuted }]}>Fees: ${grandTotalFees}</Text>
+              <Text style={[styles.sheetCell, styles.sheetRight, { width: 100, paddingLeft: 0, fontWeight: '700' }]}>
                 <Text style={{ color: colors.accentGold }}>${grandTotalUsed}</Text>
                 <Text style={{ color: colors.textMuted }}> / ${grandTotalMax}</Text>
               </Text>
-              <View style={{ width: 24 }} />
             </View>
           </View>
         </ScrollView>
@@ -248,11 +229,18 @@ export default function AllCreditsScreen({ navigation }: Props) {
                 </TouchableOpacity>
               );
             }
+            const sectionUsed = section.data.reduce((s, b) => s + b.amount_used, 0);
+            const sectionMax = section.data.reduce((s, b) => s + b.max_value, 0);
             return (
               <TouchableOpacity onPress={() => toggleSection(sectionKey)} activeOpacity={0.7}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg, marginBottom: spacing.sm }}>
                   <Text style={{ fontSize: 10, color: colors.textMuted, marginRight: spacing.xs }}>{collapsed ? '▶' : '▼'}</Text>
                   <Text style={styles.sectionHeader}>{section.title} ({section.data.length})</Text>
+                  {collapsed && (
+                    <Text style={{ fontSize: 11, color: colors.textMuted, marginLeft: 'auto' }}>
+                      ${sectionUsed} / ${sectionMax}
+                    </Text>
+                  )}
                 </View>
               </TouchableOpacity>
             );
@@ -312,9 +300,11 @@ export default function AllCreditsScreen({ navigation }: Props) {
                     <Text style={[styles.benefitValue, item.is_used && styles.benefitUsedStyle]}>
                       ${item.amount_used} / ${item.max_value}
                     </Text>
-                    <Text style={styles.tapHint}>
-                      {item.is_used ? 'Tap to edit' : 'Tap to log'}
-                    </Text>
+                    <View style={[styles.tapHintBtn, item.is_used && styles.tapHintBtnUsed]}>
+                      <Text style={[styles.tapHintText, item.is_used && styles.tapHintTextUsed]}>
+                        {item.is_used ? 'Edit' : 'Log'}
+                      </Text>
+                    </View>
                   </View>
                 </View>
                 <View style={styles.dotsRow}>
@@ -404,7 +394,14 @@ const styles = StyleSheet.create({
   benefitRight: { alignItems: 'flex-end', marginLeft: 'auto' },
   benefitValue: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
   benefitUsedStyle: { color: colors.accentGold },
-  tapHint: { fontSize: 10, color: colors.accentGold, marginTop: 2 },
+  tapHintBtn: {
+    marginTop: 4, paddingHorizontal: 10, paddingVertical: 3,
+    borderRadius: radius.sm, borderWidth: 1, borderColor: colors.accentGold,
+    backgroundColor: 'rgba(201,168,76,0.1)',
+  },
+  tapHintBtnUsed: { borderColor: colors.textMuted, backgroundColor: 'transparent' },
+  tapHintText: { fontSize: 11, color: colors.accentGold, fontWeight: '600' },
+  tapHintTextUsed: { color: colors.textMuted },
   benefitMax: { fontSize: 13, fontWeight: '600', color: colors.textPrimary },
   benefitUsedLabel: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: spacing.sm, marginTop: 6 },
@@ -419,7 +416,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sheetHeader: {
-    fontSize: 10, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase',
+    fontSize: 11, fontWeight: '700', color: colors.textSecondary, textTransform: 'uppercase',
     letterSpacing: 0.5, paddingVertical: 8, paddingHorizontal: 6,
   },
   sheetCell: {

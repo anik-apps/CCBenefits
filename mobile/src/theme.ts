@@ -13,6 +13,7 @@ export const colors = {
   borderMedium: '#2a2a3a',
   statusDanger: '#ef4444',
   statusSuccess: '#22c55e',
+  switchTrackOff: '#3a3a3a',
 };
 
 export const spacing = {
