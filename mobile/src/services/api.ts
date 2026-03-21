@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
 import type {
   AuthResponse,
   CardTemplateListItem,
@@ -11,7 +12,7 @@ import type {
   UserCardSummary,
 } from '../types';
 
-const API_URL = 'https://ccb.kumaranik.com';
+const API_URL = Constants.expoConfig?.extra?.apiUrl || 'https://ccb.kumaranik.com';
 
 const api = axios.create({ baseURL: API_URL });
 // Separate instance for token refresh — no interceptors, prevents infinite 401 loop

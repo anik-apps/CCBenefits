@@ -92,6 +92,244 @@ tap_back() {
   find_and_tap "← Back" || find_and_tap "Back" || $ADB shell input tap 100 210
 }
 
+type_text() {
+  # Type text via adb — must quote the string to preserve @ and special chars
+  local text="$1"
+  $ADB shell "input text '${text}'"
+}
+
+ensure_test_account() {
+  # Register a test account via the API if it doesn't exist.
+  # This bypasses email verification since local dev has it disabled,
+  # or the account may already exist.
+  local api="${API_URL:-http://localhost:8000}"
+  local email="${TEST_EMAIL:-ccbtest_auto@test.com}"
+  local password="${TEST_PASSWORD:-TestPass1234}"
+  local name="${TEST_NAME:-CCB Tester}"
+
+  echo "  Ensuring test account exists ($email)..."
+
+  # Try to register — ignore if already exists (409)
+  local register_response
+  register_response=$(curl -s -w "\n%{http_code}" \
+    -X POST "$api/api/auth/register" \
+    -H "Content-Type: application/json" \
+    -d "{\"email\":\"$email\",\"password\":\"$password\",\"display_name\":\"$name\"}" \
+    2>/dev/null)
+
+  local register_status
+  register_status=$(echo "$register_response" | tail -1)
+  local register_body
+  register_body=$(echo "$register_response" | sed '$d')
+
+  case "$register_status" in
+    201)
+      echo "  Test account created."
+      # Extract access token and verify email via API
+      local token
+      token=$(echo "$register_body" | python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null)
+      if [[ -n "$token" ]]; then
+        # Mark email as verified using the admin-like approach: call /api/auth/me to check,
+        # then directly verify via database or skip if verification is disabled.
+        # For local SQLite dev, we can use the verify endpoint if we have the token,
+        # or just try logging in — some setups don't require verification.
+        echo "  Attempting to auto-verify email..."
+        curl -s -o /dev/null -X POST "$api/api/auth/request-verification" \
+          -H "Authorization: Bearer $token" 2>/dev/null || true
+      fi
+      ;;
+    409) echo "  Test account already exists." ;;
+    000|"") echo "  WARNING: Could not reach API to register. Login may fail." ;;
+    *)   echo "  WARNING: Registration returned HTTP $register_status." ;;
+  esac
+
+  # Try logging in via API first to check if account works
+  local login_response
+  login_response=$(curl -s -w "\n%{http_code}" \
+    -X POST "$api/api/auth/login" \
+    -H "Content-Type: application/json" \
+    -d "{\"email\":\"$email\",\"password\":\"$password\"}" \
+    2>/dev/null)
+  local login_status
+  login_status=$(echo "$login_response" | tail -1)
+
+  if [[ "$login_status" != "200" ]]; then
+    echo "  WARNING: API login failed (HTTP $login_status). Account may need email verification."
+    echo "  Verify the email manually or set CCB_REQUIRE_EMAIL_VERIFICATION=false."
+  fi
+}
+
+fill_field_after_label() {
+  # Find the EditText that follows a label with the given text, tap it, and type
+  local label="$1"
+  local value="$2"
+
+  local coords
+  coords=$($ADB shell cat /sdcard/ui.xml | python3 -c "
+import sys, xml.etree.ElementTree as ET, re
+tree = ET.parse(sys.stdin)
+found_label = False
+for node in tree.iter():
+    t = node.get('text') or ''
+    cls = node.get('class') or ''
+    if t == '$label':
+        found_label = True
+        continue
+    if found_label and 'EditText' in cls:
+        b = node.get('bounds','')
+        nums = re.findall(r'\d+', b)
+        if len(nums)==4:
+            print(f'{(int(nums[0])+int(nums[2]))//2} {(int(nums[1])+int(nums[3]))//2}')
+            break
+" 2>/dev/null)
+
+  if [[ -n "$coords" ]]; then
+    $ADB shell input tap $coords
+    sleep 0.3
+    type_text "$value"
+    sleep 0.3
+  else
+    echo "  WARNING: Could not find field after label '$label'" >&2
+  fi
+}
+
+check_and_login() {
+  # Check if login screen is showing. If so, log in with test credentials.
+  local email="${TEST_EMAIL:-ccbtest_auto@test.com}"
+  local password="${TEST_PASSWORD:-TestPass1234}"
+
+  dump_ui
+  local screen_text
+  screen_text=$($ADB shell cat /sdcard/ui.xml | python3 -c "
+import sys, xml.etree.ElementTree as ET
+tree = ET.parse(sys.stdin)
+for node in tree.iter():
+    t = node.get('text') or ''
+    if t in ('Sign In', 'Create Account'):
+        print(t)
+        break
+" 2>/dev/null)
+
+  if [[ -z "$screen_text" ]]; then
+    echo "  Already logged in."
+    return 0
+  fi
+
+  # If on Register screen, navigate to Sign In
+  if [[ "$screen_text" == "Create Account" ]]; then
+    echo "  On register screen, navigating to Sign In..."
+    find_and_tap "Sign In" || true
+    sleep 2
+    dump_ui
+  fi
+
+  # Ensure test account exists via API
+  ensure_test_account
+
+  echo "  Logging in as $email..."
+
+  # Find and tap the email EditText directly (placeholder "you@example.com")
+  local email_bounds
+  email_bounds=$($ADB shell cat /sdcard/ui.xml | python3 -c "
+import sys, xml.etree.ElementTree as ET, re
+tree = ET.parse(sys.stdin)
+for node in tree.iter():
+    cls = node.get('class') or ''
+    t = node.get('text') or ''
+    if 'EditText' in cls and ('example' in t or 'email' in t.lower() or t == ''):
+        b = node.get('bounds','')
+        nums = re.findall(r'\d+', b)
+        if len(nums)==4:
+            print(f'{(int(nums[0])+int(nums[2]))//2} {(int(nums[1])+int(nums[3]))//2}')
+            break
+" 2>/dev/null)
+
+  if [[ -n "$email_bounds" ]]; then
+    $ADB shell input tap $email_bounds
+    sleep 0.3
+    type_text "$email"
+    sleep 0.3
+  fi
+
+  # Find and tap the password EditText (second EditText on screen)
+  dump_ui
+  local pw_bounds
+  pw_bounds=$($ADB shell cat /sdcard/ui.xml | python3 -c "
+import sys, xml.etree.ElementTree as ET, re
+tree = ET.parse(sys.stdin)
+edit_texts = []
+for node in tree.iter():
+    cls = node.get('class') or ''
+    if 'EditText' in cls:
+        b = node.get('bounds','')
+        nums = re.findall(r'\d+', b)
+        if len(nums)==4:
+            edit_texts.append(f'{(int(nums[0])+int(nums[2]))//2} {(int(nums[1])+int(nums[3]))//2}')
+# Password is the second EditText
+if len(edit_texts) >= 2:
+    print(edit_texts[1])
+" 2>/dev/null)
+
+  if [[ -n "$pw_bounds" ]]; then
+    $ADB shell input tap $pw_bounds
+    sleep 0.3
+    type_text "$password"
+    sleep 0.3
+  else
+    echo "  WARNING: Could not find password field" >&2
+  fi
+
+  # Dismiss keyboard (KEYCODE_BACK) and tap Sign In button
+  $ADB shell input keyevent 4  # KEYCODE_BACK to dismiss keyboard
+  sleep 1
+  dump_ui
+
+  # Find the Sign In BUTTON (second "Sign In" element, not the title)
+  local signin_coords
+  signin_coords=$($ADB shell cat /sdcard/ui.xml | python3 -c "
+import sys, xml.etree.ElementTree as ET, re
+tree = ET.parse(sys.stdin)
+matches = []
+for node in tree.iter():
+    if node.get('text') == 'Sign In':
+        b = node.get('bounds','')
+        nums = re.findall(r'\d+', b)
+        if len(nums)==4:
+            matches.append(f'{(int(nums[0])+int(nums[2]))//2} {(int(nums[1])+int(nums[3]))//2}')
+# The button is the second match (first is the title)
+if len(matches) >= 2:
+    print(matches[1])
+elif len(matches) == 1:
+    print(matches[0])
+" 2>/dev/null)
+
+  if [[ -n "$signin_coords" ]]; then
+    $ADB shell input tap $signin_coords
+  else
+    echo "  WARNING: Could not find Sign In button" >&2
+  fi
+  echo "  Waiting for dashboard to load..."
+  wait_for_screen 5
+
+  # Verify we made it to dashboard
+  dump_ui
+  local on_dashboard
+  on_dashboard=$($ADB shell cat /sdcard/ui.xml | python3 -c "
+import sys, xml.etree.ElementTree as ET
+tree = ET.parse(sys.stdin)
+for node in tree.iter():
+    if 'Hello' in (node.get('text') or ''):
+        print('yes')
+        break
+" 2>/dev/null)
+
+  if [[ "$on_dashboard" == "yes" ]]; then
+    echo "  Login successful."
+  else
+    echo "  WARNING: May not have reached dashboard. Check emulator." >&2
+  fi
+}
+
 # --- Pre-flight checks ---
 echo "=== CCBenefits ADB Screenshot Test ==="
 
@@ -126,6 +364,9 @@ $ADB shell am force-stop "$PACKAGE"
 sleep 1
 $ADB shell am start -n "$ACTIVITY" > /dev/null 2>&1
 wait_for_screen 7
+
+# Check if we need to log in
+check_and_login
 
 FAILED=0
 

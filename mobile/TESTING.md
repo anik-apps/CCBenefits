@@ -81,8 +81,15 @@ The debug APK requires a Metro bundler to serve JavaScript:
 
 ```bash
 cd mobile
+
+# For local development (API on localhost:8000):
+CCB_API_URL=http://10.0.2.2:8000 npx expo start --dev-client --port 8081
+
+# For production API (default):
 npx expo start --dev-client --port 8081
 ```
+
+> **Note:** `10.0.2.2` is the Android emulator's alias for the host machine's `localhost`.
 
 Make sure the backend is also running:
 
@@ -113,9 +120,10 @@ Commit these baselines to track visual changes over time.
 
 The script will:
 1. Launch the app on the connected emulator
-2. Navigate through: Dashboard, All Credits (3 tabs), Card Detail, Notifications, Add Card, Profile
-3. Capture a screenshot of each screen
-4. Compare file sizes against baselines and report changes
+2. Auto-detect login/register screen — if found, register a test account via the API and log in through the UI
+3. Navigate through: Dashboard, All Credits (3 tabs), Card Detail, Notifications, Add Card, Profile
+4. Capture a screenshot of each screen
+5. Compare file sizes against baselines and report changes
 
 ### What the Script Checks
 
@@ -142,6 +150,10 @@ The script will:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `ADB_PATH` | auto-detect | Path to `adb` binary |
+| `TEST_EMAIL` | `ccbtest@test.com` | Email for auto-register/login |
+| `TEST_PASSWORD` | `TestPass1234` | Password for auto-register/login |
+| `TEST_NAME` | `CCB Tester` | Display name for auto-registration |
+| `API_URL` | `http://localhost:8000` | Backend API URL for account creation |
 
 ### Requirements
 

@@ -47,6 +47,7 @@ export default {
       eas: {
         projectId: "d9ff5adf-f515-442c-833b-cd22c566541d",
       },
+      apiUrl: process.env.CCB_API_URL || "https://ccb.kumaranik.com",
       googleClientId: process.env.GOOGLE_CLIENT_ID || "",
       googleClientIdAndroid: process.env.GOOGLE_CLIENT_ID_ANDROID || "",
       googleClientIdIos: process.env.GOOGLE_CLIENT_ID_IOS || "",
