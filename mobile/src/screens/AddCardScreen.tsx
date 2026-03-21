@@ -1,6 +1,6 @@
 import ScreenWrapper from '../components/ScreenWrapper';
 import LoadingScreen from '../components/LoadingScreen';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCardTemplates, createUserCard } from '../services/api';
@@ -15,11 +15,19 @@ export default function AddCardScreen({ navigation }: Props) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [nickname, setNickname] = useState('');
   const [creating, setCreating] = useState<number | null>(null);
+  const [search, setSearch] = useState('');
 
   const { data: templates, isLoading } = useQuery({
     queryKey: ['card-templates'],
     queryFn: getCardTemplates,
   });
+
+  const filteredTemplates = useMemo(() => {
+    if (!templates) return [];
+    if (!search.trim()) return templates;
+    const q = search.toLowerCase();
+    return templates.filter(t => t.name.toLowerCase().includes(q) || t.issuer.toLowerCase().includes(q));
+  }, [templates, search]);
 
   const handleAdd = async (templateId: number) => {
     setCreating(templateId);
@@ -45,8 +53,17 @@ export default function AddCardScreen({ navigation }: Props) {
         <Text style={styles.title}>Add a Card</Text>
       </View>
 
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Search cards..."
+        placeholderTextColor={colors.textMuted}
+        value={search}
+        onChangeText={setSearch}
+        autoCorrect={false}
+      />
+
       <FlatList
-        data={templates}
+        data={filteredTemplates}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
         renderItem={({ item: t }) => {
@@ -109,6 +126,11 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.xxl, paddingBottom: spacing.md },
   backText: { color: colors.accentGold, fontSize: 14, marginBottom: spacing.sm },
   title: { fontSize: 22, fontWeight: '700', color: colors.textPrimary },
+  searchInput: {
+    backgroundColor: colors.bgTertiary, borderWidth: 1, borderColor: colors.borderMedium,
+    borderRadius: radius.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
+    color: colors.textPrimary, fontSize: 14, marginHorizontal: spacing.lg, marginBottom: spacing.md,
+  },
   list: { padding: spacing.lg, paddingTop: 0 },
   card: {
     backgroundColor: colors.bgCard, borderRadius: radius.md,
@@ -120,7 +142,7 @@ const styles = StyleSheet.create({
   cardMeta: { fontSize: 12, color: colors.textMuted },
   cardRight: { alignItems: 'flex-end', marginLeft: spacing.md },
   fee: { fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: spacing.xs },
-  addBtn: { backgroundColor: colors.accentGold, borderRadius: radius.sm, paddingVertical: 5, paddingHorizontal: 14 },
+  addBtn: { backgroundColor: colors.accentGold, borderRadius: radius.sm, paddingVertical: 8, paddingHorizontal: 16 },
   addBtnText: { color: colors.bgPrimary, fontWeight: '600', fontSize: 12 },
   expandedRow: {
     flexDirection: 'row', gap: spacing.sm, padding: spacing.md,

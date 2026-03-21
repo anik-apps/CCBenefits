@@ -89,9 +89,6 @@ export default function CardDetailScreen({ route, navigation }: Props) {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={styles.backText}>← Back</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleDeleteCard}>
-            <Text style={styles.deleteCardText}>Delete Card</Text>
-          </TouchableOpacity>
         </View>
         <View style={styles.cardHeaderRow}>
           <CardIcon issuer={card.issuer} />
@@ -127,7 +124,7 @@ export default function CardDetailScreen({ route, navigation }: Props) {
               <View style={styles.renewalInputRow}>
                 <TextInput
                   style={styles.renewalInput}
-                  placeholder="YYYY-MM-DD"
+                  placeholder="e.g. 2026-01-15"
                   placeholderTextColor={colors.textMuted}
                   value={renewalInput}
                   onChangeText={setRenewalInput}
@@ -162,6 +159,11 @@ export default function CardDetailScreen({ route, navigation }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
+        {card.benefits_status.length === 0 && (
+          <View style={{ alignItems: 'center', paddingVertical: spacing.xxl }}>
+            <Text style={{ color: colors.textMuted, fontSize: 14 }}>No benefits for this card</Text>
+          </View>
+        )}
         {card.benefits_status.map((benefit) => {
           const catIcon = getCategoryIcon(benefit.category);
           const catColor = getCategoryColor(benefit.category);
@@ -188,7 +190,7 @@ export default function CardDetailScreen({ route, navigation }: Props) {
                 {benefit.perceived_max_value !== benefit.max_value && (
                   <Text style={styles.perceivedValue}>You: ${benefit.perceived_max_value}</Text>
                 )}
-                <Text style={styles.benefitEdit}>Edit ✎</Text>
+                <Text style={styles.benefitEdit}>Value ✎</Text>
                 <Text style={styles.benefitPeriod}>{benefit.period_type}</Text>
               </TouchableOpacity>
             </View>
@@ -233,6 +235,10 @@ export default function CardDetailScreen({ route, navigation }: Props) {
           </TouchableOpacity>
           );
         })}
+
+        <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteCard}>
+          <Text style={styles.deleteBtnText}>Delete Card</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {selectedBenefit && (
@@ -263,7 +269,11 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.xxl, paddingBottom: spacing.md },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
   backText: { color: colors.accentGold, fontSize: 14 },
-  deleteCardText: { color: colors.statusDanger, fontSize: 13 },
+  deleteBtn: {
+    marginTop: spacing.xl, padding: spacing.md, borderRadius: radius.sm,
+    borderWidth: 1, borderColor: colors.statusDanger, alignItems: 'center',
+  },
+  deleteBtnText: { color: colors.statusDanger, fontWeight: '600', fontSize: 13 },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'center' },
   cardName: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
   issuer: { fontSize: 13, color: colors.textMuted, marginTop: 2 },

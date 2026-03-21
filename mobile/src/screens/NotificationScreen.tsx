@@ -8,6 +8,16 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type Props = NativeStackScreenProps<any, 'Notifications'>;
 
+function getNotifIcon(title: string): string {
+  const t = title.toLowerCase();
+  if (t.includes('expir')) return '⏰';
+  if (t.includes('period')) return '📅';
+  if (t.includes('summary') || t.includes('utilization')) return '📊';
+  if (t.includes('recap') || t.includes('unused')) return '💡';
+  if (t.includes('fee')) return '💳';
+  return '🔔';
+}
+
 function timeAgo(dateStr: string): string {
   const now = new Date();
   const date = new Date(dateStr);
@@ -83,7 +93,9 @@ export default function NotificationScreen({ navigation }: Props) {
         contentContainerStyle={items.length === 0 ? styles.emptyContainer : undefined}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No notifications yet</Text>
+            <Text style={styles.emptyIcon}>🔔</Text>
+            <Text style={styles.emptyTitle}>All caught up</Text>
+            <Text style={styles.emptyText}>No notifications yet. We'll let you know when credits are expiring or new periods start.</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -91,11 +103,14 @@ export default function NotificationScreen({ navigation }: Props) {
             style={[styles.notifItem, !item.is_read && styles.unreadItem]}
             onPress={() => handlePress(item)}
           >
+            <View style={styles.notifIconBox}>
+              <Text style={styles.notifIcon}>{getNotifIcon(item.title)}</Text>
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.notifTitle, !item.is_read && styles.unreadTitle]} numberOfLines={1}>
                 {item.title}
               </Text>
-              <Text style={styles.notifBody} numberOfLines={1}>
+              <Text style={styles.notifBody} numberOfLines={2}>
                 {item.body}
               </Text>
               <Text style={styles.notifTime}>{timeAgo(item.created_at)}</Text>
@@ -116,18 +131,29 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
   markAllText: { fontSize: 12, color: colors.accentGold },
   notifItem: {
+    flexDirection: 'row', alignItems: 'flex-start',
     paddingVertical: spacing.md, paddingHorizontal: spacing.lg,
-    borderBottomWidth: 1, borderBottomColor: colors.borderSubtle,
+    marginHorizontal: spacing.sm, marginBottom: spacing.xs,
+    borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderSubtle,
+    backgroundColor: colors.bgCard,
   },
   unreadItem: {
     borderLeftWidth: 3, borderLeftColor: colors.accentGold,
     backgroundColor: colors.bgCard,
   },
+  notifIconBox: {
+    width: 36, height: 36, borderRadius: radius.sm,
+    backgroundColor: colors.bgTertiary, alignItems: 'center', justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  notifIcon: { fontSize: 16 },
   notifTitle: { fontSize: 14, fontWeight: '500', color: colors.textPrimary, marginBottom: 2 },
   unreadTitle: { fontWeight: '700' },
   notifBody: { fontSize: 13, color: colors.textSecondary, marginBottom: 4 },
   notifTime: { fontSize: 11, color: colors.textMuted },
   emptyContainer: { flex: 1 },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyText: { fontSize: 15, color: colors.textMuted },
+  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.xxl },
+  emptyIcon: { fontSize: 40, marginBottom: spacing.md },
+  emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.textPrimary, marginBottom: spacing.sm },
+  emptyText: { fontSize: 14, color: colors.textMuted, textAlign: 'center', lineHeight: 20 },
 });
