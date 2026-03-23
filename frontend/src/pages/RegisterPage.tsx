@@ -59,23 +59,25 @@ export default function RegisterPage() {
         </button>
       </form>
       <div style={{ textAlign: 'center', margin: '20px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>or</div>
-      <GoogleLogin
-        onSuccess={async (response) => {
-          if (response.credential) {
-            try {
-              await oauthLogin('google', response.credential);
-              navigate('/');
-            } catch (err) {
-              setError(extractApiError(err, 'Google sign-up failed'));
+      <div style={{ width: '100%', overflow: 'hidden' }}>
+        <GoogleLogin
+          onSuccess={async (response) => {
+            if (response.credential) {
+              try {
+                await oauthLogin('google', response.credential);
+                navigate('/');
+              } catch (err) {
+                setError(extractApiError(err, 'Google sign-up failed'));
+              }
             }
-          }
-        }}
-        onError={() => setError('Google sign-up failed')}
-        theme="filled_black"
-        size="large"
-        width={352}
-        text="signup_with"
-      />
+          }}
+          onError={() => setError('Google sign-up failed')}
+          theme="filled_black"
+          size="large"
+          width={400}
+          text="signup_with"
+        />
+      </div>
       <button
         disabled
         style={{ ...primaryButtonStyle, width: '100%', padding: '10px', marginTop: 8, background: '#333', color: '#888', cursor: 'not-allowed', opacity: 0.6 }}
