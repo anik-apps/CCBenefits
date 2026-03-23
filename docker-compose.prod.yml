@@ -6,6 +6,7 @@ services:
     env_file: .env
     environment:
       - CCB_SCHEDULER_ENABLED=true
+      - GOOGLE_CLIENT_ID=110399383495-thv0tabak1lk6o9fai4i4bu4c4k3rfms.apps.googleusercontent.com
     depends_on:
       postgres:
         condition: service_healthy
