@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+// These tests require a valid VITE_GOOGLE_CLIENT_ID baked into the frontend build.
+// Skip when running against a build without OAuth configured (e.g. local dev).
 test.describe('Google OAuth button', () => {
   test('renders on login page without errors', async ({ page }) => {
     // Collect console errors

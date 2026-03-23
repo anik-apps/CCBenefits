@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
@@ -9,6 +9,10 @@ vi.mock('@react-oauth/google', () => ({
 }));
 
 describe('OAuth Configuration', () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
   it('GoogleOAuthProvider receives a non-empty clientId in App', async () => {
     // Set the env var before importing App
     vi.stubEnv('VITE_GOOGLE_CLIENT_ID', 'test-client-id-123');

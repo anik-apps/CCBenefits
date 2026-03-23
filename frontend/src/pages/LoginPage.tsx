@@ -74,22 +74,24 @@ export default function LoginPage() {
         </button>
       </form>
       <div style={{ textAlign: 'center', margin: '20px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>or</div>
-      <GoogleLogin
-        onSuccess={async (response) => {
-          if (response.credential) {
-            try {
-              await oauthLogin('google', response.credential);
-              navigate('/');
-            } catch (err) {
-              setError(extractApiError(err, 'Google sign-in failed'));
+      <div style={{ width: '100%', overflow: 'hidden' }}>
+        <GoogleLogin
+          onSuccess={async (response) => {
+            if (response.credential) {
+              try {
+                await oauthLogin('google', response.credential);
+                navigate('/');
+              } catch (err) {
+                setError(extractApiError(err, 'Google sign-in failed'));
+              }
             }
-          }
-        }}
-        onError={() => setError('Google sign-in failed')}
-        theme="filled_black"
-        size="large"
-        width="100%"
-      />
+          }}
+          onError={() => setError('Google sign-in failed')}
+          theme="filled_black"
+          size="large"
+          width={400}
+        />
+      </div>
       <button
         disabled
         style={{ ...primaryButtonStyle, width: '100%', padding: '10px', marginTop: 8, background: '#333', color: '#888', cursor: 'not-allowed', opacity: 0.6 }}
