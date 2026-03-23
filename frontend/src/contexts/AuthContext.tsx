@@ -67,8 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const oauthLogin = async (provider: string, idToken: string, displayName?: string) => {
     queryClient.clear();
-    const data = await oauthSignIn(provider, idToken, displayName);
-    setUser(data.user);
+    await oauthSignIn(provider, idToken, displayName);
+    await refreshUser();
   };
 
   const logout = () => {

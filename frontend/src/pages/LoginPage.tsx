@@ -74,13 +74,12 @@ export default function LoginPage() {
         </button>
       </form>
       <div style={{ textAlign: 'center', margin: '20px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>or</div>
-      <div style={{ width: '100%', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
         <GoogleLogin
           onSuccess={async (response) => {
             if (response.credential) {
               try {
                 await oauthLogin('google', response.credential);
-                navigate('/');
               } catch (err) {
                 setError(extractApiError(err, 'Google sign-in failed'));
               }
@@ -89,7 +88,7 @@ export default function LoginPage() {
           onError={() => setError('Google sign-in failed')}
           theme="filled_black"
           size="large"
-          width={400}
+          width={352}
         />
       </div>
       <button
