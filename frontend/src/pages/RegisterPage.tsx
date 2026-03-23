@@ -65,6 +65,7 @@ export default function RegisterPage() {
             if (response.credential) {
               try {
                 await oauthLogin('google', response.credential);
+                navigate('/');
               } catch (err) {
                 setError(extractApiError(err, 'Google sign-up failed'));
               }

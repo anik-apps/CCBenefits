@@ -80,6 +80,7 @@ export default function LoginPage() {
             if (response.credential) {
               try {
                 await oauthLogin('google', response.credential);
+                navigate('/');
               } catch (err) {
                 setError(extractApiError(err, 'Google sign-in failed'));
               }
