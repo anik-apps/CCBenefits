@@ -73,7 +73,7 @@ export default function RegisterPage() {
         onError={() => setError('Google sign-up failed')}
         theme="filled_black"
         size="large"
-        width={352}
+        width="100%"
         text="signup_with"
       />
       <button

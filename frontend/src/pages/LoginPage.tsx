@@ -88,7 +88,7 @@ export default function LoginPage() {
         onError={() => setError('Google sign-in failed')}
         theme="filled_black"
         size="large"
-        width={352}
+        width="100%"
       />
       <button
         disabled
