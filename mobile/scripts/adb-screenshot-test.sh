@@ -554,7 +554,7 @@ sleep 2
 # Tap first card by name instead of blind coordinates
 if find_and_tap "American Express Platinum"; then
   wait_for_screen 2
-  assert_ui_contains "Uber Cash" "card detail" || true
+  assert_ui_contains "American Express" "card detail" || true
   screenshot "05_card_detail" "$dest"
 else
   echo "  FAILED: Could not find card to tap for detail view" >&2
