@@ -21,14 +21,28 @@
 - [x] OAuth profile management (link/unlink providers)
 - [x] Admin role via `CCB_ADMIN_EMAILS` env var
 
+### Multi-Year Tracking
+- [x] `closed_date` on UserCard (replaces `is_active` — backward compat maintained)
+- [x] Close/reopen card endpoints with date-range validation
+- [x] `?year=YYYY` query parameter on all card GET endpoints
+- [x] Year-aware card filtering (closed cards visible in past years)
+- [x] `available_years` computed per card in API responses
+- [x] Year picker component (web + mobile) with add-past-year confirmation
+- [x] Past-year amber warning banner (web + mobile)
+- [x] Close/reopen UI on Card Detail (web + mobile)
+
 ### Mobile App (Android)
-- [x] React Native / Expo SDK 54 with full feature parity
-- [x] 9 screens matching web functionality
+- [x] React Native / Expo SDK 55 with full feature parity
+- [x] 10+ screens matching web functionality
+- [x] Year picker on Dashboard, All Credits, and Card Detail
+- [x] Close/reopen cards with cross-platform date input
+- [x] Google OAuth sign-in on login and register screens
 - [x] Secure token storage (expo-secure-store)
 - [x] Push notifications (expo-notifications + Firebase FCM)
 - [x] Notification preferences with timezone selector
 - [x] Renewal date picker on card detail
-- [x] EAS Build for APK generation
+- [x] ADB screenshot tests (8 screens with content assertions)
+- [x] Auto local backend in dev mode (`__DEV__` → `10.0.2.2:8000`)
 
 ### Notifications
 - [x] 5 notification types: expiring credits, period start, unused recap, fee approaching, utilization summary
@@ -66,10 +80,11 @@
 - [x] Batch detail endpoint `GET /api/user-cards/details` (fixes N+1 fetch)
 
 ### Testing & CI/CD
-- [x] Integration tests: 5 API smoke tests + 3 Playwright E2E tests
+- [x] Integration tests: API smoke tests + Playwright E2E tests + OAuth button checks
 - [x] Docker Compose test stack (app + postgres) for CI
 - [x] Deploy approval gate via GitHub Environments (manual approve after integration tests pass)
 - [x] Emergency deploy escape hatch via workflow_dispatch
+- [x] Mobile ADB screenshot tests: 8-screen smoke tests with content assertions, auto-seeded data
 
 ### Code Quality
 - [x] 190+ backend tests with 87%+ coverage
@@ -114,5 +129,5 @@
 - [x] Add Alembic migration test to CI — upgrade/downgrade/upgrade on SQLite
 - [x] Periodic dependency audit — Dependabot for npm + GitHub Actions; Poetry deps managed manually
 - [ ] Migrate from deprecated OTel semantic conventions — auto-instrumentation handles it, defer until library update
-- [ ] Add mobile test runner (React Native has zero tests, only TypeScript compilation checks)
+- [x] Add mobile test runner — ADB screenshot tests cover 8 screens with content assertions
 - [ ] Investigate SQLite vs PostgreSQL test parity (type coercion, constraint behavior differences)

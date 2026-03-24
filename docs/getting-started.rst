@@ -86,10 +86,11 @@ Mobile App Setup
 
    cd mobile
    npm install
-   npx expo start
+   npx expo start --dev-client --port 8081
 
-Install **Expo Go** on your Android phone from the Play Store, then scan the QR code
-shown in the terminal. The app connects to the live API at ``https://ccb.kumaranik.com``.
+In dev mode (``__DEV__``), the app automatically uses the local backend
+(``http://10.0.2.2:8000`` on Android emulator, ``http://localhost:8000`` on iOS).
+In production builds, it uses ``https://ccb.kumaranik.com``.
 
 Android Emulator Setup
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -132,8 +133,11 @@ To run the emulator:
    # Start emulator
    $ANDROID_HOME/emulator/emulator -avd ccb_pixel &
 
-   # Start Expo and open on emulator
-   cd mobile && npx expo start --android --lan
+   # Start Metro dev server (auto-connects to local backend)
+   cd mobile && npx expo start --dev-client --port 8081
+
+For full testing setup including building the debug APK, running screenshot tests,
+and seeding test data, see ``mobile/TESTING.md``.
 
 iOS Simulator
 ~~~~~~~~~~~~~

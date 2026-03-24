@@ -18,6 +18,8 @@ Track utilization of credit card benefits (monthly, quarterly, semiannual, annua
 - **Perceived value tracking**: Set your own valuation per benefit (e.g., value a $25 Equinox credit at $10 if you rarely go)
 - **Period segments**: Visual grid showing usage across all months/quarters/halves of the year
 - **Binary vs continuous benefits**: Toggle for all-or-nothing credits, dollar input for partial-use credits
+- **Multi-year tracking**: Year picker on Dashboard, All Credits, and Card Detail — view and log usage for any year
+- **Close/reopen cards**: Close a card with a date, view historical usage, reopen if needed
 - **Analytics dashboard**: SVG donut/bar charts, summary stats, per-card utilization
 - **All Credits view**: By Period / By Card / Sheet tabs with collapsible sections and issuer color coding
 - **Notifications**: 5 types (expiring credits, period start, unused recap, fee approaching, utilization summary) via email + push
@@ -76,15 +78,17 @@ This starts Vite at `http://localhost:5173` with API proxy to the backend.
 ```bash
 cd mobile
 npm install
-npx expo start
+
+# Dev mode — automatically uses local backend (http://10.0.2.2:8000 on Android emulator)
+npx expo start --dev-client --port 8081
+
+# With explicit API URL override:
+CCB_API_URL=http://10.0.2.2:8000 npx expo start --dev-client --port 8081
 ```
 
-Scan the QR code with Expo Go on your Android phone. The app connects to the live API at `https://ccb.kumaranik.com`.
+In dev mode (`__DEV__`), the app automatically uses the local backend. In production builds, it uses `https://ccb.kumaranik.com`.
 
-**Emulators:**
-- **Android:** Install Java 17 + Android SDK via Homebrew, create AVD, run `npx expo start --android --lan` (see `docs/getting-started.rst` for full setup)
-- **iOS:** Install Xcode, run `npx expo start --ios`, or build via `eas build --profile simulator --platform ios`
-- **Standalone APK:** `eas build --profile preview --platform android`
+**Emulators:** See `mobile/TESTING.md` for full setup (Android SDK, AVD, building APK, running screenshot tests).
 
 ### Run Tests
 
@@ -123,9 +127,10 @@ docker compose -f docker-compose.test.yml down -v
 | `GRAFANA_INSTANCE_ID` | _(empty)_ | Grafana Cloud instance ID. |
 | `GRAFANA_OTLP_TOKEN` | _(empty)_ | Grafana Cloud API token. |
 | `CCB_SCHEDULER_ENABLED` | `false` | Enable APScheduler for notification jobs. Set `true` in production. |
-| `GOOGLE_CLIENT_ID` | _(empty)_ | Google OAuth web client ID. |
+| `GOOGLE_CLIENT_ID` | _(empty)_ | Google OAuth web client ID (backend token verification). |
 | `GOOGLE_CLIENT_ID_ANDROID` | _(empty)_ | Google OAuth Android client ID. |
 | `GOOGLE_CLIENT_ID_IOS` | _(empty)_ | Google OAuth iOS client ID. |
+| `VITE_GOOGLE_CLIENT_ID` | _(empty)_ | Google OAuth client ID for frontend (build-time, via Docker `--build-arg`). |
 
 ## Project Structure
 
@@ -190,6 +195,8 @@ CCBenefits/
 │           ├── ProtectedRoute.tsx
 │           ├── TabLink.tsx
 │           ├── UserMenu.tsx
+│           ├── YearPicker.tsx
+│           ├── PastYearBanner.tsx
 │           └── ROISummary.tsx
 ├── mobile/                     # React Native (Expo) Android app
 │   ├── app.json                # Expo config
@@ -201,7 +208,7 @@ CCBenefits/
 │       ├── navigation/         # Auth stack + App stack
 │       ├── screens/            # Login, Register, VerifyPending, Dashboard,
 │       │                       # CardDetail, AddCard, AllCredits, Profile, Feedback
-│       ├── components/         # UsageModal, ScreenWrapper, LoadingScreen
+│       ├── components/         # UsageModal, YearPicker, PastYearBanner, ScreenWrapper, etc.
 │       └── theme.ts            # Dark theme colors/spacing
 ├── tests/e2e/                  # Playwright E2E tests
 ├── Dockerfile                  # Multi-stage (Node build + Python slim)
@@ -250,13 +257,15 @@ CCBenefits/
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/api/user-cards/` | Add card to your collection |
-| GET | `/api/user-cards/` | Your cards with ROI summary |
-| GET | `/api/user-cards/{id}` | Card detail with period segments |
+| GET | `/api/user-cards/?year=YYYY` | Your cards with ROI summary (default: current year) |
+| GET | `/api/user-cards/{id}?year=YYYY` | Card detail with period segments |
 | DELETE | `/api/user-cards/{id}` | Remove a card |
+| PUT | `/api/user-cards/{id}/close` | Close card with `closed_date` |
+| PUT | `/api/user-cards/{id}/reopen` | Reopen a closed card |
 | POST | `/api/user-cards/{id}/usage` | Log benefit usage |
 | PUT | `/api/user-cards/{id}/benefits/{bid}/setting` | Set perceived value |
-| GET | `/api/user-cards/details` | Batch detail (all cards + benefits) |
-| GET | `/api/user-cards/{id}/summary` | ROI summary |
+| GET | `/api/user-cards/details?year=YYYY` | Batch detail (all cards + benefits) |
+| GET | `/api/user-cards/{id}/summary?year=YYYY` | ROI summary |
 | PUT | `/api/usage/{id}` | Update usage |
 | DELETE | `/api/usage/{id}` | Delete usage |
 
@@ -302,8 +311,12 @@ job dedup (see `backend/ccbenefits/scheduler.py`).
 React Native (Expo SDK 55) Android app with full feature parity:
 
 - **10+ screens**: Login, Register, Verify Pending, Dashboard, Card Detail, Add Card, All Credits (3 tabs), Notifications, Feedback, Profile
+- **Multi-year tracking**: Year picker on Dashboard, All Credits, and Card Detail with past-year amber banner
+- **Close/reopen cards**: Close with date picker (cross-platform: Alert.prompt on iOS, inline TextInput on Android), reopen with confirmation
 - **Usage logging**: Tap any benefit to log/update/delete usage with period selector and binary/continuous support
+- **Google OAuth**: Sign in with Google on login and register screens
 - **Dark theme**: Matches web frontend with gold accents
 - **Safe area handling**: Content properly inset for notch/status bar on all devices
 - **Offline-ready**: TanStack Query with netinfo detection and AppState-based refetching
 - **Secure storage**: Tokens stored in encrypted expo-secure-store with in-memory cache
+- **ADB screenshot tests**: 8-screen automated smoke tests with content assertions (see `mobile/TESTING.md`)

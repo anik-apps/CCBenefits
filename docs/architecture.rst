@@ -59,16 +59,19 @@ for HTTPS.
 
    mobile/                  # React Native (Expo) Android app
      src/
-       services/api.ts    # API client (async SecureStore + memory cache)
+       services/api.ts    # API client (async SecureStore + memory cache, auto local backend in dev)
        contexts/           # AuthContext (token hydration, auth state)
        navigation/         # Auth stack + App stack
-       screens/            # 9 screens matching web functionality
-       components/         # UsageModal, ScreenWrapper, LoadingScreen
+       screens/            # 10+ screens matching web functionality
+       components/         # UsageModal, YearPicker, PastYearBanner, ScreenWrapper, etc.
        theme.ts            # Dark theme (colors, spacing, radius)
+     scripts/
+       adb-screenshot-test.sh  # Automated 8-screen smoke test with content assertions
 
 - **CardTemplate** — credit card definition (name, issuer, annual fee)
 - **BenefitTemplate** — a benefit belonging to a card (name, max value, period type, redemption type)
-- **UserCard** — a user's instance of a card template (linked to User via ``user_id`` FK)
+- **UserCard** — a user's instance of a card template (linked to User via ``user_id`` FK,
+  ``closed_date`` for multi-year tracking)
 - **BenefitUsage** — usage record per benefit per period
 - **UserBenefitSetting** — user's perceived value override per benefit
 
@@ -159,20 +162,28 @@ Production runs on Oracle Cloud Always Free tier (E2.1.Micro VM, 1 OCPU, 1GB RAM
 Mobile App
 ----------
 
-React Native (Expo SDK 54) Android app with full feature parity to the web frontend.
+React Native (Expo SDK 55) Android app with full feature parity to the web frontend.
 
-- **9 screens**: Login, Register, Verify Pending, Dashboard, Card Detail, Add Card,
-  All Credits, Feedback, Profile
+- **10+ screens**: Login, Register, Verify Pending, Dashboard, Card Detail, Add Card,
+  All Credits (3 tabs), Notifications, Feedback, Profile
+- **Multi-year tracking**: Year picker on Dashboard, All Credits, and Card Detail with
+  past-year amber warning banner
+- **Close/reopen cards**: Close with date picker (cross-platform: Alert.prompt on iOS,
+  inline TextInput on Android), reopen with confirmation dialog
+- **Google OAuth**: Sign in with Google on login and register screens
 - **Push notifications**: expo-notifications + Firebase FCM, token registration on startup
 - **Notification preferences**: per-type email/push toggles with timezone selector
 - **Shared API client**: adapted from the web frontend's ``api.ts`` with async
-  ``expo-secure-store`` for token persistence and in-memory cache for fast access
+  ``expo-secure-store`` for token persistence and in-memory cache for fast access.
+  Auto-detects dev mode (``__DEV__``) and uses local backend (``10.0.2.2:8000``).
 - **Usage logging**: tap any benefit to log/update/delete with period selector,
   binary toggle, and full/partial color coding (gold = partial, green = fully used)
 - **Auth flow**: conditional root navigator renders Auth stack, Verify Pending gate,
   or App stack based on user state and verification status
 - **TanStack Query**: same server-state management as web, with React Native-specific
   ``netinfo`` (online/offline) and ``AppState`` (focus/refetch) listeners
+- **ADB screenshot tests**: 8-screen automated smoke tests with content assertions,
+  auto-seeded test data, and baseline comparison (see ``mobile/TESTING.md``)
 
 Key Concepts
 ------------
