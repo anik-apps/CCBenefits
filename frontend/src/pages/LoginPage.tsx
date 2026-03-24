@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../hooks/useAuth';
+import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { storeTokens } from '../services/api';
 import { extractApiError } from '../utils/apiError';
 import { inputStyle, labelStyle, primaryButtonStyle, errorStyle, authPageStyle } from '../styles/form';
@@ -15,6 +15,17 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const handleGoogleCredential = useCallback(async (credential: string) => {
+    try {
+      await oauthLogin('google', credential);
+      navigate('/');
+    } catch (err) {
+      setError(extractApiError(err, 'Google sign-in failed'));
+    }
+  }, [oauthLogin, navigate]);
+
+  const googleBtnRef = useGoogleSignIn(handleGoogleCredential, 'signin_with');
+
   // Handle Apple redirect callback (tokens in URL fragment)
   useEffect(() => {
     const hash = window.location.hash.substring(1);
@@ -27,7 +38,6 @@ export default function LoginPage() {
       window.location.hash = '';
       return;
     }
-    // Handle Apple redirect errors
     const err = searchParams.get('error');
     if (err) {
       const messages: Record<string, string> = {
@@ -37,7 +47,7 @@ export default function LoginPage() {
       };
       setError(messages[err] || 'Sign-in failed');
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount for Apple callback
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,22 +85,7 @@ export default function LoginPage() {
       </form>
       <div style={{ textAlign: 'center', margin: '20px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>or</div>
       <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <GoogleLogin
-          onSuccess={async (response) => {
-            if (response.credential) {
-              try {
-                await oauthLogin('google', response.credential);
-                navigate('/');
-              } catch (err) {
-                setError(extractApiError(err, 'Google sign-in failed'));
-              }
-            }
-          }}
-          onError={() => setError('Google sign-in failed')}
-          theme="filled_black"
-          size="large"
-          width={352}
-        />
+        <div ref={googleBtnRef} />
       </div>
       <button
         disabled

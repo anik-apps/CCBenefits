@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { updateProfile, changePassword, getOAuthProviders, linkOAuthProvider, unlinkOAuthProvider } from '../services/api';
-import { GoogleLogin } from '@react-oauth/google';
+import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { extractApiError } from '../utils/apiError';
 import { inputStyle, labelStyle, primaryButtonStyle } from '../styles/form';
 import type { NotificationPreferences, ChannelPreferences } from '../types';
@@ -86,6 +86,21 @@ export default function ProfilePage() {
 
   const [oauthProviders, setOauthProviders] = useState<{ provider: string; provider_email: string }[]>([]);
   const [oauthMsg, setOauthMsg] = useState('');
+
+  const handleGoogleLink = useCallback(async (credential: string) => {
+    try {
+      await linkOAuthProvider('google', credential);
+      const providers = await getOAuthProviders();
+      setOauthProviders(providers);
+      setOauthMsg('Google linked');
+      setTimeout(() => setOauthMsg(''), 2000);
+    } catch (err) {
+      setOauthMsg(extractApiError(err, 'Failed to link Google'));
+      setTimeout(() => setOauthMsg(''), 3000);
+    }
+  }, []);
+
+  const googleLinkRef = useGoogleSignIn(handleGoogleLink, 'signin');
 
   useEffect(() => {
     getOAuthProviders().then(setOauthProviders).catch(() => {});
@@ -256,26 +271,7 @@ export default function ProfilePage() {
         ))}
         {!oauthProviders.find(p => p.provider === 'google') && (
           <div style={{ marginTop: 8 }}>
-            <GoogleLogin
-              onSuccess={async (response) => {
-                if (response.credential) {
-                  try {
-                    await linkOAuthProvider('google', response.credential);
-                    const providers = await getOAuthProviders();
-                    setOauthProviders(providers);
-                    setOauthMsg('Google linked');
-                    setTimeout(() => setOauthMsg(''), 2000);
-                  } catch (err) {
-                    setOauthMsg(extractApiError(err, 'Failed to link Google'));
-                    setTimeout(() => setOauthMsg(''), 3000);
-                  }
-                }
-              }}
-              onError={() => setOauthMsg('Failed to link Google')}
-              theme="filled_black"
-              size="medium"
-              text="signin"
-            />
+            <div ref={googleLinkRef} />
           </div>
         )}
       </div>
