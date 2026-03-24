@@ -15,7 +15,7 @@ def send_push_notifications(
     tokens: list[str],
     title: str,
     body: str,
-    data: dict = None,
+    data: dict | None = None,
     db=None,
     notification_type: str = "push",
 ) -> int:
