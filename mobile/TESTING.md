@@ -81,15 +81,10 @@ The debug APK requires a Metro bundler to serve JavaScript:
 
 ```bash
 cd mobile
-
-# For local development (API on localhost:8000):
-CCB_API_URL=http://10.0.2.2:8000 npx expo start --dev-client --port 8081
-
-# For production API (default):
 npx expo start --dev-client --port 8081
 ```
 
-> **Note:** `10.0.2.2` is the Android emulator's alias for the host machine's `localhost`.
+In dev mode (`__DEV__`), the app automatically uses `http://10.0.2.2:8000` (Android emulator's alias for host `localhost`). No need to set `CCB_API_URL`.
 
 Make sure the backend is also running:
 
@@ -142,7 +137,7 @@ Exit code 0 means all checks passed. Non-zero = number of failures.
 | 2 | All Credits — By Period | Tap "All Credits" | — |
 | 3 | All Credits — By Card | Tap "By Card" tab | — |
 | 4 | All Credits — Sheet | Tap "Sheet" tab | — |
-| 5 | Card Detail | Tap card by name | "Uber Cash" visible |
+| 5 | Card Detail | Tap card by name | "American Express" visible |
 | 6 | Notifications | Tap bell icon | — |
 | 7 | Add Card | Tap "+" FAB | — |
 | 8 | Profile | Tap avatar letter | Display name visible |
