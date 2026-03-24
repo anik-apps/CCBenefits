@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../hooks/useAuth';
 import { storeTokens } from '../services/api';
 import { extractApiError } from '../utils/apiError';
 import { inputStyle, labelStyle, primaryButtonStyle, errorStyle, authPageStyle } from '../styles/form';
+
+declare const google: any;
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
 export default function LoginPage() {
   const { login, oauthLogin, refreshUser } = useAuth();
@@ -14,6 +17,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const googleBtnRef = useRef<HTMLDivElement>(null);
+
+  const handleGoogleCredential = useCallback(async (credential: string) => {
+    try {
+      await oauthLogin('google', credential);
+      navigate('/');
+    } catch (err) {
+      setError(extractApiError(err, 'Google sign-in failed'));
+    }
+  }, [oauthLogin, navigate]);
 
   // Handle Apple redirect callback (tokens in URL fragment)
   useEffect(() => {
@@ -38,6 +51,33 @@ export default function LoginPage() {
       setError(messages[err] || 'Sign-in failed');
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount for Apple callback
+
+  // Initialize Google Sign-In using GIS SDK directly
+  // The @react-oauth/google GoogleLogin component's popup callback is unreliable
+  // (postMessage relay fails silently). Using the SDK directly is more robust.
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID || !googleBtnRef.current) return;
+
+    const tryInit = () => {
+      if (typeof google === 'undefined' || !google.accounts?.id) {
+        setTimeout(tryInit, 300);
+        return;
+      }
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: (response: { credential: string }) => {
+          handleGoogleCredential(response.credential);
+        },
+      });
+      google.accounts.id.renderButton(googleBtnRef.current!, {
+        theme: 'filled_black',
+        size: 'large',
+        width: 352,
+        text: 'signin_with',
+      });
+    };
+    tryInit();
+  }, [handleGoogleCredential]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,22 +115,7 @@ export default function LoginPage() {
       </form>
       <div style={{ textAlign: 'center', margin: '20px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>or</div>
       <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <GoogleLogin
-          onSuccess={async (response) => {
-            if (response.credential) {
-              try {
-                await oauthLogin('google', response.credential);
-                navigate('/');
-              } catch (err) {
-                setError(extractApiError(err, 'Google sign-in failed'));
-              }
-            }
-          }}
-          onError={() => setError('Google sign-in failed')}
-          theme="filled_black"
-          size="large"
-          width={352}
-        />
+        <div ref={googleBtnRef} />
       </div>
       <button
         disabled
