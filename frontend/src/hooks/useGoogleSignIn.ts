@@ -33,9 +33,9 @@ export function useGoogleSignIn(
 
     const tryInit = () => {
       if (cancelled) return;
-      if (!containerRef.current) return;
 
-      if (typeof google === 'undefined' || !google.accounts?.id) {
+      // Retry if SDK not loaded yet OR ref not attached yet
+      if (typeof google === 'undefined' || !google.accounts?.id || !containerRef.current) {
         if (++attempts < MAX_INIT_ATTEMPTS) {
           timerId = setTimeout(tryInit, 300);
         }
@@ -51,14 +51,12 @@ export function useGoogleSignIn(
         },
       });
 
-      if (containerRef.current) {
-        google.accounts.id.renderButton(containerRef.current, {
-          theme: 'filled_black',
-          size: 'large',
-          width: 352,
-          text: buttonText,
-        });
-      }
+      google.accounts.id.renderButton(containerRef.current, {
+        theme: 'filled_black',
+        size: 'large',
+        width: 352,
+        text: buttonText,
+      });
     };
 
     tryInit();
