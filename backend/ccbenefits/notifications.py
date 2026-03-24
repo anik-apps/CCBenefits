@@ -231,7 +231,7 @@ def send_notification_push(
 
 
 def _create_inbox_notification(
-    db: "Session", user: "User", notification_type: str,
+    db, user, notification_type: str,
     title: str, body: str, data: dict | None = None,
 ) -> None:
     from .models import Notification
