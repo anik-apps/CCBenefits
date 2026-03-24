@@ -63,6 +63,25 @@ def _now_naive() -> datetime:
     return datetime.now(dt_timezone.utc).replace(tzinfo=None)
 
 
+def _verify_oauth_token(provider: str, id_token: str) -> dict:
+    """Verify an OAuth ID token and return provider info dict.
+
+    Raises HTTPException on invalid token or unsupported provider.
+    """
+    if provider == "google":
+        try:
+            return verify_google_token(id_token)
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid Google token")
+    elif provider == "apple":
+        try:
+            return verify_apple_token(id_token)
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid Apple token")
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported provider")
+
+
 @router.post("/register", response_model=AuthResponse, status_code=201)
 def register(data: UserRegister, db: Session = Depends(get_db)):
     email = data.email.lower()
@@ -233,18 +252,7 @@ def reset_password(data: PasswordReset, db: Session = Depends(get_db)):
 
 @router.post("/oauth", response_model=AuthResponse)
 def oauth_sign_in(data: OAuthRequest, db: Session = Depends(get_db)):
-    if data.provider == "google":
-        try:
-            info = verify_google_token(data.id_token)
-        except Exception:
-            raise HTTPException(status_code=401, detail="Invalid Google token")
-    elif data.provider == "apple":
-        try:
-            info = verify_apple_token(data.id_token)
-        except Exception:
-            raise HTTPException(status_code=401, detail="Invalid Apple token")
-    else:
-        raise HTTPException(status_code=400, detail="Unsupported provider")
+    info = _verify_oauth_token(data.provider, data.id_token)
 
     if not info["email_verified"]:
         raise HTTPException(status_code=400, detail="Email not verified by provider")
@@ -283,18 +291,7 @@ def link_oauth_provider(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if data.provider == "google":
-        try:
-            info = verify_google_token(data.id_token)
-        except Exception:
-            raise HTTPException(status_code=401, detail="Invalid Google token")
-    elif data.provider == "apple":
-        try:
-            info = verify_apple_token(data.id_token)
-        except Exception:
-            raise HTTPException(status_code=401, detail="Invalid Apple token")
-    else:
-        raise HTTPException(status_code=400, detail="Unsupported provider")
+    info = _verify_oauth_token(data.provider, data.id_token)
 
     if not info.get("email_verified"):
         raise HTTPException(status_code=400, detail="Email not verified by provider")

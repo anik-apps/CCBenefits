@@ -123,6 +123,12 @@
 - [ ] **Card recommendation engine**: Suggest cards based on spending patterns (depends on Plaid data — without it, recommendations are generic)
 
 ### Technical Debt
+- [ ] Extract `_dispatch_notification()` helper in notifications.py — 5 repeated dispatch patterns (inbox + email + push), design carefully around differing dedup semantics in `send_utilization_summary`
+- [ ] Standardize naive vs aware datetime handling — audit all DateTime columns and comparisons, decide on one pattern, extract shared `utc_now()` utility
+- [ ] Extract `useBenefitActions` frontend hook — deduplicate usage handlers between CardDetail and AllCredits (verify both pages are stable before abstracting)
+- [ ] Verify `ROISummary.tsx` intent — check git history; delete if abandoned, integrate if planned
+- [ ] Frontend page-level tests — Dashboard, CardDetail, AllCredits, ProfilePage with react-query mocks
+- [ ] Notification scheduler job tests — `check_expiring_credits`, `check_period_transitions`, `check_fee_approaching`, `send_utilization_summary` with freezegun
 - [x] Fix `notifications.jobs_run` cardinality issue — removed dynamic `users` label from counter
 - [x] Add composite index on `notification_logs` — migration 729e700f7e6b applied
 - [x] Generalize expired token cleanup — `cleanup_expired_data()` cleans notifications, verification tokens, reset tokens, unsubscribe tokens

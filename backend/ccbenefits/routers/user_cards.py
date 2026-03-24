@@ -55,19 +55,8 @@ def create_user_card(
     db.refresh(user_card)
     cards_added_counter.add(1)
 
-    return UserCardOut(
-        id=user_card.id,
-        card_template_id=user_card.card_template_id,
-        card_name=card_template.name,
-        issuer=card_template.issuer,
-        annual_fee=card_template.annual_fee,
-        nickname=user_card.nickname,
-        member_since_date=user_card.member_since_date,
-        renewal_date=user_card.renewal_date,
-        closed_date=user_card.closed_date,
-        is_active=user_card.is_active,
-        created_at=user_card.created_at,
-    )
+    user_card.card_template = card_template
+    return _to_user_card_out(user_card)
 
 
 @router.patch("/{user_card_id}", response_model=UserCardOut)
@@ -91,18 +80,24 @@ def update_user_card(
         uc.renewal_date = None
     db.commit()
     db.refresh(uc)
+    return _to_user_card_out(uc)
+
+
+def _to_user_card_out(uc: UserCard) -> UserCardOut:
+    """Build UserCardOut from a UserCard with card_template loaded."""
+    ct = uc.card_template
     return UserCardOut(
         id=uc.id,
         card_template_id=uc.card_template_id,
-        card_name=uc.card_template.name,
-        issuer=uc.card_template.issuer,
-        annual_fee=uc.card_template.annual_fee,
+        card_name=ct.name,
+        issuer=ct.issuer,
+        annual_fee=ct.annual_fee,
         nickname=uc.nickname,
         member_since_date=uc.member_since_date,
-        is_active=uc.is_active,
-        created_at=uc.created_at,
         renewal_date=uc.renewal_date,
         closed_date=uc.closed_date,
+        is_active=uc.is_active,
+        created_at=uc.created_at,
     )
 
 
@@ -273,19 +268,7 @@ def close_user_card(
     db.commit()
     db.refresh(uc)
 
-    return UserCardOut(
-        id=uc.id,
-        card_template_id=uc.card_template_id,
-        card_name=uc.card_template.name,
-        issuer=uc.card_template.issuer,
-        annual_fee=uc.card_template.annual_fee,
-        nickname=uc.nickname,
-        member_since_date=uc.member_since_date,
-        renewal_date=uc.renewal_date,
-        closed_date=uc.closed_date,
-        is_active=uc.is_active,
-        created_at=uc.created_at,
-    )
+    return _to_user_card_out(uc)
 
 
 @router.put("/{user_card_id}/reopen", response_model=UserCardOut)
@@ -310,19 +293,7 @@ def reopen_user_card(
     db.commit()
     db.refresh(uc)
 
-    return UserCardOut(
-        id=uc.id,
-        card_template_id=uc.card_template_id,
-        card_name=uc.card_template.name,
-        issuer=uc.card_template.issuer,
-        annual_fee=uc.card_template.annual_fee,
-        nickname=uc.nickname,
-        member_since_date=uc.member_since_date,
-        renewal_date=uc.renewal_date,
-        closed_date=uc.closed_date,
-        is_active=uc.is_active,
-        created_at=uc.created_at,
-    )
+    return _to_user_card_out(uc)
 
 
 @router.post("/{user_card_id}/usage", response_model=BenefitUsageOut, status_code=201)

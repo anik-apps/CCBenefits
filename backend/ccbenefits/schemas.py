@@ -291,9 +291,6 @@ class OAuthLinkRequest(BaseModel):
     display_name: str | None = None
 
 
-# --- Feedback schemas ---
-
-
 # --- Push Token schemas ---
 
 
@@ -316,7 +313,7 @@ class PushTokenUnregister(PushTokenBase):
     pass
 
 
-# --- Feedback schemas ---
+# --- Notification schemas ---
 
 
 class NotificationOut(BaseModel):

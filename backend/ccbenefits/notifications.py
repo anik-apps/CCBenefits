@@ -205,7 +205,7 @@ def send_notification_push(
     reference_key: str,
     title: str,
     body: str,
-    data: dict = None,
+    data: dict | None = None,
 ) -> bool:
     """Send push notification to user's devices. Returns True if sent."""
     if not get_user_pref(user, "push", notification_type):
@@ -230,7 +230,10 @@ def send_notification_push(
     return False
 
 
-def _create_inbox_notification(db, user, notification_type, title, body, data=None):
+def _create_inbox_notification(
+    db: "Session", user: "User", notification_type: str,
+    title: str, body: str, data: dict | None = None,
+) -> None:
     from .models import Notification
 
     notif = Notification(
