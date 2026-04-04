@@ -43,7 +43,7 @@ frontend/coverage/
 !.env.example
 
 # Firebase
-google-services.json
+# google-services.json is safe to commit (public API key, project identifiers only)
 
 # Playwright E2E
 tests/e2e/node_modules/

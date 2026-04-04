@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "318506592635",
+    "project_id": "anikapps",
+    "storage_bucket": "anikapps.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:318506592635:android:a554815d5cfaa7d2e735de",
+        "android_client_info": {
+          "package_name": "com.anikapps.ccbenefits"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC47HQnHncmHX6p5BTtlc7a-wGOUc2_CxE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
