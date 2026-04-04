@@ -101,6 +101,49 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.test.yml down -v
 
+  mobile-build:
+    name: Mobile App Build (EAS)
+    needs: integration-tests
+    if: success()
+    runs-on: ubuntu-latest
+    environment: mobile-build
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check for mobile changes
+        id: changes
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD | grep '^mobile/' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: actions/setup-node@v6
+        if: steps.changes.outputs.skip == 'false'
+        with:
+          node-version: "24"
+
+      - name: Install EAS CLI
+        if: steps.changes.outputs.skip == 'false'
+        run: npm install -g eas-cli
+
+      - name: Install mobile dependencies
+        if: steps.changes.outputs.skip == 'false'
+        working-directory: mobile
+        run: npm install
+
+      - name: Build Android preview APK
+        if: steps.changes.outputs.skip == 'false'
+        working-directory: mobile
+        run: eas build --platform android --profile preview --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
   deploy:
     name: Deploy to Production
     needs: integration-tests
