@@ -22,7 +22,7 @@ jobs:
         working-directory: backend
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v6
         with:
@@ -74,9 +74,9 @@ jobs:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
 
@@ -110,7 +110,7 @@ jobs:
     name: Shared Code Drift Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Check types.ts is in sync
         run: diff frontend/src/types.ts mobile/src/types.ts || { echo "::error::frontend/src/types.ts and mobile/src/types.ts have drifted apart. Update both files to match."; exit 1; }
 
@@ -121,7 +121,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Generate badges
         run: |
