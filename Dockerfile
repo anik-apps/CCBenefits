@@ -2,7 +2,7 @@
 FROM node:24-slim AS frontend-build
 WORKDIR /build
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+RUN npm install
 COPY frontend/ .
 # Vite inlines VITE_* env vars at build time — pass via build args
 ARG VITE_GOOGLE_CLIENT_ID=""
