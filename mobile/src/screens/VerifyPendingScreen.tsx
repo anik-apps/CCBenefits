@@ -1,9 +1,9 @@
 import ScreenWrapper from '../components/ScreenWrapper';
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import axios from 'axios';
 import { useAuth } from '../hooks/useAuth';
 import { resendVerification } from '../services/api';
+import { extractApiError } from '../utils/apiError';
 import { colors, spacing, radius } from '../theme';
 
 export default function VerifyPendingScreen() {
@@ -28,8 +28,7 @@ export default function VerifyPendingScreen() {
       await resendVerification();
       setMessage('Verification email sent!');
     } catch (err: unknown) {
-      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
-      setMessage(status === 429 ? 'Please wait before resending' : 'Failed to send');
+      setMessage(extractApiError(err, 'Failed to send'));
     } finally {
       setSending(false);
       timerRef.current = setTimeout(() => setMessage(''), 5000);

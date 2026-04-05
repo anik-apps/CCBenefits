@@ -2,7 +2,6 @@ import axios from 'axios';
 import type {
   AuthResponse,
   CardTemplateListItem,
-  CardTemplateDetail,
   TokenResponse,
   User,
   UserCardOut,
@@ -88,11 +87,6 @@ api.interceptors.response.use(
 
 export async function getCardTemplates(): Promise<CardTemplateListItem[]> {
   const { data } = await api.get('/api/card-templates/');
-  return data;
-}
-
-export async function getCardTemplate(id: number): Promise<CardTemplateDetail> {
-  const { data } = await api.get(`/api/card-templates/${id}`);
   return data;
 }
 
