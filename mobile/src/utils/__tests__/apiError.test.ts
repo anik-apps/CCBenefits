@@ -1,5 +1,5 @@
 import { extractApiError } from '../apiError';
-import axios, { AxiosError } from 'axios';
+import { AxiosError } from 'axios';
 
 describe('extractApiError', () => {
   it('extracts detail from an AxiosError response', () => {
