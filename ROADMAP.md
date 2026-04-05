@@ -4,7 +4,7 @@
 
 ### Core Application
 - [x] Credit card benefits tracker with FastAPI backend + React frontend
-- [x] 11 seeded card templates (Amex Platinum, Chase Sapphire Reserve, etc.)
+- [x] 41 seeded card templates across 8 issuers with ~150 trackable benefits
 - [x] Benefit tracking by period type (monthly, quarterly, semiannual, annual)
 - [x] Binary and continuous redemption types
 - [x] Perceived value overrides for ROI calculation
@@ -16,7 +16,7 @@
 - [x] Email verification via Resend (24-hour token expiry)
 - [x] Password reset with opaque tokens (SHA-256 hashed)
 - [x] Forgot password UI (web + mobile)
-- [x] OAuth sign-in: Google (web + mobile), Apple (coming soon)
+- [x] OAuth sign-in: Google (web + native mobile), Apple (coming soon)
 - [x] Auto account linking by verified email
 - [x] OAuth profile management (link/unlink providers)
 - [x] Admin role via `CCB_ADMIN_EMAILS` env var
@@ -36,7 +36,7 @@
 - [x] 10+ screens matching web functionality
 - [x] Year picker on Dashboard, All Credits, and Card Detail
 - [x] Close/reopen cards with cross-platform date input
-- [x] Google OAuth sign-in on login and register screens
+- [x] Native Google Sign-In (native account picker, not browser-based)
 - [x] Secure token storage (expo-secure-store)
 - [x] Push notifications (expo-notifications + Firebase FCM)
 - [x] Notification preferences with timezone selector
@@ -55,7 +55,7 @@
 - [x] Do-not-reply footer with feedback link on all emails
 
 ### Infrastructure & DevOps
-- [x] Docker multi-stage build (Node 22 + Python 3.13)
+- [x] Docker multi-stage build (Node 24 + Python 3.13)
 - [x] Oracle Cloud VM deployment (E2.1.Micro, Ubuntu 24.04)
 - [x] GitHub Actions CI/CD (tests → build → GHCR → SSH deploy)
 - [x] Cloudflare DNS + SSL
@@ -83,11 +83,12 @@
 - [x] Integration tests: API smoke tests + Playwright E2E tests + OAuth button checks
 - [x] Docker Compose test stack (app + postgres) for CI
 - [x] Deploy approval gate via GitHub Environments (manual approve after integration tests pass)
+- [x] EAS mobile build CI step (separate approval gate from deploy)
 - [x] Emergency deploy escape hatch via workflow_dispatch
 - [x] Mobile ADB screenshot tests: 8-screen smoke tests with content assertions, auto-seeded data
 
 ### Code Quality
-- [x] 190+ backend tests with 87%+ coverage
+- [x] 229+ backend tests with 87%+ coverage
 - [x] Ruff (Python) + ESLint (TypeScript) enforced in CI
 - [x] Frontend TypeScript strict mode + Vite build
 - [x] Mobile TypeScript compilation checks
@@ -99,6 +100,7 @@
 ## Future Work
 
 ### High Priority
+- [ ] **GoogleSignin.signOut() on logout**: Clear native Google SDK cached credential so account picker shows on next sign-in
 - [ ] **Alert rules**: Define Grafana alert rules as code (error rate spike, latency degradation, zero requests)
 - [ ] **Automated database backups**: `pg_dump` cron to OCI Object Storage (protects against highest-impact failure)
 - [ ] **Uptime monitoring**: External health check (UptimeRobot or similar) — lower effort than Grafana alerts, immediate value
