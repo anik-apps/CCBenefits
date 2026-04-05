@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from ..database import get_db
 from ..dependencies import get_current_user
@@ -22,7 +22,12 @@ def update_usage(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    usage = db.query(BenefitUsage).filter(BenefitUsage.id == usage_id).first()
+    usage = (
+        db.query(BenefitUsage)
+        .options(joinedload(BenefitUsage.user_card))
+        .filter(BenefitUsage.id == usage_id)
+        .first()
+    )
     if not usage:
         raise HTTPException(status_code=404, detail="Usage record not found")
 
@@ -65,7 +70,12 @@ def delete_usage(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    usage = db.query(BenefitUsage).filter(BenefitUsage.id == usage_id).first()
+    usage = (
+        db.query(BenefitUsage)
+        .options(joinedload(BenefitUsage.user_card))
+        .filter(BenefitUsage.id == usage_id)
+        .first()
+    )
     if not usage:
         raise HTTPException(status_code=404, detail="Usage record not found")
     _verify_usage_ownership(usage, current_user)
