@@ -39,17 +39,16 @@ export default {
         },
       ],
       "expo-splash-screen",
-      "expo-web-browser",
       "expo-apple-authentication",
+      "@react-native-google-signin/google-signin",
     ],
-    scheme: "ccbenefits",
+    scheme: "ccbenefits", // Reserved for deep links (notifications, Apple Sign-In)
     extra: {
       eas: {
         projectId: "d9ff5adf-f515-442c-833b-cd22c566541d",
       },
       apiUrl: process.env.CCB_API_URL || "https://ccb.kumaranik.com",
       googleClientId: process.env.GOOGLE_CLIENT_ID || "",
-      googleClientIdAndroid: process.env.GOOGLE_CLIENT_ID_ANDROID || "",
       googleClientIdIos: process.env.GOOGLE_CLIENT_ID_IOS || "",
     },
     owner: "kumaranik",

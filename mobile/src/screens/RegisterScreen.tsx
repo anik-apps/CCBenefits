@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
-import Constants from 'expo-constants';
+import React, { useState } from 'react';
+import { Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
+import {
+  GoogleSignin, statusCodes, isErrorWithCode, isSuccessResponse, ensureGoogleSignInConfigured,
+} from '../config/googleSignIn';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { useAuth } from '../hooks/useAuth';
 import { extractApiError } from '../utils/apiError';
@@ -10,8 +10,6 @@ import { colors, spacing, radius } from '../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 type Props = NativeStackScreenProps<any, 'Register'>;
-
-WebBrowser.maybeCompleteAuthSession();
 
 export default function RegisterScreen({ navigation }: Props) {
   const { register, oauthLogin } = useAuth();
@@ -22,20 +20,8 @@ export default function RegisterScreen({ navigation }: Props) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: Constants.expoConfig?.extra?.googleClientId,
-    androidClientId: Constants.expoConfig?.extra?.googleClientIdAndroid,
-    iosClientId: Constants.expoConfig?.extra?.googleClientIdIos,
-  });
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params;
-      oauthLogin('google', id_token).catch(() => setError('Google sign-up failed'));
-    }
-  }, [response]);
-
   const handleSubmit = async () => {
+    if (loading) return;
     setError('');
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -47,6 +33,33 @@ export default function RegisterScreen({ navigation }: Props) {
       // AuthContext sets user, navigation handled by root navigator
     } catch (err: unknown) {
       setError(extractApiError(err, 'Registration failed'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignUp = async () => {
+    if (loading) return;
+    setError('');
+    setLoading(true);
+    try {
+      ensureGoogleSignInConfigured();
+      if (Platform.OS === 'android') {
+        await GoogleSignin.hasPlayServices();
+      }
+      const response = await GoogleSignin.signIn();
+      if (isSuccessResponse(response) && response.data.idToken) {
+        await oauthLogin('google', response.data.idToken, displayName || undefined);
+      }
+      // If cancelled, do nothing — no error message
+    } catch (error) {
+      // Belt-and-suspenders: v16 returns cancellation as response.type,
+      // but catch handles legacy native rejection just in case
+      if (isErrorWithCode(error) && error.code === statusCodes.SIGN_IN_CANCELLED) {
+        return;
+      }
+      console.error('Google sign-up error:', error);
+      setError('Google sign-up failed');
     } finally {
       setLoading(false);
     }
@@ -78,9 +91,9 @@ export default function RegisterScreen({ navigation }: Props) {
         <Text style={styles.divider}>or</Text>
 
         <TouchableOpacity
-          style={[styles.oauthButton, !request && styles.buttonDisabled]}
-          onPress={() => promptAsync()}
-          disabled={!request}
+          style={[styles.oauthButton, loading && styles.buttonDisabled]}
+          onPress={handleGoogleSignUp}
+          disabled={loading}
         >
           <Text style={styles.oauthButtonText}>Sign up with Google</Text>
         </TouchableOpacity>

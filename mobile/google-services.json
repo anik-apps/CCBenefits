@@ -12,7 +12,20 @@
           "package_name": "com.anikapps.ccbenefits"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "110399383495-8aph2mlqpr3pts8mlg4rf7nkjfrretid.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.anikapps.ccbenefits",
+            "certificate_hash": "f6d8b90f48804a19ef9fa16224d9c59607a500a5"
+          }
+        },
+        {
+          "client_id": "110399383495-thv0tabak1lk6o9fai4i4bu4c4k3rfms.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyC47HQnHncmHX6p5BTtlc7a-wGOUc2_CxE"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "110399383495-thv0tabak1lk6o9fai4i4bu4c4k3rfms.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

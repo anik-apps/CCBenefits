@@ -8,7 +8,6 @@
       "distribution": "internal",
       "env": {
         "GOOGLE_CLIENT_ID": "110399383495-thv0tabak1lk6o9fai4i4bu4c4k3rfms.apps.googleusercontent.com",
-        "GOOGLE_CLIENT_ID_ANDROID": "110399383495-8aph2mlqpr3pts8mlg4rf7nkjfrretid.apps.googleusercontent.com",
         "GOOGLE_CLIENT_ID_IOS": "110399383495-30cdsceqos2or9tdbb37pr6rilhdfqf6.apps.googleusercontent.com"
       }
     },
@@ -18,7 +17,6 @@
       },
       "env": {
         "GOOGLE_CLIENT_ID": "110399383495-thv0tabak1lk6o9fai4i4bu4c4k3rfms.apps.googleusercontent.com",
-        "GOOGLE_CLIENT_ID_ANDROID": "110399383495-8aph2mlqpr3pts8mlg4rf7nkjfrretid.apps.googleusercontent.com",
         "GOOGLE_CLIENT_ID_IOS": "110399383495-30cdsceqos2or9tdbb37pr6rilhdfqf6.apps.googleusercontent.com"
       }
     },
@@ -28,14 +26,12 @@
       },
       "env": {
         "GOOGLE_CLIENT_ID": "110399383495-thv0tabak1lk6o9fai4i4bu4c4k3rfms.apps.googleusercontent.com",
-        "GOOGLE_CLIENT_ID_ANDROID": "110399383495-8aph2mlqpr3pts8mlg4rf7nkjfrretid.apps.googleusercontent.com",
         "GOOGLE_CLIENT_ID_IOS": "110399383495-30cdsceqos2or9tdbb37pr6rilhdfqf6.apps.googleusercontent.com"
       }
     },
     "production": {
       "env": {
         "GOOGLE_CLIENT_ID": "110399383495-thv0tabak1lk6o9fai4i4bu4c4k3rfms.apps.googleusercontent.com",
-        "GOOGLE_CLIENT_ID_ANDROID": "110399383495-8aph2mlqpr3pts8mlg4rf7nkjfrretid.apps.googleusercontent.com",
         "GOOGLE_CLIENT_ID_IOS": "110399383495-30cdsceqos2or9tdbb37pr6rilhdfqf6.apps.googleusercontent.com"
       }
     }

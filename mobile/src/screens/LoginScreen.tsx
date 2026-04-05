@@ -1,14 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
-import Constants from 'expo-constants';
+import React, { useState, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Platform } from 'react-native';
+import {
+  GoogleSignin, statusCodes, isErrorWithCode, isSuccessResponse, ensureGoogleSignInConfigured,
+} from '../config/googleSignIn';
 import { useAuth } from '../hooks/useAuth';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { colors, spacing, radius } from '../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-
-WebBrowser.maybeCompleteAuthSession();
 
 type Props = NativeStackScreenProps<any, 'Login'>;
 
@@ -20,20 +18,8 @@ export default function LoginScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: Constants.expoConfig?.extra?.googleClientId,
-    androidClientId: Constants.expoConfig?.extra?.googleClientIdAndroid,
-    iosClientId: Constants.expoConfig?.extra?.googleClientIdIos,
-  });
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params;
-      oauthLogin('google', id_token).catch(() => setError('Google sign-in failed'));
-    }
-  }, [response]);
-
   const handleSubmit = async () => {
+    if (loading) return;
     if (!email.trim() || !password.trim()) {
       setError('Please enter both email and password');
       return;
@@ -44,6 +30,33 @@ export default function LoginScreen({ navigation }: Props) {
       await login(email, password);
     } catch {
       setError('Invalid email or password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (loading) return;
+    setError('');
+    setLoading(true);
+    try {
+      ensureGoogleSignInConfigured();
+      if (Platform.OS === 'android') {
+        await GoogleSignin.hasPlayServices();
+      }
+      const response = await GoogleSignin.signIn();
+      if (isSuccessResponse(response) && response.data.idToken) {
+        await oauthLogin('google', response.data.idToken);
+      }
+      // If cancelled, do nothing — no error message
+    } catch (error) {
+      // Belt-and-suspenders: v16 returns cancellation as response.type,
+      // but catch handles legacy native rejection just in case
+      if (isErrorWithCode(error) && error.code === statusCodes.SIGN_IN_CANCELLED) {
+        return;
+      }
+      console.error('Google sign-in error:', error);
+      setError('Google sign-in failed');
     } finally {
       setLoading(false);
     }
@@ -98,9 +111,9 @@ export default function LoginScreen({ navigation }: Props) {
         <Text style={styles.divider}>or</Text>
 
         <TouchableOpacity
-          style={[styles.oauthButton, !request && styles.buttonDisabled]}
-          onPress={() => promptAsync()}
-          disabled={!request}
+          style={[styles.oauthButton, loading && styles.buttonDisabled]}
+          onPress={handleGoogleSignIn}
+          disabled={loading}
         >
           <Text style={styles.oauthButtonText}>Sign in with Google</Text>
         </TouchableOpacity>
