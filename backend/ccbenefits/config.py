@@ -45,9 +45,10 @@ GOOGLE_CLIENT_IDS = [cid for cid in [GOOGLE_CLIENT_ID, GOOGLE_CLIENT_ID_ANDROID,
 
 APPLE_SERVICE_ID = os.environ.get("APPLE_SERVICE_ID", "")
 APPLE_BUNDLE_ID = os.environ.get("APPLE_BUNDLE_ID", "com.anikapps.ccbenefits")
-APPLE_TEAM_ID = os.environ.get("APPLE_TEAM_ID", "")
-APPLE_KEY_ID = os.environ.get("APPLE_KEY_ID", "")
-APPLE_PRIVATE_KEY = os.environ.get("APPLE_PRIVATE_KEY", "")  # PEM format
+# Reserved for future server-side Apple token generation
+# APPLE_TEAM_ID = os.environ.get("APPLE_TEAM_ID", "")
+# APPLE_KEY_ID = os.environ.get("APPLE_KEY_ID", "")
+# APPLE_PRIVATE_KEY = os.environ.get("APPLE_PRIVATE_KEY", "")  # PEM format
 
 GRAFANA_OTLP_ENDPOINT = os.environ.get("GRAFANA_OTLP_ENDPOINT", "")
 GRAFANA_INSTANCE_ID = os.environ.get("GRAFANA_INSTANCE_ID", "")

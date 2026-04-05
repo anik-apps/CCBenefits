@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import axios from 'axios';
 import { requestPasswordReset } from '../services/api';
+import { extractApiError } from '../utils/apiError';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { colors, spacing, radius } from '../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -22,11 +22,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
       await requestPasswordReset(email);
       setSent(true);
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.detail || 'Something went wrong. Please try again.');
-      } else {
-        setError('Something went wrong. Please try again.');
-      }
+      setError(extractApiError(err, 'Failed to send reset email'));
     } finally {
       setLoading(false);
     }

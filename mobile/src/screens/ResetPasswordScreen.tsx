@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import axios from 'axios';
 import { resetPassword } from '../services/api';
+import { extractApiError } from '../utils/apiError';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { colors, spacing, radius } from '../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -52,11 +52,7 @@ export default function ResetPasswordScreen({ navigation, route }: Props) {
       await resetPassword(token, password);
       setSuccess(true);
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.detail || 'Invalid or expired reset link');
-      } else {
-        setError('Invalid or expired reset link');
-      }
+      setError(extractApiError(err, 'Invalid or expired reset link'));
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,7 @@ import {
   GoogleSignin, statusCodes, isErrorWithCode, isSuccessResponse, ensureGoogleSignInConfigured,
 } from '../config/googleSignIn';
 import { useAuth } from '../hooks/useAuth';
+import { extractApiError } from '../utils/apiError';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { colors, spacing, radius } from '../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -28,8 +29,8 @@ export default function LoginScreen({ navigation }: Props) {
     setLoading(true);
     try {
       await login(email, password);
-    } catch {
-      setError('Invalid email or password');
+    } catch (err) {
+      setError(extractApiError(err, 'Invalid email or password'));
     } finally {
       setLoading(false);
     }

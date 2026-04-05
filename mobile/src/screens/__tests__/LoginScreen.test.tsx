@@ -68,7 +68,8 @@ describe('LoginScreen', () => {
   });
 
   it('shows error when login fails', async () => {
-    mockAuth.login.mockRejectedValueOnce(new Error('Bad creds'));
+    // Simulate a non-Error rejection so extractApiError uses the fallback message
+    mockAuth.login.mockRejectedValueOnce('Bad creds');
 
     const { getByPlaceholderText, getAllByText, getByText } = render(
       <LoginScreen navigation={mockNavigation} route={mockRoute} />,
