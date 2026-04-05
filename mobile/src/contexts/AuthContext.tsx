@@ -14,6 +14,7 @@ import {
   oauthSignIn,
 } from '../services/api';
 import { getCurrentPushToken, unregisterPushNotifications } from '../services/notifications';
+import { GoogleSignin } from '../config/googleSignIn';
 // Note: no resetToAuth needed — clearing user state triggers RootNavigator to show AuthStack
 
 export interface AuthContextValue {
@@ -90,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (pushToken) {
       await unregisterPushNotifications(pushToken);
     }
+    try { await GoogleSignin.signOut(); } catch { /* best-effort */ }
     setUser(null);
     queryClient.clear();
     await apiLogout();
