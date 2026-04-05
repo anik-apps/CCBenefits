@@ -7,7 +7,7 @@ def test_list_card_templates(client):
     resp = client.get("/api/card-templates")
     assert resp.status_code == 200
     cards = resp.json()
-    assert len(cards) == 11
+    assert len(cards) == 41
     names = {c["name"] for c in cards}
     assert "American Express Platinum" in names
     assert "American Express Business Platinum" in names

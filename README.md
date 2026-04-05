@@ -14,7 +14,7 @@ Track utilization of credit card benefits (monthly, quarterly, semiannual, annua
 - **Multi-user authentication**: Email/password + Google OAuth (Apple coming soon), JWT access/refresh tokens
 - **Email verification**: Verification emails via Resend, unverified users blocked until verified
 - **Forgot password**: Reset via email link (web + mobile)
-- **11 pre-seeded cards**: Amex Platinum, Amex Business Platinum, Amex Gold, Hilton Surpass, Hilton Aspire, Chase Sapphire Reserve, CSR for Business, Capital One Venture X, Citi Strata Elite, Bilt Palladium, BofA Premium Rewards Elite
+- **41 pre-seeded cards**: 8 issuers (Amex, Chase, Citi, Capital One, US Bank, Wells Fargo, BofA, Barclays) with ~150 trackable benefits
 - **Perceived value tracking**: Set your own valuation per benefit (e.g., value a $25 Equinox credit at $10 if you rarely go)
 - **Period segments**: Visual grid showing usage across all months/quarters/halves of the year
 - **Binary vs continuous benefits**: Toggle for all-or-nothing credits, dollar input for partial-use credits
@@ -34,11 +34,11 @@ Track utilization of credit card benefits (monthly, quarterly, semiannual, annua
 
 - **Backend**: Python 3.12+ / FastAPI / SQLAlchemy 2.0 / PostgreSQL (SQLite for dev)
 - **Auth**: bcrypt / PyJWT / Google OAuth (google-auth) / Resend (email)
-- **Frontend**: React / Vite 8 / TypeScript / TanStack Query
-- **Mobile**: React Native / Expo SDK 55 / React Navigation v7
+- **Frontend**: React / Vite 8 / TypeScript 6 / TanStack Query
+- **Mobile**: React Native / Expo SDK 55 / React Navigation v7 / Native Google Sign-In
 - **Notifications**: APScheduler / Resend (email) / Expo Push API (mobile)
 - **Observability**: OpenTelemetry SDK → Grafana Cloud (Loki + Prometheus via OTLP)
-- **Testing**: pytest (190+) / vitest (70+) / Playwright E2E / ruff + ESLint
+- **Testing**: pytest (229+) / vitest (57+) / Playwright E2E / ruff + ESLint
 - **Deployment**: Docker / Docker Compose / Caddy (HTTPS) / Oracle Cloud VM
 - **CI/CD**: GitHub Actions → integration tests → manual approval → GHCR → SSH deploy
 - **Package management**: Poetry (backend), npm (frontend/mobile)
@@ -93,7 +93,7 @@ In dev mode (`__DEV__`), the app automatically uses the local backend. In produc
 ### Run Tests
 
 ```bash
-# Backend lint + tests (190+ tests, 87%+ coverage)
+# Backend lint + tests (229+ tests, 87%+ coverage)
 cd backend
 poetry run ruff check ccbenefits/ tests/
 poetry run pytest -v
@@ -128,7 +128,7 @@ docker compose -f docker-compose.test.yml down -v
 | `GRAFANA_OTLP_TOKEN` | _(empty)_ | Grafana Cloud API token. |
 | `CCB_SCHEDULER_ENABLED` | `false` | Enable APScheduler for notification jobs. Set `true` in production. |
 | `GOOGLE_CLIENT_ID` | _(empty)_ | Google OAuth web client ID (backend token verification). |
-| `GOOGLE_CLIENT_ID_ANDROID` | _(empty)_ | Google OAuth Android client ID. |
+| `GOOGLE_CLIENT_ID_ANDROID` | _(empty)_ | Google OAuth Android client ID (backend only, mobile uses google-services.json). |
 | `GOOGLE_CLIENT_ID_IOS` | _(empty)_ | Google OAuth iOS client ID. |
 | `VITE_GOOGLE_CLIENT_ID` | _(empty)_ | Google OAuth client ID for frontend (build-time, via Docker `--build-arg`). |
 
@@ -153,7 +153,7 @@ CCBenefits/
 │   │   ├── oauth.py            # Google/Apple token verification
 │   │   ├── oauth_helpers.py    # Shared OAuth account resolution
 │   │   ├── schemas.py          # Pydantic request/response schemas
-│   │   ├── seed.py             # 11 pre-seeded cards with benefits
+│   │   ├── seed.py             # 41 pre-seeded cards with ~150 benefits
 │   │   ├── utils.py            # Period calculation helpers
 │   │   └── routers/
 │   │       ├── auth.py         # Register, login, verify, refresh, password reset, OAuth
@@ -162,7 +162,7 @@ CCBenefits/
 │   │       ├── card_templates.py
 │   │       ├── user_cards.py
 │   │       └── usage.py
-│   └── tests/                  # 190+ tests (87%+ coverage)
+│   └── tests/                  # 229+ tests (87%+ coverage)
 │       └── integration/        # API smoke tests (run against Docker stack)
 ├── frontend/
 │   ├── package.json
@@ -287,7 +287,8 @@ Caddy (HTTPS) → FastAPI (app) → PostgreSQL
 CI/CD pipeline:
 1. Push to master → integration tests (Docker stack + API smoke + Playwright E2E)
 2. Manual approval via GitHub Environments → build + push to GHCR → SSH deploy to Oracle VM
-3. Emergency deploys available via "Deploy (Emergency)" workflow (manual trigger)
+3. EAS mobile build (separate approval gate, triggered on mobile/ changes)
+4. Emergency deploys available via "Deploy (Emergency)" workflow (manual trigger)
 
 See `.env.example` for production configuration.
 
@@ -314,7 +315,7 @@ React Native (Expo SDK 55) Android app with full feature parity:
 - **Multi-year tracking**: Year picker on Dashboard, All Credits, and Card Detail with past-year amber banner
 - **Close/reopen cards**: Close with date picker (cross-platform: Alert.prompt on iOS, inline TextInput on Android), reopen with confirmation
 - **Usage logging**: Tap any benefit to log/update/delete usage with period selector and binary/continuous support
-- **Google OAuth**: Sign in with Google on login and register screens
+- **Native Google Sign-In**: Native account picker (not browser-based) on login and register screens
 - **Dark theme**: Matches web frontend with gold accents
 - **Safe area handling**: Content properly inset for notch/status bar on all devices
 - **Offline-ready**: TanStack Query with netinfo detection and AppState-based refetching

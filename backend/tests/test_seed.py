@@ -8,7 +8,7 @@ VALID_REDEMPTION_TYPES = {e.value for e in RedemptionType}
 def test_seed_creates_all_card_templates(db_session):
     seed_data(db_session)
     cards = db_session.query(CardTemplate).all()
-    assert len(cards) == 11
+    assert len(cards) == 41
 
 
 def test_seed_no_duplicate_names(db_session):
@@ -41,3 +41,16 @@ def test_seed_is_idempotent(db_session):
     seed_data(db_session)  # run again
     count_after = db_session.query(CardTemplate).count()
     assert count_before == count_after
+
+
+def test_seed_adds_new_cards_incrementally(db_session):
+    """Verify seed adds new cards when some already exist."""
+    # Insert just one card manually
+    card = CardTemplate(name="Test Card", issuer="Test", annual_fee=100.0)
+    db_session.add(card)
+    db_session.commit()
+
+    # Now run seed — should add 41 cards (skip none since "Test Card" isn't in seed list)
+    seed_data(db_session)
+    total = db_session.query(CardTemplate).count()
+    assert total == 42  # 1 manual + 41 seeded
