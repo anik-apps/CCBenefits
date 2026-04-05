@@ -9,7 +9,7 @@ export function useGoogleSignIn(
   const handleGoogleSignIn = async (
     setError: (msg: string) => void,
     setLoading: (loading: boolean) => void,
-    displayName?: string,
+    options?: { displayName?: string; errorMessage?: string },
   ) => {
     setError('');
     setLoading(true);
@@ -20,14 +20,14 @@ export function useGoogleSignIn(
       }
       const response = await GoogleSignin.signIn();
       if (isSuccessResponse(response) && response.data.idToken) {
-        await oauthLogin('google', response.data.idToken, displayName);
+        await oauthLogin('google', response.data.idToken, options?.displayName);
       }
     } catch (error) {
       if (isErrorWithCode(error) && error.code === statusCodes.SIGN_IN_CANCELLED) {
         return;
       }
       console.error('Google sign-in error:', error);
-      setError('Google sign-in failed');
+      setError(options?.errorMessage ?? 'Google sign-in failed');
     } finally {
       setLoading(false);
     }

@@ -39,7 +39,7 @@ export default function RegisterScreen({ navigation }: Props) {
 
   const handleGoogleSignUp = async () => {
     if (loading) return;
-    await googleSignIn(setError, setLoading, displayName || undefined);
+    await googleSignIn(setError, setLoading, { displayName: displayName || undefined, errorMessage: 'Google sign-up failed' });
   };
 
   return (

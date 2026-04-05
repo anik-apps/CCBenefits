@@ -128,7 +128,7 @@
 - [ ] Extract `_dispatch_notification()` helper in notifications.py — 5 repeated dispatch patterns (inbox + email + push), design carefully around differing dedup semantics in `send_utilization_summary`
 - [ ] Standardize naive vs aware datetime handling — audit all DateTime columns and comparisons, decide on one pattern, extract shared `utc_now()` utility
 - [ ] Extract `useBenefitActions` frontend hook — deduplicate usage handlers between CardDetail and AllCredits (verify both pages are stable before abstracting)
-- [ ] Verify `ROISummary.tsx` intent — check git history; delete if abandoned, integrate if planned
+- [x] ~~Verify `ROISummary.tsx` intent~~ — deleted (unused component, never integrated)
 - [ ] Frontend page-level tests — Dashboard, CardDetail, AllCredits, ProfilePage with react-query mocks
 - [ ] Notification scheduler job tests — `check_expiring_credits`, `check_period_transitions`, `check_fee_approaching`, `send_utilization_summary` with freezegun
 - [x] Fix `notifications.jobs_run` cardinality issue — removed dynamic `users` label from counter
