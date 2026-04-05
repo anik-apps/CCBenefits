@@ -1,9 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Platform } from 'react-native';
-import {
-  GoogleSignin, statusCodes, isErrorWithCode, isSuccessResponse, ensureGoogleSignInConfigured,
-} from '../config/googleSignIn';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
+import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { extractApiError } from '../utils/apiError';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { colors, spacing, radius } from '../theme';
@@ -13,6 +11,7 @@ type Props = NativeStackScreenProps<any, 'Login'>;
 
 export default function LoginScreen({ navigation }: Props) {
   const { login, oauthLogin } = useAuth();
+  const { handleGoogleSignIn: googleSignIn } = useGoogleSignIn(oauthLogin);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -38,29 +37,7 @@ export default function LoginScreen({ navigation }: Props) {
 
   const handleGoogleSignIn = async () => {
     if (loading) return;
-    setError('');
-    setLoading(true);
-    try {
-      ensureGoogleSignInConfigured();
-      if (Platform.OS === 'android') {
-        await GoogleSignin.hasPlayServices();
-      }
-      const response = await GoogleSignin.signIn();
-      if (isSuccessResponse(response) && response.data.idToken) {
-        await oauthLogin('google', response.data.idToken);
-      }
-      // If cancelled, do nothing — no error message
-    } catch (error) {
-      // Belt-and-suspenders: v16 returns cancellation as response.type,
-      // but catch handles legacy native rejection just in case
-      if (isErrorWithCode(error) && error.code === statusCodes.SIGN_IN_CANCELLED) {
-        return;
-      }
-      console.error('Google sign-in error:', error);
-      setError('Google sign-in failed');
-    } finally {
-      setLoading(false);
-    }
+    await googleSignIn(setError, setLoading);
   };
 
   return (
