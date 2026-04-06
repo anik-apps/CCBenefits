@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
-import {
-  GoogleSignin, statusCodes, isErrorWithCode, isSuccessResponse, ensureGoogleSignInConfigured,
-} from '../config/googleSignIn';
+import { Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { useAuth } from '../hooks/useAuth';
+import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { extractApiError } from '../utils/apiError';
 import { colors, spacing, radius } from '../theme';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -13,6 +11,7 @@ type Props = NativeStackScreenProps<any, 'Register'>;
 
 export default function RegisterScreen({ navigation }: Props) {
   const { register, oauthLogin } = useAuth();
+  const { handleGoogleSignIn: googleSignIn } = useGoogleSignIn(oauthLogin);
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
@@ -40,29 +39,7 @@ export default function RegisterScreen({ navigation }: Props) {
 
   const handleGoogleSignUp = async () => {
     if (loading) return;
-    setError('');
-    setLoading(true);
-    try {
-      ensureGoogleSignInConfigured();
-      if (Platform.OS === 'android') {
-        await GoogleSignin.hasPlayServices();
-      }
-      const response = await GoogleSignin.signIn();
-      if (isSuccessResponse(response) && response.data.idToken) {
-        await oauthLogin('google', response.data.idToken, displayName || undefined);
-      }
-      // If cancelled, do nothing — no error message
-    } catch (error) {
-      // Belt-and-suspenders: v16 returns cancellation as response.type,
-      // but catch handles legacy native rejection just in case
-      if (isErrorWithCode(error) && error.code === statusCodes.SIGN_IN_CANCELLED) {
-        return;
-      }
-      console.error('Google sign-up error:', error);
-      setError('Google sign-up failed');
-    } finally {
-      setLoading(false);
-    }
+    await googleSignIn(setError, setLoading, { displayName: displayName || undefined, errorMessage: 'Google sign-up failed' });
   };
 
   return (

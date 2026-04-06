@@ -1,7 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AppReadyProvider } from '../../contexts/AppReadyContext';
+import { renderWithProviders } from '../../test/helpers';
 
 // Mock useAuth for all screens that use it
 const mockAuth = {
@@ -71,28 +69,12 @@ const mockNavigation = {
   canGoBack: jest.fn(() => true),
 } as any;
 
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false } },
-  });
-  return function Wrapper({ children }: { children: React.ReactNode }) {
-    return React.createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      React.createElement(AppReadyProvider, { value: true }, children),
-    );
-  };
-}
-
 function renderScreen(Component: React.ComponentType<any>, routeParams: Record<string, any> = {}) {
-  const Wrapper = createWrapper();
-  return render(
-    React.createElement(Wrapper, null,
-      React.createElement(Component, {
-        navigation: mockNavigation,
-        route: { params: routeParams, key: 'test', name: 'Test' },
-      }),
-    ),
+  return renderWithProviders(
+    React.createElement(Component, {
+      navigation: mockNavigation,
+      route: { params: routeParams, key: 'test', name: 'Test' },
+    }),
   );
 }
 

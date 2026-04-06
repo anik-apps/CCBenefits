@@ -2,7 +2,6 @@ import type {
   BenefitStatus,
   PeriodSegment,
   UserCardDetail,
-  CardTemplateListItem,
   User,
 } from '../types';
 
@@ -59,19 +58,6 @@ export function makeUserCardDetail(overrides?: Partial<UserCardDetail>): UserCar
     utilization_pct: 0.4,
     benefits_status: [makeBenefitStatus()],
     renewal_date: null,
-    ...overrides,
-  };
-}
-
-export function makeCardTemplate(overrides?: Partial<CardTemplateListItem>): CardTemplateListItem {
-  return {
-    id: 1,
-    name: 'Gold Card',
-    issuer: 'Amex',
-    annual_fee: 250,
-    image_url: null,
-    benefit_count: 3,
-    total_annual_value: 300,
     ...overrides,
   };
 }

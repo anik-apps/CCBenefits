@@ -197,7 +197,7 @@ CCBenefits/
 │           ├── UserMenu.tsx
 │           ├── YearPicker.tsx
 │           ├── PastYearBanner.tsx
-│           └── ROISummary.tsx
+│           └── UtilizationBar.tsx
 ├── mobile/                     # React Native (Expo) Android app
 │   ├── app.json                # Expo config
 │   ├── App.tsx                 # Root navigator (auth/verify/app)

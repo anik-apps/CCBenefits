@@ -5,7 +5,6 @@ import Constants from 'expo-constants';
 import type {
   AuthResponse,
   CardTemplateListItem,
-  CardTemplateDetail,
   TokenResponse,
   User,
   UserCardOut,
@@ -190,11 +189,6 @@ export async function getCardTemplates(): Promise<CardTemplateListItem[]> {
   return data;
 }
 
-export async function getCardTemplate(id: number): Promise<CardTemplateDetail> {
-  const { data } = await api.get(`/api/card-templates/${id}`);
-  return data;
-}
-
 // User cards
 export async function getUserCards(year?: number): Promise<UserCardSummary[]> {
   const { data } = await api.get('/api/user-cards/', { params: year ? { year } : {} });
@@ -208,11 +202,6 @@ export async function getUserCard(id: number, year?: number): Promise<UserCardDe
 
 export async function getUserCardDetails(year?: number): Promise<UserCardDetail[]> {
   const { data } = await api.get('/api/user-cards/details', { params: year ? { year } : {} });
-  return data;
-}
-
-export async function getUserCardSummary(id: number, year?: number): Promise<UserCardSummary> {
-  const { data } = await api.get(`/api/user-cards/${id}/summary`, { params: year ? { year } : {} });
   return data;
 }
 

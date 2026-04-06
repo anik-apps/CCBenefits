@@ -34,6 +34,25 @@ from ..utils import compute_annual_max, get_all_periods_in_year, get_current_per
 router = APIRouter(prefix="/api/user-cards", tags=["user-cards"])
 
 
+def _get_user_card(
+    db: Session,
+    card_id: int,
+    user_id: int,
+    *,
+    load_benefits: bool = False,
+) -> UserCard | None:
+    query = db.query(UserCard).filter(UserCard.id == card_id, UserCard.user_id == user_id)
+    if load_benefits:
+        query = query.options(
+            joinedload(UserCard.card_template).joinedload(CardTemplate.benefits),
+            joinedload(UserCard.usages),
+            joinedload(UserCard.benefit_settings),
+        )
+    else:
+        query = query.options(joinedload(UserCard.card_template))
+    return query.first()
+
+
 @router.post("/", response_model=UserCardOut, status_code=201)
 def create_user_card(
     data: UserCardCreate,
@@ -66,12 +85,7 @@ def update_user_card(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    uc = (
-        db.query(UserCard)
-        .options(joinedload(UserCard.card_template))
-        .filter(UserCard.id == user_card_id, UserCard.user_id == current_user.id)
-        .first()
-    )
+    uc = _get_user_card(db, user_card_id, current_user.id)
     if not uc:
         raise HTTPException(status_code=404, detail="User card not found")
     if data.renewal_date is not None:
@@ -196,16 +210,7 @@ def get_user_card_detail(
     year: int | None = Query(default=None, ge=2000, le=2100, description="Year to compute details for"),
 ):
     year = year or date.today().year
-    uc = (
-        db.query(UserCard)
-        .options(
-            joinedload(UserCard.card_template).joinedload(CardTemplate.benefits),
-            joinedload(UserCard.usages),
-            joinedload(UserCard.benefit_settings),
-        )
-        .filter(UserCard.id == user_card_id, UserCard.user_id == current_user.id)
-        .first()
-    )
+    uc = _get_user_card(db, user_card_id, current_user.id, load_benefits=True)
     if not uc:
         raise HTTPException(status_code=404, detail="User card not found")
 
@@ -236,7 +241,7 @@ def delete_user_card(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    uc = db.query(UserCard).filter(UserCard.id == user_card_id, UserCard.user_id == current_user.id).first()
+    uc = _get_user_card(db, user_card_id, current_user.id)
     if not uc:
         raise HTTPException(status_code=404, detail="User card not found")
     db.delete(uc)
@@ -250,12 +255,7 @@ def close_user_card(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    uc = (
-        db.query(UserCard)
-        .options(joinedload(UserCard.card_template))
-        .filter(UserCard.id == user_card_id, UserCard.user_id == current_user.id)
-        .first()
-    )
+    uc = _get_user_card(db, user_card_id, current_user.id)
     if not uc:
         raise HTTPException(status_code=404, detail="User card not found")
     if uc.closed_date is not None:
@@ -277,12 +277,7 @@ def reopen_user_card(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    uc = (
-        db.query(UserCard)
-        .options(joinedload(UserCard.card_template))
-        .filter(UserCard.id == user_card_id, UserCard.user_id == current_user.id)
-        .first()
-    )
+    uc = _get_user_card(db, user_card_id, current_user.id)
     if not uc:
         raise HTTPException(status_code=404, detail="User card not found")
     if uc.closed_date is None:
@@ -303,7 +298,7 @@ def log_usage(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    uc = db.query(UserCard).filter(UserCard.id == user_card_id, UserCard.user_id == current_user.id).first()
+    uc = _get_user_card(db, user_card_id, current_user.id)
     if not uc:
         raise HTTPException(status_code=404, detail="User card not found")
 
@@ -384,7 +379,7 @@ def upsert_benefit_setting(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    uc = db.query(UserCard).filter(UserCard.id == user_card_id, UserCard.user_id == current_user.id).first()
+    uc = _get_user_card(db, user_card_id, current_user.id)
     if not uc:
         raise HTTPException(status_code=404, detail="User card not found")
 
@@ -425,16 +420,7 @@ def get_card_summary(
     year: int | None = Query(default=None, ge=2000, le=2100, description="Year to compute summary for"),
 ):
     year = year or date.today().year
-    uc = (
-        db.query(UserCard)
-        .options(
-            joinedload(UserCard.card_template).joinedload(CardTemplate.benefits),
-            joinedload(UserCard.usages),
-            joinedload(UserCard.benefit_settings),
-        )
-        .filter(UserCard.id == user_card_id, UserCard.user_id == current_user.id)
-        .first()
-    )
+    uc = _get_user_card(db, user_card_id, current_user.id, load_benefits=True)
     if not uc:
         raise HTTPException(status_code=404, detail="User card not found")
 
