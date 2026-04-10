@@ -14,6 +14,8 @@ updates:
     ignore:
       - dependency-name: "expo-secure-store"
         versions: [">=55.0.0"]  # Major SDK jump — handle as part of Expo SDK 55 migration
+      - dependency-name: "axios"
+        versions: [">=1.14.0"]  # 1.14+ breaks Jest jsdom (ReadableStream incompatibility)
 
   - package-ecosystem: "github-actions"
     directory: "/"
