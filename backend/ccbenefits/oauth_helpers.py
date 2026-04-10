@@ -43,7 +43,7 @@ def resolve_or_create_oauth_user(
         if not user.is_active:
             raise HTTPException(status_code=401, detail="Account is deactivated")
         if oauth_account.provider_email != email:
-            logger.warning("OAuth email drift for %s: %s -> %s", provider, oauth_account.provider_email, email)
+            logger.warning("OAuth email drift for %s: provider_email changed", provider)
             oauth_account.provider_email = email
             db.commit()
     else:
