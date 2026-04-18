@@ -164,66 +164,43 @@ jobs:
         run: diff frontend/src/types.ts mobile/src/types.ts || { echo "::error::frontend/src/types.ts and mobile/src/types.ts have drifted apart. Update both files to match."; exit 1; }
 
   # ---------------------------------------------------------------------------
-  # Grafana dashboard validation (only when grafana/ files change)
+  # Grafana dashboards: validate on PRs, sync on master (only when grafana/ changes)
   # ---------------------------------------------------------------------------
-  grafana-check-changes:
-    name: Check Grafana Changes
+  grafana:
+    name: Grafana Dashboards
     runs-on: ubuntu-latest
-    outputs:
-      changed: ${{ steps.filter.outputs.grafana }}
     steps:
       - uses: actions/checkout@v6
-      - uses: dorny/paths-filter@v3
+
+      - name: Check for grafana changes
+        uses: dorny/paths-filter@v3
         id: filter
         with:
           filters: |
             grafana:
               - 'grafana/**'
 
-  grafana-validate:
-    name: Validate Grafana Dashboards
-    needs: grafana-check-changes
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && needs.grafana-check-changes.outputs.changed == 'true'
-    steps:
-      - uses: actions/checkout@v6
-
       - uses: actions/setup-go@v6
+        if: steps.filter.outputs.grafana == 'true'
         with:
           go-version: '1.22'
 
       - name: Install grafanactl
+        if: steps.filter.outputs.grafana == 'true'
         run: go install github.com/grafana/grafanactl/cmd/grafanactl@v0.1.9
 
       - name: Configure grafanactl
+        if: steps.filter.outputs.grafana == 'true'
         run: |
           grafanactl config set contexts.default.grafana.server https://anikapps.grafana.net
           grafanactl config set contexts.default.grafana.token ${{ secrets.GRAFANA_SA_TOKEN }}
 
       - name: Validate dashboards
+        if: steps.filter.outputs.grafana == 'true' && github.event_name == 'pull_request'
         run: grafanactl resources validate -p grafana/dashboards/
 
-  grafana-sync:
-    name: Sync Grafana Dashboards (master)
-    needs: grafana-check-changes
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push' && needs.grafana-check-changes.outputs.changed == 'true'
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-go@v6
-        with:
-          go-version: '1.22'
-
-      - name: Install grafanactl
-        run: go install github.com/grafana/grafanactl/cmd/grafanactl@v0.1.9
-
-      - name: Configure grafanactl
-        run: |
-          grafanactl config set contexts.default.grafana.server https://anikapps.grafana.net
-          grafanactl config set contexts.default.grafana.token ${{ secrets.GRAFANA_SA_TOKEN }}
-
       - name: Push dashboards
+        if: steps.filter.outputs.grafana == 'true' && github.ref == 'refs/heads/master' && github.event_name == 'push'
         run: grafanactl resources push -p grafana/dashboards/
 
   # ---------------------------------------------------------------------------
