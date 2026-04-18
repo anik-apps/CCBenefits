@@ -6,6 +6,7 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "node": "24.8.0",
       "env": {
         "GOOGLE_CLIENT_ID": "110399383495-thv0tabak1lk6o9fai4i4bu4c4k3rfms.apps.googleusercontent.com",
         "GOOGLE_CLIENT_ID_IOS": "110399383495-30cdsceqos2or9tdbb37pr6rilhdfqf6.apps.googleusercontent.com"
@@ -15,6 +16,7 @@
       "android": {
         "buildType": "apk"
       },
+      "node": "24.8.0",
       "env": {
         "GOOGLE_CLIENT_ID": "110399383495-thv0tabak1lk6o9fai4i4bu4c4k3rfms.apps.googleusercontent.com",
         "GOOGLE_CLIENT_ID_IOS": "110399383495-30cdsceqos2or9tdbb37pr6rilhdfqf6.apps.googleusercontent.com"
@@ -24,12 +26,14 @@
       "ios": {
         "simulator": true
       },
+      "node": "24.8.0",
       "env": {
         "GOOGLE_CLIENT_ID": "110399383495-thv0tabak1lk6o9fai4i4bu4c4k3rfms.apps.googleusercontent.com",
         "GOOGLE_CLIENT_ID_IOS": "110399383495-30cdsceqos2or9tdbb37pr6rilhdfqf6.apps.googleusercontent.com"
       }
     },
     "production": {
+      "node": "24.8.0",
       "env": {
         "GOOGLE_CLIENT_ID": "110399383495-thv0tabak1lk6o9fai4i4bu4c4k3rfms.apps.googleusercontent.com",
         "GOOGLE_CLIENT_ID_IOS": "110399383495-30cdsceqos2or9tdbb37pr6rilhdfqf6.apps.googleusercontent.com"
