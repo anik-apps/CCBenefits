@@ -237,15 +237,18 @@ jobs:
         with:
           context: .
           platforms: linux/amd64
-          push: ${{ github.ref == 'refs/heads/master' && github.event_name == 'push' }}
           load: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-            ccbenefits:test
+          tags: ccbenefits:test
           build-args: |
             VITE_GOOGLE_CLIENT_ID=${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Push image to GHCR
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: |
+          docker tag ccbenefits:test ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       - name: Start test stack
         run: |
