@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import { Page, expect } from '@playwright/test';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:8080';
 
@@ -34,4 +34,47 @@ export async function addCardViaAPI(token: string): Promise<number> {
   });
   const card = await resp.json();
   return card.id;
+}
+
+// --- Screenshot & setup helpers ---
+
+/**
+ * Bypass the 6-second splash animation.
+ * Must be called before any page.goto() in the test.
+ */
+export async function bypassSplash(page: Page) {
+  await page.addInitScript(() => {
+    sessionStorage.setItem('ccb-splash-shown', 'true');
+  });
+}
+
+/**
+ * Take a stable screenshot: waits for fonts and network idle before capture.
+ */
+export async function stableScreenshot(
+  page: Page,
+  name: string,
+  options?: { mask?: ReturnType<Page['locator']>[]; fullPage?: boolean }
+) {
+  await page.waitForFunction(() => document.fonts.ready);
+  await page.waitForLoadState('networkidle');
+  await expect(page).toHaveScreenshot(name, {
+    animations: 'disabled',
+    ...options,
+  });
+}
+
+/**
+ * Register a user and add cards via API. Returns auth details and card IDs.
+ */
+export async function seedUserWithCards(
+  name: string,
+  cardCount: number = 1
+): Promise<{ email: string; password: string; token: string; cardIds: number[] }> {
+  const { email, password, token } = await registerUser(name);
+  const cardIds: number[] = [];
+  for (let i = 0; i < cardCount; i++) {
+    cardIds.push(await addCardViaAPI(token));
+  }
+  return { email, password, token, cardIds };
 }

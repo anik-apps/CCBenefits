@@ -71,6 +71,7 @@ export default function NotificationPanel() {
   return (
     <div ref={panelRef} style={{ position: 'relative' }}>
       <button
+        data-testid="notification-bell"
         onClick={() => setOpen(!open)}
         style={{
           position: 'relative',
