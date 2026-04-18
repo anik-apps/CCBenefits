@@ -232,7 +232,7 @@ jobs:
   # ---------------------------------------------------------------------------
   integration-tests:
     name: Integration Tests
-    needs: [backend-tests, frontend-build]
+    needs: [backend-tests, frontend-build, mobile-tests, shared-code-drift]
     runs-on: ubuntu-latest
     permissions:
       contents: read
