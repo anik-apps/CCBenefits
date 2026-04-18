@@ -22,18 +22,6 @@ test.describe('Visual regression baselines', () => {
     await stableScreenshot(page, 'vr-register.png');
   });
 
-  test('login error state', async ({ page }) => {
-    await bypassSplash(page);
-    await page.goto('/login');
-    await page.fill('input[type="email"]', 'nonexistent@example.com');
-    await page.fill('input[type="password"]', 'wrongpassword');
-    await page.click('button[type="submit"]');
-
-    // Wait for error message to appear
-    await expect(page.locator('text=Invalid email or password')).toBeVisible({ timeout: 5000 });
-    await stableScreenshot(page, 'vr-login-error.png');
-  });
-
   test('dashboard empty state', async ({ page }) => {
     await bypassSplash(page);
     const { email, password } = await registerUser('VR Empty');

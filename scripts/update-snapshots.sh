@@ -14,10 +14,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Extract Playwright version from package.json
+# Extract Playwright version from lock file (actual resolved version)
 PW_VERSION=$(node -e "
-  const pkg = require('$PROJECT_ROOT/tests/e2e/package.json');
-  const ver = pkg.devDependencies['@playwright/test'].replace('^', '').replace('~', '');
+  const lock = require('$PROJECT_ROOT/tests/e2e/package-lock.json');
+  const ver = lock.packages['node_modules/@playwright/test'].version;
   console.log(ver);
 ")
 
@@ -29,23 +29,23 @@ echo ""
 # macOS: --network host doesn't work — use host.docker.internal
 # Linux: --network host works natively
 if [[ "$(uname -s)" == "Darwin" ]]; then
-  DOCKER_NETWORK_ARGS=()
+  DOCKER_NETWORK_ARGS=""
   EFFECTIVE_BASE_URL="http://host.docker.internal:8080"
   echo "macOS detected: using host.docker.internal for Docker networking"
 else
-  DOCKER_NETWORK_ARGS=(--network host)
+  DOCKER_NETWORK_ARGS="--network host"
   EFFECTIVE_BASE_URL="http://localhost:8080"
   echo "Linux detected: using --network host"
 fi
 
 docker run --rm \
   --user "$(id -u):$(id -g)" \
-  "${DOCKER_NETWORK_ARGS[@]}" \
+  $DOCKER_NETWORK_ARGS \
   -v "$PROJECT_ROOT/tests/e2e:/work" \
   -w /work \
   -e BASE_URL="${BASE_URL:-$EFFECTIVE_BASE_URL}" \
   "mcr.microsoft.com/playwright:v${PW_VERSION}" \
-  bash -c "npm ci && npx playwright test --update-snapshots"
+  bash -c "export HOME=/tmp/pw-home && mkdir -p \$HOME && npm ci && npx playwright test --update-snapshots"
 
 echo ""
 echo "Baselines updated. Review changes in tests/e2e/*-snapshots/ and commit."
