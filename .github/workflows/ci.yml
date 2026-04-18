@@ -204,7 +204,7 @@ jobs:
         run: grafanactl resources validate -p grafana/dashboards/
 
   grafana-sync:
-    name: Sync Grafana Dashboards
+    name: Sync Grafana Dashboards (master)
     needs: grafana-check-changes
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master' && github.event_name == 'push' && needs.grafana-check-changes.outputs.changed == 'true'
@@ -342,7 +342,7 @@ jobs:
   # Post-merge jobs (master only)
   # ---------------------------------------------------------------------------
   update-badges:
-    name: Update Coverage Badges
+    name: Update Coverage Badges (master)
     needs: [backend-tests, frontend-build]
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -382,7 +382,7 @@ jobs:
           git push
 
   mobile-build:
-    name: Mobile App Build (EAS)
+    name: Mobile App Build — EAS (master)
     needs: integration-tests
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -411,7 +411,7 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
   deploy:
-    name: Deploy to Production
+    name: Deploy to Production (master)
     needs: integration-tests
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
