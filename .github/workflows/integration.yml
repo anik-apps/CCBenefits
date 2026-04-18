@@ -3,7 +3,12 @@ name: Integration Tests & Deploy
 on:
   push:
     branches: [master]
-  workflow_dispatch:  # Emergency escape hatch
+  workflow_dispatch:
+    inputs:
+      update_snapshots:
+        description: 'Update Playwright visual regression baselines'
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
@@ -84,7 +89,12 @@ jobs:
 
       - name: Run E2E tests
         working-directory: tests/e2e
-        run: npx playwright test
+        run: |
+          if [ "${{ github.event.inputs.update_snapshots }}" = "true" ]; then
+            npx playwright test --update-snapshots
+          else
+            npx playwright test
+          fi
         env:
           BASE_URL: http://localhost:8080
 
@@ -96,6 +106,13 @@ jobs:
           path: |
             tests/e2e/test-results/
             tests/e2e/playwright-report/
+
+      - name: Upload updated baselines
+        if: github.event.inputs.update_snapshots == 'true'
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-baselines
+          path: tests/e2e/*.spec.ts-snapshots/
 
       - name: Tear down test stack
         if: always()
