@@ -320,7 +320,7 @@ jobs:
   # ---------------------------------------------------------------------------
   update-badges:
     name: Update Coverage Badges (master)
-    needs: [backend-tests, frontend-build]
+    needs: [backend-tests, frontend-build, mobile-tests, shared-code-drift]
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
