@@ -77,6 +77,7 @@ jobs:
         with:
           name: coverage-report
           path: backend/htmlcov/
+          retention-days: 7
 
     outputs:
       backend-coverage: ${{ steps.coverage.outputs.total }}
@@ -114,6 +115,7 @@ jobs:
         with:
           name: frontend-coverage-report
           path: frontend/coverage/
+          retention-days: 7
 
       - name: Lint
         run: npm run lint
@@ -151,6 +153,7 @@ jobs:
         with:
           name: mobile-coverage-report
           path: mobile/coverage/
+          retention-days: 7
 
     outputs:
       mobile-coverage: ${{ steps.coverage.outputs.total }}
@@ -306,6 +309,7 @@ jobs:
           path: |
             tests/e2e/test-results/
             tests/e2e/playwright-report/
+          retention-days: 7
 
       - name: Upload updated baselines
         if: github.event.inputs.update_snapshots == 'true'
@@ -313,6 +317,7 @@ jobs:
         with:
           name: playwright-baselines
           path: tests/e2e/*.spec.ts-snapshots/
+          retention-days: 7
 
       - name: Tear down test stack
         if: always()
