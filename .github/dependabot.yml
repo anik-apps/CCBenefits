@@ -5,6 +5,9 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "typescript"
+        versions: [">=7.0.0"]  # TS 7 (native compiler) — deliberate migration, not a routine bump
 
   - package-ecosystem: "npm"
     directory: "/mobile"
@@ -12,10 +15,23 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 5
     ignore:
-      - dependency-name: "expo-secure-store"
-        versions: [">=55.0.0"]  # Major SDK jump — handle as part of Expo SDK 55 migration
       - dependency-name: "axios"
         versions: [">=1.14.0"]  # 1.14+ breaks Jest jsdom (ReadableStream incompatibility)
+      - dependency-name: "typescript"
+        versions: [">=7.0.0"]  # TS 7 (native compiler) — deliberate migration, not a routine bump
+      # Expo SDK packages are version-locked to the installed SDK (expo@55).
+      # Cross-SDK bumps break native compatibility — upgrade them together via
+      # `npx expo install` during a deliberate SDK migration instead.
+      - dependency-name: "expo"
+        versions: [">=56.0.0"]
+      - dependency-name: "expo-*"
+        versions: [">=56.0.0"]
+      - dependency-name: "jest-expo"
+        versions: [">=56.0.0"]
+      - dependency-name: "react-native"
+      - dependency-name: "react-native-safe-area-context"
+      - dependency-name: "react-native-screens"
+      - dependency-name: "@react-native-community/netinfo"
 
   - package-ecosystem: "github-actions"
     directory: "/"
