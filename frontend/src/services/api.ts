@@ -45,16 +45,31 @@ api.interceptors.request.use((config) => {
 
 // Axios interceptor: refresh on 401
 const REFRESH_URL = '/api/auth/refresh';
+
+// Anonymous auth endpoints return 401 for bad credentials or tokens, not an
+// expired session — refreshing or redirecting would swallow the real error.
+// Authenticated auth endpoints (resend-verification, oauth/link, ...) are
+// deliberately absent so they still get refresh-on-401.
+const NO_REFRESH_URLS = new Set([
+  REFRESH_URL,
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/oauth',
+  '/api/auth/verify-email',
+  '/api/auth/password-reset-request',
+  '/api/auth/password-reset',
+]);
+
 let refreshPromise: Promise<string> | null = null;
 
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
-    // A 401 from the refresh endpoint itself must fall through to the
+    // A 401 from the refresh endpoint itself must also fall through to the
     // refreshPromise catch below — re-entering the retry branch would await
     // refreshPromise from inside the request it depends on and deadlock.
-    if (error.response?.status === 401 && original && !original._retry && original.url !== REFRESH_URL) {
+    if (error.response?.status === 401 && original && !original._retry && !NO_REFRESH_URLS.has(original.url ?? '')) {
       original._retry = true;
       const { refresh } = getStoredTokens();
       if (!refresh) {

@@ -107,4 +107,42 @@ describe('api 401 refresh interceptor', () => {
     expect(localStorage.getItem(TOKEN_KEY)).toBe('new-access');
     expect(localStorage.getItem(REFRESH_KEY)).toBe('new-refresh');
   });
+
+  it('rejects a wrong-password login with the 401 error without redirecting', async () => {
+    const realCreate = axios.create.bind(axios);
+    vi.spyOn(axios, 'create').mockImplementation((config) =>
+      realCreate({ ...config, adapter: reject401Adapter() }),
+    );
+
+    const { login } = await import('../api');
+
+    await expect(login('user@example.com', 'wrong-password')).rejects.toMatchObject({
+      response: { status: 401 },
+    });
+    expect(window.location.href).toBe('');
+  });
+
+  it('rejects a wrong-password login without attempting refresh when stale tokens are stored', async () => {
+    localStorage.setItem(TOKEN_KEY, 'expired-access');
+    localStorage.setItem(REFRESH_KEY, 'expired-refresh');
+
+    let refreshCalls = 0;
+    const adapter = (config: InternalAxiosRequestConfig) => {
+      if (config.url === '/api/auth/refresh') refreshCalls++;
+      return reject401Adapter()(config);
+    };
+
+    const realCreate = axios.create.bind(axios);
+    vi.spyOn(axios, 'create').mockImplementation((config) =>
+      realCreate({ ...config, adapter }),
+    );
+
+    const { login } = await import('../api');
+
+    await expect(login('user@example.com', 'wrong-password')).rejects.toMatchObject({
+      response: { status: 401 },
+    });
+    expect(refreshCalls).toBe(0);
+    expect(window.location.href).toBe('');
+  });
 });
