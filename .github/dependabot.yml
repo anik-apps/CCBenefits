@@ -26,6 +26,8 @@ updates:
         versions: [">=56.0.0"]
       - dependency-name: "expo-*"
         versions: [">=56.0.0"]
+      - dependency-name: "jest-expo"
+        versions: [">=56.0.0"]
       - dependency-name: "react-native"
       - dependency-name: "react-native-safe-area-context"
       - dependency-name: "react-native-screens"
