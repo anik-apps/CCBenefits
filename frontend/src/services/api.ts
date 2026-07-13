@@ -50,7 +50,11 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+    // A 401 from the refresh endpoint itself must fall through to the
+    // refreshPromise catch below — re-entering the retry branch would await
+    // refreshPromise from inside the request it depends on and deadlock.
+    const isRefreshCall = original?.url === '/api/auth/refresh';
+    if (error.response?.status === 401 && !original._retry && !isRefreshCall) {
       original._retry = true;
       const { refresh } = getStoredTokens();
       if (!refresh) {
