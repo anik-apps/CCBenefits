@@ -78,6 +78,8 @@ api.interceptors.request.use((config) => {
 // expired session — clearing tokens or signaling auth failure would swallow
 // the real error. Authenticated auth endpoints (resend-verification,
 // oauth/link, ...) are deliberately absent so they still get refresh-on-401.
+// Unlike web, the refresh entry is parity/defense only — refresh goes through
+// the interceptor-free refreshApi instance, so no deadlock risk exists here.
 const NO_REFRESH_URLS = new Set([
   '/api/auth/refresh',
   '/api/auth/login',

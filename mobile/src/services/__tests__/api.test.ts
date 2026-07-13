@@ -292,6 +292,7 @@ describe('response interceptor (401 handling)', () => {
   });
 
   it('rejects a login 401 without attempting refresh when stale tokens are stored', async () => {
+    const SecureStore = require('expo-secure-store');
     const api = require('../api');
     await api.storeTokens('stale-access', 'stale-refresh');
     const onFailure = jest.fn();
@@ -305,6 +306,8 @@ describe('response interceptor (401 handling)', () => {
     await expect(responseErrorHandler!(error401)).rejects.toBe(error401);
     expect(onFailure).not.toHaveBeenCalled();
     expect(mockRefreshPost).not.toHaveBeenCalled();
+    expect(SecureStore.deleteItemAsync).not.toHaveBeenCalled();
+    expect(api.getStoredTokens()).toEqual({ access: 'stale-access', refresh: 'stale-refresh' });
   });
 
   it('does not retry non-401 errors', async () => {
