@@ -274,6 +274,42 @@ describe('response interceptor (401 handling)', () => {
     expect(SecureStore.deleteItemAsync).toHaveBeenCalled();
   });
 
+  it('rejects a login 401 without clearing tokens or signaling auth failure', async () => {
+    const SecureStore = require('expo-secure-store');
+    const api = require('../api');
+    const onFailure = jest.fn();
+    api.setAuthFailureHandler(onFailure);
+
+    const error401 = {
+      response: { status: 401 },
+      config: { url: '/api/auth/login', headers: {}, _retry: false },
+    };
+
+    await expect(responseErrorHandler!(error401)).rejects.toBe(error401);
+    expect(onFailure).not.toHaveBeenCalled();
+    expect(SecureStore.deleteItemAsync).not.toHaveBeenCalled();
+    expect(mockRefreshPost).not.toHaveBeenCalled();
+  });
+
+  it('rejects a login 401 without attempting refresh when stale tokens are stored', async () => {
+    const SecureStore = require('expo-secure-store');
+    const api = require('../api');
+    await api.storeTokens('stale-access', 'stale-refresh');
+    const onFailure = jest.fn();
+    api.setAuthFailureHandler(onFailure);
+
+    const error401 = {
+      response: { status: 401 },
+      config: { url: '/api/auth/login', headers: {}, _retry: false },
+    };
+
+    await expect(responseErrorHandler!(error401)).rejects.toBe(error401);
+    expect(onFailure).not.toHaveBeenCalled();
+    expect(mockRefreshPost).not.toHaveBeenCalled();
+    expect(SecureStore.deleteItemAsync).not.toHaveBeenCalled();
+    expect(api.getStoredTokens()).toEqual({ access: 'stale-access', refresh: 'stale-refresh' });
+  });
+
   it('does not retry non-401 errors', async () => {
     require('../api');
 
