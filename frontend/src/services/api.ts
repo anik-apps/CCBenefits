@@ -44,6 +44,7 @@ api.interceptors.request.use((config) => {
 });
 
 // Axios interceptor: refresh on 401
+const REFRESH_URL = '/api/auth/refresh';
 let refreshPromise: Promise<string> | null = null;
 
 api.interceptors.response.use(
@@ -53,8 +54,7 @@ api.interceptors.response.use(
     // A 401 from the refresh endpoint itself must fall through to the
     // refreshPromise catch below — re-entering the retry branch would await
     // refreshPromise from inside the request it depends on and deadlock.
-    const isRefreshCall = original?.url === '/api/auth/refresh';
-    if (error.response?.status === 401 && !original._retry && !isRefreshCall) {
+    if (error.response?.status === 401 && original && !original._retry && original.url !== REFRESH_URL) {
       original._retry = true;
       const { refresh } = getStoredTokens();
       if (!refresh) {
@@ -65,7 +65,7 @@ api.interceptors.response.use(
 
       if (!refreshPromise) {
         refreshPromise = api
-          .post('/api/auth/refresh', { refresh_token: refresh })
+          .post(REFRESH_URL, { refresh_token: refresh })
           .then((res) => {
             const data: TokenResponse = res.data;
             storeTokens(data.access_token, data.refresh_token);

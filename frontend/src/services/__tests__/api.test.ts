@@ -74,4 +74,37 @@ describe('api 401 refresh interceptor', () => {
     expect(localStorage.getItem(REFRESH_KEY)).toBeNull();
     expect(window.location.href).toBe('/login');
   });
+
+  it('refreshes and retries the original request when the refresh token is valid', async () => {
+    localStorage.setItem(TOKEN_KEY, 'expired-access');
+    localStorage.setItem(REFRESH_KEY, 'valid-refresh');
+
+    const profile = { id: 1, email: 'user@example.com', display_name: 'User' };
+    let refreshCalls = 0;
+
+    const adapter = (config: InternalAxiosRequestConfig) => {
+      const ok = (data: unknown) =>
+        Promise.resolve({ data, status: 200, statusText: 'OK', headers: {}, config });
+      if (config.url === '/api/auth/refresh') {
+        refreshCalls++;
+        return ok({ access_token: 'new-access', refresh_token: 'new-refresh' });
+      }
+      if (config.headers?.Authorization === 'Bearer new-access') {
+        return ok(profile);
+      }
+      return reject401Adapter()(config);
+    };
+
+    const realCreate = axios.create.bind(axios);
+    vi.spyOn(axios, 'create').mockImplementation((config) =>
+      realCreate({ ...config, adapter }),
+    );
+
+    const { getProfile } = await import('../api');
+
+    await expect(getProfile()).resolves.toEqual(profile);
+    expect(refreshCalls).toBe(1);
+    expect(localStorage.getItem(TOKEN_KEY)).toBe('new-access');
+    expect(localStorage.getItem(REFRESH_KEY)).toBe('new-refresh');
+  });
 });
