@@ -9,6 +9,7 @@
     "web": "expo start --web",
     "test": "jest",
     "test:coverage": "jest --coverage",
+    "typecheck": "tsc --noEmit",
     "test:screenshots": "./scripts/adb-screenshot-test.sh",
     "test:screenshots:update": "./scripts/adb-screenshot-test.sh --update"
   },
